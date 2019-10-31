@@ -1,0 +1,77 @@
+// import com.sun.tools.sjavac.Util
+
+plugins {
+    id 'java'
+}
+apply plugin: 'java'
+
+group = "com.adva"
+version = "0.1.0-SNAPSHOT"
+
+sourceCompatibility = 11
+targetCompatibility = 11
+
+repositories {
+    mavenCentral()
+    // maven("https://repo.spring.io/plugins-release")
+
+    jcenter()
+
+    flatDir {
+        dirs "opendaylight-mdsal/binding/yang-binding/target"
+    }
+
+    // flatDir {
+    //     dirs "opendaylight-netconf/netconf/tools/netconf-testtool/target"
+    // }
+}
+
+dependencies {
+    implementation "com.google.code.findbugs:findbugs-annotations:3.0.1"
+    implementation "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
+
+    // implementation "org.opendaylight.mdsal:yang-binding:3.0.1"
+    implementation ":yang-binding-3.0.1"
+
+    implementation "org.opendaylight.netconf:netconf-testtool:1.7.0"
+    // implementation ":netconf-testtool-1.7.0-executable"
+
+    // implementation "commons-io:commons-io:2.6"
+    // testImplementation "junit", "junit", "4.12"
+}
+
+sourceSets {
+    main.java.srcDirs += "build/mdsal"
+}
+
+compileJava {
+    // options.deprecation = true
+    // options.warnings = true
+}
+
+jar {
+    from("./src/yang") {
+        include "*.yang"
+        into "META-INF/yang"
+    }
+
+    manifest {
+        attributes 'Main-Class': "com.adva.netemu.Main"
+    }
+}
+
+task('uberJar', type: Jar) {
+    with jar
+    archiveClassifier.set 'uber'
+
+    manifest {
+        attributes 'Main-Class': "com.adva.netemu.Main"
+    }
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.filter { File file ->
+            file.name.endsWith ".jar"
+        }.collect { zipTree it }
+    }
+}
