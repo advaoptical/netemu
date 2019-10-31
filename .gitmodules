@@ -1,0 +1,6 @@
+[submodule "opendaylight-netconf"]
+	path = opendaylight-netconf
+	url = https://github.com/opendaylight/netconf.git
+[submodule "opendaylight-mdsal"]
+	path = opendaylight-mdsal
+	url = https://github.com/opendaylight/mdsal.git
