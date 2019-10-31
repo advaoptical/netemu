@@ -1,11 +1,12 @@
 package com.adva.netemu;
 
-// import org.graalvm.compiler.hotspot.stubs.StubUtil
+// import org.graalvm.compiler.hotspot.stubs.StubUtil;
 
 import com.google.common.collect.ImmutableSet;
 
-// import org.opendaylight.netconf.sal.connect.netconf.NetconfDevice
-// import org.opendaylight.netconf.sal.connect.netconf.NetconfDeviceBuilder
+// import org.opendaylight.netconf.sal.connect.netconf.NetconfDevice;
+// import org.opendaylight.netconf.sal.connect.netconf.NetconfDeviceBuilder;
+
 import org.opendaylight.netconf.test.tool.NetconfDeviceSimulator;
 import org.opendaylight.netconf.test.tool.config.ConfigurationBuilder;
 
