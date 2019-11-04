@@ -2,8 +2,13 @@
 
 plugins {
     id 'java'
+    id 'application'
 }
+
 apply plugin: 'java'
+application {
+    mainClassName = "com.adva.netemu.Main"
+}
 
 group = "com.adva"
 version = "0.1.0-SNAPSHOT"
