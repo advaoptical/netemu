@@ -70,6 +70,13 @@ task('uberJar', type: Jar) {
         attributes 'Main-Class': "com.adva.netemu.Main"
     }
 
+    /*  Extended archive creation adapted from
+        https://github.com/gradle/gradle
+        /blob/31c1c031de1643402032e1a51f835c2055d0afb5
+        /subprojects/docs/src/samples/userguide/files
+        /archivesWithJavaPlugin/kotlin/build.gradle.kts
+    */
+
     dependsOn configurations.runtimeClasspath
     from {
         configurations.runtimeClasspath.filter { File file ->
