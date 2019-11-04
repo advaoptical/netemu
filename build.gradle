@@ -31,7 +31,9 @@ dependencies {
     implementation "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
 
     // implementation "org.opendaylight.mdsal:yang-binding:3.0.1"
-    implementation ":yang-binding-3.0.1"
+
+    // From ./opendaylight-mdsal/binding/yang-binding/target/
+    implementation ":yang-binding-3.0.3"
 
     implementation "org.opendaylight.netconf:netconf-testtool:1.7.0"
     // implementation ":netconf-testtool-1.7.0-executable"
