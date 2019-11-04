@@ -49,6 +49,12 @@ public class YangPool {
     public YangPool(
             @NonNull final String id, final YangModuleInfo... modules) {
 
+        /*
+            The following is adapted from
+            org.opendaylight.netconf.test.tool.NetconfDeviceSimulator
+                    ::parseSchemasToModuleCapabilities
+         */
+
         final var repo = new SharedSchemaRepository("netemu-" + id);
         repo.registerSchemaSourceListener(
                 TextToASTTransformer.create(repo, repo));
