@@ -91,9 +91,12 @@ public class NetconfRequest implements RpcHandler {
             return Optional.empty();
         }
 
+/*
         final var nodeResult = new NormalizedNodeResult();
         final var nodeWriter =
                 ImmutableNormalizedNodeStreamWriter.from(nodeResult);
+
+*/
 
 /*
         final var yangModule = this._yangContext.findModule("TODO!");
@@ -103,6 +106,7 @@ public class NetconfRequest implements RpcHandler {
         }
 */
 
+/*
         for (final var yangData : this._yangContext.getDataDefinitions()) {
             final var parser = XmlParserStream.create(
                     nodeWriter, this._yangContext, yangData);
@@ -128,6 +132,7 @@ public class NetconfRequest implements RpcHandler {
                     "Parsed received message to YANG data node:\n{}",
                     node.toString());
         }
+*/
 
         return Optional.of(response);
     }
