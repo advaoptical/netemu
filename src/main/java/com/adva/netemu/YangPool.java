@@ -33,27 +33,28 @@ public class YangPool {
     private static Logger LOG = LoggerFactory.getLogger(YangPool.class);
 
     @NonNull
+    private final ImmutableSet<YangModuleInfo> _modules;
+
+    public ImmutableSet<YangModuleInfo> getModules() {
+        return this._modules;
+    }
+
+    @NonNull
     private final SchemaContext _context;
 
     public SchemaContext getYangContext() {
-/*
-        if (this._context == null) {
-            throw new RuntimeException(
-                    "YANG context was not properly created!");
-        }
-*/
-
         return this._context;
     }
 
     public YangPool(
             @NonNull final String id, final YangModuleInfo... modules) {
 
-        /*
-            The following is adapted from
+        this._modules = ImmutableSet.copyOf(modules);
+
+        /*  The following is adapted from
             org.opendaylight.netconf.test.tool.NetconfDeviceSimulator
                     ::parseSchemasToModuleCapabilities
-         */
+        */
 
         final var repo = new SharedSchemaRepository("netemu-" + id);
         repo.registerSchemaSourceListener(
@@ -83,8 +84,7 @@ public class YangPool {
         });
 
         repo.registerSchemaSourceListener(new SchemaSourceCache<>(
-                repo, YangTextSchemaSource.class,
-                ImmutableSet.copyOf(modules)));
+                repo, YangTextSchemaSource.class, this._modules));
 
         try {
             this._context = repo.createEffectiveModelContextFactory()
