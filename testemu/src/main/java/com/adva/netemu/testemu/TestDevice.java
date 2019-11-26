@@ -6,8 +6,6 @@ import java.util.stream.IntStream;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
-import com.adva.netemu.Owned;
-import com.adva.netemu.YangData;
 import com.google.common.collect.ImmutableList;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
@@ -16,6 +14,8 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.InterfacesBuilder;
 
+import com.adva.netemu.Owned;
+import com.adva.netemu.YangData;
 import com.adva.netemu.YangModeled;
 
 
