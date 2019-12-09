@@ -8,12 +8,16 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.interfaces.Interface;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
+        .ietf.interfaces.rev180220.interfaces.InterfaceKey;
+
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.interfaces.InterfaceBuilder;
 
 import com.adva.netemu.YangModeled;
 
 
-public class TestInterface extends YangModeled<Interface, InterfaceBuilder> {
+public class TestInterface extends YangModeled.ListItem<
+        Interface, InterfaceKey, InterfaceBuilder> {
 
     private @Nonnull final String _name;
 
@@ -22,7 +26,8 @@ public class TestInterface extends YangModeled<Interface, InterfaceBuilder> {
         return this._name;
     }
 
-    private AtomicBoolean _enabled = new AtomicBoolean(false);
+    @Nonnull
+    private final AtomicBoolean _enabled = new AtomicBoolean(false);
 
     public boolean isEnabled() {
         return this._enabled.get();
@@ -30,6 +35,11 @@ public class TestInterface extends YangModeled<Interface, InterfaceBuilder> {
 
     public boolean isDisabled() {
         return !this._enabled.get();
+    }
+
+    @Override
+    public InterfaceKey getKey() {
+        return new InterfaceKey(this._name);
     }
 
     public TestInterface(@Nonnull final String name) {
