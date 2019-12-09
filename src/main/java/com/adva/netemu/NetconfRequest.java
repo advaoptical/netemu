@@ -1,22 +1,34 @@
 package com.adva.netemu;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.URISyntaxException;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+
+import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+/*
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema
         .ImmutableNormalizedNodeStreamWriter;
@@ -25,6 +37,17 @@ import org.opendaylight.yangtools.yang.data.impl.schema
         .NormalizedNodeResult;
 
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
+*/
+
+import org.opendaylight.yangtools.yang.data.codec.xml
+        .XMLStreamNormalizedNodeStreamWriter;
+
+import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
+import org.opendaylight.yangtools.yang.data.api.schema.stream
+        .NormalizedNodeWriter;
+
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
 import org.opendaylight.netconf.api.xml.MissingNameSpaceException;
 import org.opendaylight.netconf.api.xml.XmlElement;
@@ -37,14 +60,18 @@ public class NetconfRequest implements RpcHandler {
 
     private static Logger LOG = LoggerFactory.getLogger(NetconfRequest.class);
 
-    private static XMLInputFactory XML_INPUT_FACTORY =
+    private static final XMLInputFactory XML_INPUT_FACTORY =
             XMLInputFactory.newInstance();
+
+    private static final XMLOutputFactory XML_OUTPUT_FACTORY =
+            XMLOutputFactory.newFactory();
 
     private static DocumentBuilder RESPONSE_BUILDER;
     static {
         try {
-            RESPONSE_BUILDER = DocumentBuilderFactory.newInstance()
-                    .newDocumentBuilder();
+            final var factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            RESPONSE_BUILDER = factory.newDocumentBuilder();
 
         } catch (final ParserConfigurationException e) {
             e.printStackTrace();
@@ -52,10 +79,10 @@ public class NetconfRequest implements RpcHandler {
     }
 
     @NonNull
-    private SchemaContext _yangContext;
+    private YangPool _pool;
 
-    public NetconfRequest(@NonNull final SchemaContext yangContext) {
-        this._yangContext = yangContext;
+    public NetconfRequest(@NonNull final YangPool pool) {
+        this._pool = pool;
     }
 
     @Override
@@ -78,8 +105,9 @@ public class NetconfRequest implements RpcHandler {
         LOG.info("Received message ID: {}", id);
 
         final var response = RESPONSE_BUILDER.newDocument();
+        Element root;
         try {
-            final var root = response.createElementNS(
+            root = response.createElementNS(
                     message.getNamespace(), "rpc-reply");
 
             response.appendChild(root);
@@ -89,6 +117,69 @@ public class NetconfRequest implements RpcHandler {
             e.printStackTrace();
             LOG.error("Received message has no namespace!");
             return Optional.empty();
+        }
+
+        final var txn = this._pool.getDomDataBroker()
+                .newReadOnlyTransaction();
+
+        final var storeType = LogicalDatastoreType.OPERATIONAL;
+        final var future = txn.read(
+                storeType, YangInstanceIdentifier.empty());
+
+        LOG.info("Reading from " + storeType + " Datastore");
+        Optional<NormalizedNode<?, ?>> node;
+        try {
+            node = future.get();
+
+        } catch (
+                InterruptedException |
+                ExecutionException e) {
+
+            e.printStackTrace();
+            return Optional.of(response);
+        }
+
+        if (node.isPresent()) {
+            final var stream = new ByteArrayOutputStream();
+            XMLStreamWriter xmlWriter;
+            try {
+                xmlWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(
+                        stream, "UTF-8");
+
+            } catch (XMLStreamException e) {
+                e.printStackTrace();
+                return Optional.of(response);
+            }
+
+            final var nodeWriter = NormalizedNodeWriter.forStreamWriter(
+                    XMLStreamNormalizedNodeStreamWriter.createSchemaless(
+                            new IndentingXMLStreamWriter(xmlWriter)));
+                            // this._pool.getYangContext()));
+
+            try {
+                nodeWriter.write(node.get());
+                nodeWriter.flush();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                return Optional.of(response);
+            }
+
+            Document data;
+            try {
+                data = RESPONSE_BUILDER.parse(new InputSource(
+                        new StringReader(stream.toString(UTF_8))));
+
+            } catch (
+                    SAXException |
+                    IOException e) {
+
+                e.printStackTrace();
+                return Optional.of(response);
+            }
+
+            root.appendChild(response.importNode(
+                    data.getDocumentElement(), true));
         }
 
 /*

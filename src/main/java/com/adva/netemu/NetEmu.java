@@ -26,7 +26,7 @@ public final class NetEmu extends NetconfDeviceSimulator {
                         "urn:ietf:params:netconf:base:1.1"))
 
                 .setModels(ImmutableSet.copyOf(pool.getModules()))
-                .setRpcMapping(new NetconfRequest(pool.getYangContext()))
+                .setRpcMapping(new NetconfRequest(pool))
                 .build());
 
         this._pool = pool;
