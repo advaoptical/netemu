@@ -23,8 +23,7 @@ class NetEmuPlugin implements Plugin<Project> {
             final def buildRoot = prj.buildDir.toPath()
 
             final def resources = buildRoot.resolve("resources/main")
-            final def output = buildRoot.resolve(
-                    ext.yangToSources.outputDir ?: "generated/sources/mdsal")
+            final def output = buildRoot.resolve(ext.yangToSources.outputDir)
 
             final def outputDir = output.toString()
             final def proc = new NetEmuYangToSourcesProcessor(

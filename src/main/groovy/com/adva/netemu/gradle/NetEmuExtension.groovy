@@ -10,7 +10,7 @@ class NetEmuExtension {
 
     static class YangToSources {
         // String yangDir = "META-INF/yang"
-        private String _outputDir = null
+        private String _outputDir = "generated/sources/mdsal"
 
         public String getOutputDir() {
             return this._outputDir
