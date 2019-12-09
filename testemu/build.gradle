@@ -37,6 +37,10 @@ netEmu {
     }
 }
 
+sourceSets {
+    main.java.srcDirs += "$buildDir/$netEmu.yangToSources.outputDir"
+}
+
 repositories {
     mavenCentral()
     mavenLocal()
