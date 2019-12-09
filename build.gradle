@@ -45,17 +45,26 @@ dependencies {
 
     implementation "com.google.code.findbugs:findbugs-annotations:3.0.1"
 
+    implementation "javax.activation:activation:1.1.1"
+    implementation "javax.xml.bind:jaxb-api:2.3.1"
+    implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
+
     // Needed by auto-generated MD-SAL Java code from YANG
     api "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
 
+    api "org.opendaylight.yangtools:rfc7952-data-util:4.0.2"
+    api "org.opendaylight.yangtools:yang-data-codec-xml:4.0.2"
+
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
-    api "org.opendaylight.mdsal:yang-binding:3.0.3"
-    api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:3.0.3"
+    api "org.opendaylight.mdsal:yang-binding:3.0.4"
+    api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:3.0.4"
 
-    api "org.opendaylight.yangtools:yang-maven-plugin:4.0.1"
+    api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:5.0.4"
 
-    api "org.opendaylight.netconf:netconf-testtool:1.7.0"
+    api "org.opendaylight.yangtools:yang-maven-plugin:4.0.2"
+
+    api "org.opendaylight.netconf:netconf-testtool:1.7.1"
     // implementation ":netconf-testtool-1.7.0-executable"
 
     // implementation "commons-io:commons-io:2.6"
