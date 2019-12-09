@@ -7,12 +7,17 @@ import javax.annotation.Nonnull;
 
 import com.google.common.reflect.TypeToken;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.opendaylight.yangtools.concepts.Builder;
-
 import org.opendaylight.yangtools.yang.binding.ChildOf;
+import org.opendaylight.yangtools.yang.binding.Identifiable;
+import org.opendaylight.yangtools.yang.binding.Identifier;
 
-// import org.opendaylight.yangtools.yang.binding.Identifiable;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import static org.opendaylight.yangtools.yang.binding.InstanceIdentifier
+        .InstanceIdentifierBuilder;
 
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
@@ -21,20 +26,23 @@ import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         implements AutoCloseable {
 
-/*
-    public abstract class WithKey<K> extends YangModeled<T> {
+    protected static Logger LOG = LoggerFactory.getLogger(YangModeled.class);
 
-        public WithKey(@Nonnull final YangModeled owner) {
-            super(owner);
-        }
+    public static abstract class ListItem<
+            T extends ChildOf & Identifiable<K>,
+            K extends Identifier<T>,
+            B extends Builder<T>>
+
+            extends YangModeled<T, B> {
 
         @Override
-        public InstanceIdentifier.InstanceIdentifierBuilder getIidBuilder() {
-            return this.getOwner().getIidBuilder().child(
+        public InstanceIdentifierBuilder<T> getIidBuilder() {
+            return this._owner.getIidBuilder().child(
                     this.getDataClass(), this.getKey());
         }
+
+        public abstract K getKey();
     }
-*/
 
     public Class<T> getDataClass() {
         return (Class<T>) (new TypeToken<T>(this.getClass()) {}).getRawType();
@@ -56,7 +64,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         return this._iid;
     }
 
-    public InstanceIdentifier.InstanceIdentifierBuilder<T> getIidBuilder() {
+    public InstanceIdentifierBuilder<T> getIidBuilder() {
         if (this._owner == null) {
             return InstanceIdentifier.builder(this.getDataClass());
         }
@@ -68,7 +76,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         this._iid = this.getIidBuilder().build();
     }
 
-    private YangModeled _owner;
+    protected YangModeled _owner;
 
     public YangModeled getOwner() {
         return this._owner;
@@ -105,25 +113,22 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         return this._providerAction.apply(builder).build();
     }
 
-    public void init() {
-        if (this._broker == null) {
-            return;
-        }
+    public void writeDataTo(
+            final @Nonnull YangPool pool,
+            final @Nonnull LogicalDatastoreType storeType) {
 
-        final var data = this.toYangData();
-        this._buildIid();
+        pool.writeData(this, storeType);
+    }
 
-        final var txn = this._broker.newWriteOnlyTransaction();
-        txn.put(LogicalDatastoreType.OPERATIONAL, this._iid, data);
+    public void deleteDataFrom(
+            final @Nonnull YangPool pool,
+            final @Nonnull LogicalDatastoreType storeType) {
+
+        pool.deleteData(this, storeType);
     }
 
     @Override
-    public void close() throws Exception {
-        if ((this._broker == null) || (this._iid == null)) {
-            return;
-        }
-
-        final var txn = this._broker.newWriteOnlyTransaction();
-        txn.delete(LogicalDatastoreType.OPERATIONAL, this._iid);
+    public void close() {
+        // this.deleteDataFrom(LogicalDatastoreType.OPERATIONAL);
     }
 }
