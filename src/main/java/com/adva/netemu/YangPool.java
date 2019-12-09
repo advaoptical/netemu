@@ -1,16 +1,36 @@
 package com.adva.netemu;
 
+import java.util.Map;
+/*
 import java.util.Set;
+*/
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+
+import javax.annotation.Nonnull;
+
+/*
 import java.util.concurrent.ExecutionException;
+*/
 
 import com.google.common.collect.ImmutableSet;
+/*
 import com.google.common.collect.Sets;
+*/
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.annotation.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
+
+/*
 import org.opendaylight.yangtools.yang.model.repo.spi.PotentialSchemaSource;
 import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceListener;
 import org.opendaylight.yangtools.yang.model.repo.api
@@ -22,28 +42,94 @@ import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
 import org.opendaylight.yangtools.yang.parser.repo.SharedSchemaRepository;
 import org.opendaylight.yangtools.yang.parser.rfc7950.repo
         .TextToASTTransformer;
+*/
 
-import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
+import org.opendaylight.mdsal.binding.api.DataBroker;
+import org.opendaylight.mdsal.binding.dom.adapter.BindingDOMDataBrokerAdapter;
+import org.opendaylight.mdsal.binding.dom.adapter
+        .BindingToNormalizedNodeCodec;
 
+import org.opendaylight.mdsal.binding.dom.codec.impl
+        .BindingNormalizedNodeCodecRegistry;
+
+/*
+import org.opendaylight.mdsal.binding.generator.impl
+        .GeneratedClassLoadingStrategy;
+*/
+import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
+import org.opendaylight.mdsal.binding.generator.util.BindingRuntimeContext;
+
+import org.opendaylight.mdsal.common.api.CommitInfo;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+
+import org.opendaylight.mdsal.dom.api.DOMDataBroker;
+import org.opendaylight.mdsal.dom.broker.SerializedDOMDataBroker;
+import org.opendaylight.mdsal.dom.spi.store.DOMStore;
+import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStore;
+
+import static org.opendaylight.mdsal.dom.store.inmemory
+        .InMemoryDOMDataStoreConfigProperties
+        .DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE;
+
+/*
 import org.opendaylight.netconf.test.tool.schemacache.SchemaSourceCache;
+*/
 
 
 public class YangPool {
 
-    private static Logger LOG = LoggerFactory.getLogger(YangPool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(YangPool.class);
+
+    @Nonnull
+    private final ScheduledThreadPoolExecutor _executor =
+            new ScheduledThreadPoolExecutor(0);
 
     @NonNull
     private final ImmutableSet<YangModuleInfo> _modules;
 
+    @Nonnull
     public ImmutableSet<YangModuleInfo> getModules() {
         return this._modules;
     }
 
     @NonNull
-    private final SchemaContext _context;
+    private final ModuleInfoBackedContext _context;
 
+    @Nonnull
     public SchemaContext getYangContext() {
-        return this._context;
+        return this._context.getSchemaContext();
+    }
+
+    @Nonnull
+    private final BindingDOMDataBrokerAdapter _broker;
+
+    @Nonnull
+    public DataBroker getDataBroker() {
+        return this._broker;
+    }
+
+    @Nonnull
+    private final SerializedDOMDataBroker _domBroker;
+
+    @Nonnull
+    public DOMDataBroker getDomDataBroker() {
+        return this._domBroker;
+    }
+
+    @Nonnull
+    private final InMemoryDOMDataStore _operStore;
+
+    @Nonnull
+    public DOMStore getOperationalDataStore() {
+        return this._operStore;
+    }
+
+    @Nonnull
+    private final InMemoryDOMDataStore _configStore;
+
+    @Nonnull
+    public DOMStore getConfigurationDataStore() {
+        return this._configStore;
     }
 
     public YangPool(
@@ -56,6 +142,7 @@ public class YangPool {
                     ::parseSchemasToModuleCapabilities
         */
 
+        /*
         final var repo = new SharedSchemaRepository("netemu-" + id);
         repo.registerSchemaSourceListener(
                 TextToASTTransformer.create(repo, repo));
@@ -100,5 +187,117 @@ public class YangPool {
             throw new RuntimeException(
                     "Cannot continue without YANG context!", e);
         }
+        */
+
+        this._context = ModuleInfoBackedContext.create();
+        this._context.addModuleInfos(this._modules);
+
+        this._configStore = new InMemoryDOMDataStore(
+                "netemu-" + id + "-config",
+                LogicalDatastoreType.CONFIGURATION,
+                this._executor,
+                DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
+                false);
+
+        this._configStore.onGlobalContextUpdated(this.getYangContext());
+
+        this._operStore = new InMemoryDOMDataStore(
+                "netemu-" + id + "-oper",
+                LogicalDatastoreType.OPERATIONAL,
+                this._executor,
+                DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
+                false);
+
+        this._operStore.onGlobalContextUpdated(this.getYangContext());
+
+        final var stores = Map.of(
+                LogicalDatastoreType.CONFIGURATION,
+                (DOMStore) this._configStore,
+
+                LogicalDatastoreType.OPERATIONAL,
+                (DOMStore) this._operStore);
+
+        this._domBroker = new SerializedDOMDataBroker(
+                stores, MoreExecutors.listeningDecorator(this._executor));
+                        // Executors.newScheduledThreadPool(0)));
+
+        this._broker = new BindingDOMDataBrokerAdapter(
+                this._domBroker, new BindingToNormalizedNodeCodec(
+                        this._context, new BindingNormalizedNodeCodecRegistry(
+                                BindingRuntimeContext.create(
+                                        this._context,
+                                        this.getYangContext()))));
+    }
+
+    public void writeOperationalDataFrom(final @Nonnull YangModeled object) {
+        this.writeData(object, LogicalDatastoreType.OPERATIONAL);
+    }
+
+    public void writeConfigurationDataFrom(final @Nonnull YangModeled object) {
+        this.writeData(object, LogicalDatastoreType.CONFIGURATION);
+    }
+
+    public void writeData(
+            final @Nonnull YangModeled object,
+            final LogicalDatastoreType storeType) {
+
+        final var iid = object.getIidBuilder().build();
+        final var txn = this._broker.newWriteOnlyTransaction();
+        txn.put(storeType, iid, object.toYangData());
+
+        LOG.info("Writing to " + storeType + " Datastore: " + iid);
+        Futures.addCallback(
+                txn.commit(), new FutureCallback<CommitInfo>() {
+
+                    @Override
+                    public void onSuccess(@Nullable CommitInfo result) {
+                        LOG.info(result.toString());
+                    }
+
+                    @Override
+                    public void onFailure(final Throwable failure) {
+                        failure.printStackTrace();
+                        LOG.error("Failed writing to "
+                                + storeType + " Datastore: " + iid);
+                    }
+
+                },
+                this._executor);
+    }
+
+    public void deleteOperationalDataOf(final @Nonnull YangModeled object) {
+        this.deleteData(object, LogicalDatastoreType.OPERATIONAL);
+    }
+
+    public void deleteConfigurationDataOf(final @Nonnull YangModeled object) {
+        this.deleteData(object, LogicalDatastoreType.CONFIGURATION);
+    }
+
+    public void deleteData(
+            final @Nonnull YangModeled object,
+            final LogicalDatastoreType storeType) {
+
+        final var iid = object.getIidBuilder().build();
+        final var txn = this._broker.newWriteOnlyTransaction();
+        txn.delete(storeType, iid);
+
+        LOG.info("Deleting from " + storeType + " Datastore: " + iid);
+        Futures.addCallback(
+                txn.commit(), new FutureCallback<CommitInfo>() {
+
+                    @Override
+                    public void onSuccess(@Nullable CommitInfo result) {
+                        LOG.info(result.toString());
+                    }
+
+                    @Override
+                    public void onFailure(final Throwable failure) {
+                        failure.printStackTrace();
+                        LOG.error("Failed deleting from "
+                                + storeType + " Datastore: " + iid);
+                    }
+
+                },
+                this._executor);
     }
 }
