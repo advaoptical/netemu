@@ -1,17 +1,25 @@
 package com.adva.netemu;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Map;
 /*
 import java.util.Set;
 */
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-
-import javax.annotation.Nonnull;
-
 /*
 import java.util.concurrent.ExecutionException;
 */
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import javax.xml.stream.XMLStreamException;
 
 import com.google.common.collect.ImmutableSet;
 /*
@@ -22,12 +30,17 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.eclipse.jdt.annotation.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.xml.sax.SAXException;
+
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
+import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
+import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
+import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
+import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
 /*
@@ -84,7 +97,7 @@ public class YangPool {
     private final ScheduledThreadPoolExecutor _executor =
             new ScheduledThreadPoolExecutor(0);
 
-    @NonNull
+    @Nonnull
     private final ImmutableSet<YangModuleInfo> _modules;
 
     @Nonnull
@@ -92,7 +105,7 @@ public class YangPool {
         return this._modules;
     }
 
-    @NonNull
+    @Nonnull
     private final ModuleInfoBackedContext _context;
 
     @Nonnull
@@ -133,7 +146,7 @@ public class YangPool {
     }
 
     public YangPool(
-            @NonNull final String id, final YangModuleInfo... modules) {
+            @Nonnull final String id, final YangModuleInfo... modules) {
 
         this._modules = ImmutableSet.copyOf(modules);
 
@@ -229,17 +242,59 @@ public class YangPool {
                                         this.getYangContext()))));
     }
 
-    public void writeOperationalDataFrom(final @Nonnull YangModeled object) {
+    public void writeOperationalData(
+            @Nonnull final NormalizedNode<?, ?> node) {
+
+        this.writeData(node, LogicalDatastoreType.OPERATIONAL);
+    }
+
+    public void writeConfigurationData(
+            @Nonnull final NormalizedNode<?, ?> node) {
+
+        this.writeData(node, LogicalDatastoreType.CONFIGURATION);
+    }
+
+    public void writeData(
+            @Nonnull final NormalizedNode<?, ?> node,
+            @Nonnull final LogicalDatastoreType storeType) {
+
+        final var path = YangInstanceIdentifier.create(node.getIdentifier());
+        final var txn = this._domBroker.newWriteOnlyTransaction();
+        txn.put(storeType, path, node);
+
+        LOG.info("Writing to " + storeType + " Datastore: " + path);
+        Futures.addCallback(
+                txn.commit(), new FutureCallback<CommitInfo>() {
+
+                    @Override
+                    public void onSuccess(@Nullable CommitInfo result) {
+                        LOG.info(result.toString());
+                    }
+
+                    @Override
+                    public void onFailure(final Throwable failure) {
+                        failure.printStackTrace();
+                        LOG.error("Failed writing to "
+                                + storeType + " Datastore: " + path);
+                    }
+
+                },
+                this._executor);
+    }
+
+    public void writeOperationalDataFrom(@Nonnull final YangModeled object) {
         this.writeData(object, LogicalDatastoreType.OPERATIONAL);
     }
 
-    public void writeConfigurationDataFrom(final @Nonnull YangModeled object) {
+    public void writeConfigurationDataFrom(
+            @Nonnull final YangModeled object) {
+
         this.writeData(object, LogicalDatastoreType.CONFIGURATION);
     }
 
     public void writeData(
-            final @Nonnull YangModeled object,
-            final LogicalDatastoreType storeType) {
+            @Nonnull final YangModeled object,
+            @Nonnull final LogicalDatastoreType storeType) {
 
         final var iid = object.getIidBuilder().build();
         final var txn = this._broker.newWriteOnlyTransaction();
@@ -265,17 +320,17 @@ public class YangPool {
                 this._executor);
     }
 
-    public void deleteOperationalDataOf(final @Nonnull YangModeled object) {
+    public void deleteOperationalDataOf(@Nonnull final YangModeled object) {
         this.deleteData(object, LogicalDatastoreType.OPERATIONAL);
     }
 
-    public void deleteConfigurationDataOf(final @Nonnull YangModeled object) {
+    public void deleteConfigurationDataOf(@Nonnull final YangModeled object) {
         this.deleteData(object, LogicalDatastoreType.CONFIGURATION);
     }
 
     public void deleteData(
-            final @Nonnull YangModeled object,
-            final LogicalDatastoreType storeType) {
+            @Nonnull final YangModeled object,
+            @Nonnull final LogicalDatastoreType storeType) {
 
         final var iid = object.getIidBuilder().build();
         final var txn = this._broker.newWriteOnlyTransaction();
