@@ -5,13 +5,6 @@ import java.net.URISyntaxException;
 
 import java.util.ArrayList;
 import java.util.Map;
-/*
-import java.util.Set;
-*/
-
-/*
-import java.util.concurrent.ExecutionException;
-*/
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.annotation.Nonnull;
@@ -21,10 +14,6 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.collect.ImmutableSet;
-/*
-import com.google.common.collect.Sets;
-*/
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -42,20 +31,6 @@ import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeS
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
-/*
-import org.opendaylight.yangtools.yang.model.repo.spi.PotentialSchemaSource;
-import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceListener;
-import org.opendaylight.yangtools.yang.model.repo.api
-        .SchemaSourceRepresentation;
-
-import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
-import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
-
-import org.opendaylight.yangtools.yang.parser.repo.SharedSchemaRepository;
-import org.opendaylight.yangtools.yang.parser.rfc7950.repo
-        .TextToASTTransformer;
-*/
-
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.dom.adapter.BindingDOMDataBrokerAdapter;
 import org.opendaylight.mdsal.binding.dom.adapter
@@ -64,10 +39,6 @@ import org.opendaylight.mdsal.binding.dom.adapter
 import org.opendaylight.mdsal.binding.dom.codec.impl
         .BindingNormalizedNodeCodecRegistry;
 
-/*
-import org.opendaylight.mdsal.binding.generator.impl
-        .GeneratedClassLoadingStrategy;
-*/
 import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 import org.opendaylight.mdsal.binding.generator.util.BindingRuntimeContext;
 
@@ -82,10 +53,6 @@ import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStore;
 import static org.opendaylight.mdsal.dom.store.inmemory
         .InMemoryDOMDataStoreConfigProperties
         .DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE;
-
-/*
-import org.opendaylight.netconf.test.tool.schemacache.SchemaSourceCache;
-*/
 
 
 public class YangPool {
@@ -148,58 +115,6 @@ public class YangPool {
             @Nonnull final String id, final YangModuleInfo... modules) {
 
         this._modules = ImmutableSet.copyOf(modules);
-
-        /*  The following is adapted from
-            org.opendaylight.netconf.test.tool.NetconfDeviceSimulator
-                    ::parseSchemasToModuleCapabilities
-        */
-
-        /*
-        final var repo = new SharedSchemaRepository("netemu-" + id);
-        repo.registerSchemaSourceListener(
-                TextToASTTransformer.create(repo, repo));
-
-        final Set<SourceIdentifier> sources = Sets.newHashSet();
-        repo.registerSchemaSourceListener(new SchemaSourceListener() {
-
-            @Override
-            public void schemaSourceEncountered(
-                    final SchemaSourceRepresentation __) {
-            }
-
-            @Override
-            public void schemaSourceRegistered(
-                    final Iterable<PotentialSchemaSource<?>> source) {
-
-                for (final var s : source) {
-                    sources.add(s.getSourceIdentifier());
-                }
-            }
-
-            @Override
-            public void schemaSourceUnregistered(
-                    final PotentialSchemaSource<?> __) {
-            }
-        });
-
-        repo.registerSchemaSourceListener(new SchemaSourceCache<>(
-                repo, YangTextSchemaSource.class, this._modules));
-
-        try {
-            this._context = repo.createEffectiveModelContextFactory()
-                    .createEffectiveModelContext(sources).get();
-
-        } catch (
-                final
-                InterruptedException |
-                ExecutionException e) {
-
-            e.printStackTrace();
-            LOG.error("Parsing YANG modules failed!");
-            throw new RuntimeException(
-                    "Cannot continue without YANG context!", e);
-        }
-        */
 
         this._context = ModuleInfoBackedContext.create();
         this._context.addModuleInfos(this._modules);
@@ -318,8 +233,7 @@ public class YangPool {
                                 + storeType + " Datastore: " + path);
                     }
 
-                },
-                this._executor);
+                }, this._executor);
     }
 
     public void writeOperationalDataFrom(@Nonnull final YangModeled object) {
@@ -356,8 +270,7 @@ public class YangPool {
                                 + storeType + " Datastore: " + iid);
                     }
 
-                },
-                this._executor);
+                }, this._executor);
     }
 
     public void deleteOperationalDataOf(@Nonnull final YangModeled object) {
@@ -392,7 +305,6 @@ public class YangPool {
                                 + storeType + " Datastore: " + iid);
                     }
 
-                },
-                this._executor);
+                }, this._executor);
     }
 }

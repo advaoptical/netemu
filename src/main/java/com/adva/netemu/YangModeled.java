@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.function.Function;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.reflect.TypeToken;
 
@@ -26,7 +27,8 @@ import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         implements AutoCloseable {
 
-    protected static Logger LOG = LoggerFactory.getLogger(YangModeled.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(
+            YangModeled.class);
 
     public static abstract class ListItem<
             T extends ChildOf & Identifiable<K>,
@@ -35,19 +37,22 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
 
             extends YangModeled<T, B> {
 
-        @Override
+        @Nonnull @Override
         public InstanceIdentifierBuilder<T> getIidBuilder() {
             return this._owner.getIidBuilder().child(
                     this.getDataClass(), this.getKey());
         }
 
+        @Nonnull
         public abstract K getKey();
     }
 
+    @Nonnull
     public Class<T> getDataClass() {
         return (Class<T>) (new TypeToken<T>(this.getClass()) {}).getRawType();
     }
 
+    @Nonnull
     public Class<B> getBuilderClass() {
         return (Class<B>) (new TypeToken<B>(this.getClass()) {}).getRawType();
     }
@@ -58,12 +63,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         this._broker = broker;
     }
 
-    private InstanceIdentifier<T> _iid;
-
-    public InstanceIdentifier<T> getIid() {
-        return this._iid;
-    }
-
+    @Nonnull
     public InstanceIdentifierBuilder<T> getIidBuilder() {
         if (this._owner == null) {
             return InstanceIdentifier.builder(this.getDataClass());
@@ -72,12 +72,13 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         return this._owner.getIidBuilder().child(this.getDataClass());
     }
 
-    public void _buildIid() {
-        this._iid = this.getIidBuilder().build();
+    public InstanceIdentifier<T> getIid() {
+        return this.getIidBuilder().build();
     }
 
-    protected YangModeled _owner;
+    protected YangModeled _owner = null;
 
+    @Nullable
     public YangModeled getOwner() {
         return this._owner;
     }
@@ -88,14 +89,19 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         this._owner = owner;
     }
 
-    private @Nonnull Function<B, B> _providerAction;
+    private Function<B, B> _providerAction = null;
 
     protected void provideYangData(@Nonnull final Function<B, B> action) {
         this._providerAction = action;
     }
 
+    @Nullable
     public T toYangData() {
-        B builder;
+        if (this._providerAction == null) {
+            return null;
+        }
+
+        final B builder;
         try {
             builder = this.getBuilderClass()
                     .getDeclaredConstructor().newInstance();
@@ -114,15 +120,15 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
     }
 
     public void writeDataTo(
-            final @Nonnull YangPool pool,
-            final @Nonnull LogicalDatastoreType storeType) {
+            @Nonnull final YangPool pool,
+            @Nonnull final LogicalDatastoreType storeType) {
 
         pool.writeData(this, storeType);
     }
 
     public void deleteDataFrom(
-            final @Nonnull YangPool pool,
-            final @Nonnull LogicalDatastoreType storeType) {
+            @Nonnull final YangPool pool,
+            @Nonnull final LogicalDatastoreType storeType) {
 
         pool.deleteData(this, storeType);
     }
