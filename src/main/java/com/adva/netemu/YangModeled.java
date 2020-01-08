@@ -72,6 +72,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         return this._owner.getIidBuilder().child(this.getDataClass());
     }
 
+    @Nonnull
     public InstanceIdentifier<T> getIid() {
         return this.getIidBuilder().build();
     }
