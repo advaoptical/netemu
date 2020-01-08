@@ -19,6 +19,11 @@ public final class Main {
                 org.opendaylight.yang.gen.v1
                         .urn.ietf.params.xml.ns.yang
                         .ietf.interfaces.rev180220
+                        .$YangModuleInfoImpl.getInstance(),
+
+                org.opendaylight.yang.gen.v1
+                        .urn.ietf.params.xml.ns.yang
+                        .iana._if.type.rev170119
                         .$YangModuleInfoImpl.getInstance());
 
         final var device = new TestDevice(7);
@@ -39,6 +44,7 @@ public final class Main {
         pool.writeOperationalDataFrom(device);
 
         final var emu = new NetEmu(pool);
+        emu.loadConfigurationFromXml();
         emu.start();
     }
 }

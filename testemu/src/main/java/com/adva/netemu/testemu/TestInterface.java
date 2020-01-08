@@ -13,11 +13,20 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.interfaces.InterfaceBuilder;
 
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
+        .ietf.interfaces.rev180220.InterfaceType;
+
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
+        .iana._if.type.rev170119.EthernetCsmacd;
+
 import com.adva.netemu.YangModeled;
 
 
 public class TestInterface extends YangModeled.ListItem<
         Interface, InterfaceKey, InterfaceBuilder> {
+
+    private static Class<? extends InterfaceType> IETF_INTERFACE_TYPE =
+            EthernetCsmacd.class;
 
     private @Nonnull final String _name;
 
@@ -46,6 +55,7 @@ public class TestInterface extends YangModeled.ListItem<
         this._name = name;
 
         super.provideYangData((builder) -> builder
+                .setType(IETF_INTERFACE_TYPE)
                 .setName(this._name)
                 .setEnabled(this._enabled.get()));
     }
