@@ -70,6 +70,13 @@ public class NetconfRequest implements RpcHandler {
     static {
         try {
             final var factory = DocumentBuilderFactory.newInstance();
+
+            /*  Without namespace awareness enabled, the builder would not be
+                able to parse any XML using namespace syntax. Learned from
+                https://docs.oracle.com/javase/tutorial/jaxp/dom
+                        /readingXML.html
+             */
+
             factory.setNamespaceAware(true);
             RESPONSE_BUILDER = factory.newDocumentBuilder();
 
@@ -164,6 +171,11 @@ public class NetconfRequest implements RpcHandler {
                 e.printStackTrace();
                 return Optional.of(response);
             }
+
+            /*  Adding <data> element to response adapted from
+                https://stackoverflow.com/questions/729621
+                        /convert-string-xml-fragment-to-document-node-in-java
+            */
 
             Document data;
             try {
