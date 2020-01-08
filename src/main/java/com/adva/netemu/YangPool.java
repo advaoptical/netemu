@@ -1,11 +1,9 @@
 package com.adva.netemu;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.ArrayList;
 import java.util.Map;
 /*
 import java.util.Set;
@@ -20,6 +18,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.collect.ImmutableSet;
 /*
@@ -240,6 +239,47 @@ public class YangPool {
                                 BindingRuntimeContext.create(
                                         this._context,
                                         this.getYangContext()))));
+    }
+
+    public void writeConfigurationDataFrom(
+            @Nonnull final XMLStreamReader xmlReader) {
+
+        final var input = YangXmlDataInput.using(
+                xmlReader, this.getYangContext());
+
+        final var dataNodes = new ArrayList<NormalizedNode<?, ?>>();
+        try {
+            while (input.hasNext()) {
+                input.nextYangTree();
+
+                final var nodeResult = new NormalizedNodeResult();
+                final var nodeWriter =
+                        ImmutableNormalizedNodeStreamWriter.from(nodeResult);
+
+                final var parser = XmlParserStream.create(
+                        nodeWriter, this.getYangContext(),
+                        input.getYangTreeNode(), true);
+
+                parser.parse(input);
+                dataNodes.add(nodeResult.getResult());
+            }
+
+        } catch (final
+                IllegalArgumentException |
+                IOException |
+                SAXException |
+                URISyntaxException |
+                XMLStreamException e) {
+
+            LOG.error("Cannot use XML Data input: " + xmlReader);
+            e.printStackTrace();
+            LOG.error("Failed parsing XML Data from: " + xmlReader);
+
+        } catch (YangXmlDataInput.EndOfDocument ignored) {}
+
+        for (final var node : dataNodes) {
+            this.writeConfigurationData(node);
+        }
     }
 
     public void writeOperationalData(
