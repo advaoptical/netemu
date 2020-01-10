@@ -1,5 +1,6 @@
 package com.adva.netemu.testemu;
 
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -21,11 +22,12 @@ import com.adva.netemu.YangModeled;
 
 public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
 
-    private @Nonnull final ImmutableList<TestInterface> _interfaces;
+    @Nonnull
+    private List<TestInterface> _interfaces;
 
     @Nonnull
     public ImmutableList<TestInterface> getInterfaces() {
-        return this._interfaces;
+        return ImmutableList.copyOf(this._interfaces);
     }
 
     public TestDevice(@Nonnegative final Integer intfCount) {
@@ -34,8 +36,19 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
                         .mapToObj((n) -> new TestInterface("test" + n))
                         .collect(ImmutableList.toImmutableList()));
 
-        super.provideYangData((builder) -> builder
+        super.provideOperationalDataVia((builder) -> builder
                 .setInterface(YangData.streamOf(this._interfaces)
                         .collect(Collectors.toList())));
+    }
+
+    @Override
+    public void loadConfiguration(@Nonnull Interfaces data) {
+        this._interfaces = Owned.by(this, data.getInterface().stream().map(
+            (intfData) -> {
+                final var intf = new TestInterface(intfData.key().getName());
+                intf.loadConfiguration(intfData);
+                return intf;
+
+            }).collect(ImmutableList.toImmutableList()));
     }
 }

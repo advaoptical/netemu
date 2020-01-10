@@ -54,10 +54,15 @@ public class TestInterface extends YangModeled.ListItem<
     public TestInterface(@Nonnull final String name) {
         this._name = name;
 
-        super.provideYangData((builder) -> builder
+        super.provideOperationalDataVia((builder) -> builder
                 .setType(IETF_INTERFACE_TYPE)
                 .setName(this._name)
                 .setEnabled(this._enabled.get()));
+    }
+
+    @Override
+    public void loadConfiguration(@Nonnull final Interface data) {
+        this._enabled.set(data.isEnabled());
     }
 
     public void enable() {

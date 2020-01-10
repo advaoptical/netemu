@@ -26,7 +26,7 @@ public final class Main {
                         .iana._if.type.rev170119
                         .$YangModuleInfoImpl.getInstance());
 
-        final var device = new TestDevice(7);
+        final var device = pool.registerYangModeled(new TestDevice(7));
         final var intf = device.getInterfaces().get(0);
         // intf._buildIid();
 
@@ -41,10 +41,11 @@ public final class Main {
         */
         System.out.println(intf.getIidBuilder().build());
 
-        pool.writeOperationalDataFrom(device);
-
         final var emu = new NetEmu(pool);
         emu.loadConfigurationFromXml();
+
+        // pool.writeOperationalDataFrom(device);
+
         emu.start();
     }
 }
