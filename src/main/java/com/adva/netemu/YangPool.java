@@ -2,9 +2,10 @@ package com.adva.netemu;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.annotation.Nonnull;
@@ -23,11 +24,15 @@ import org.slf4j.LoggerFactory;
 
 import org.xml.sax.SAXException;
 
+import org.opendaylight.yangtools.concepts.Builder;
+import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
-import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
+import org.opendaylight.yangtools.yang.data.impl.schema
+        .ImmutableNormalizedNodeStreamWriter;
+
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
@@ -41,7 +46,6 @@ import org.opendaylight.mdsal.binding.dom.codec.impl
 
 import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 import org.opendaylight.mdsal.binding.generator.util.BindingRuntimeContext;
-
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
@@ -49,7 +53,6 @@ import org.opendaylight.mdsal.dom.api.DOMDataBroker;
 import org.opendaylight.mdsal.dom.broker.SerializedDOMDataBroker;
 import org.opendaylight.mdsal.dom.spi.store.DOMStore;
 import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStore;
-
 import static org.opendaylight.mdsal.dom.store.inmemory
         .InMemoryDOMDataStoreConfigProperties
         .DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE;
@@ -111,6 +114,10 @@ public class YangPool {
         return this._configStore;
     }
 
+    @Nonnull
+    private ArrayList<YangModeled<?, ?>> _yangModeledRegistry =
+            new ArrayList<>();
+
     public YangPool(
             @Nonnull final String id, final YangModuleInfo... modules) {
 
@@ -154,6 +161,62 @@ public class YangPool {
                                 BindingRuntimeContext.create(
                                         this._context,
                                         this.getYangContext()))));
+    }
+
+    @Nonnull
+    public <T extends YangModeled<Y, B>,
+            Y extends ChildOf,
+            B extends Builder<Y>>
+
+    T registerYangModeled(@Nonnull final T object) {
+        final YangModeled<Y, B>.ConfigurationBinding binding =
+                object.createConfigurationBinding();
+
+        this._broker.registerDataTreeChangeListener(
+                binding.getDataTreeId(), binding);
+
+        this._yangModeledRegistry.add(object);
+        return object;
+    }
+
+    @Nonnull
+    public Optional<NormalizedNode<?, ?>> readConfigurationData() {
+        return this.readData(LogicalDatastoreType.CONFIGURATION);
+    }
+
+    @Nonnull
+    public Optional<NormalizedNode<?, ?>> readOperationalData() {
+        return this.readData(LogicalDatastoreType.OPERATIONAL);
+    }
+
+    @Nonnull
+    public Optional<NormalizedNode<?, ?>> readData(
+            @Nonnull final LogicalDatastoreType storeType) {
+
+        if (storeType == LogicalDatastoreType.OPERATIONAL) {
+            for (final YangModeled<?, ?> object : this._yangModeledRegistry) {
+                this.writeOperationalDataFrom(object);
+            }
+        }
+
+        final var txn = this._domBroker.newReadOnlyTransaction();
+        final var future = txn.read(
+                storeType, YangInstanceIdentifier.empty());
+
+        LOG.info("Reading from " + storeType + " Datastore");
+        final Optional<NormalizedNode<?, ?>> node;
+        try {
+            node = future.get();
+
+        } catch (final
+                InterruptedException |
+                ExecutionException e) {
+
+            e.printStackTrace();
+            return Optional.empty();
+        }
+
+        return node;
     }
 
     public void writeConfigurationDataFrom(
