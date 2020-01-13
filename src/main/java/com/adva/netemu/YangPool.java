@@ -264,43 +264,37 @@ public class YangPool {
         }
     }
 
-    public void writeOperationalData(
+    public FluentFuture<? extends CommitInfo> writeOperationalData(
             @Nonnull final NormalizedNode<?, ?> node) {
 
-        this.writeData(node, LogicalDatastoreType.OPERATIONAL);
+        return this.writeData(node, LogicalDatastoreType.OPERATIONAL);
     }
 
-    public void writeConfigurationData(
+    public FluentFuture<? extends CommitInfo> writeConfigurationData(
             @Nonnull final NormalizedNode<?, ?> node) {
 
-        this.writeData(node, LogicalDatastoreType.CONFIGURATION);
+        return this.writeData(node, LogicalDatastoreType.CONFIGURATION);
     }
 
-    public void writeData(
+    public FluentFuture<? extends CommitInfo> writeData(
             @Nonnull final NormalizedNode<?, ?> node,
             @Nonnull final LogicalDatastoreType storeType) {
 
-        final var path = YangInstanceIdentifier.create(node.getIdentifier());
+        final var yangPath = YangInstanceIdentifier.create(
+                node.getIdentifier());
+
         final var txn = this._domBroker.newWriteOnlyTransaction();
-        txn.put(storeType, path, node);
+        txn.put(storeType, yangPath, node);
+        final var future = txn.commit();
 
-        LOG.info("Writing to " + storeType + " Datastore: " + path);
-        Futures.addCallback(
-                txn.commit(), new FutureCallback<CommitInfo>() {
+        LOG.info("Writing to " + storeType + " Datastore: " + yangPath);
+        future.addCallback(
+                this._datastore.injectWriting().of(storeType, yangPath)
+                        .futureCallback,
 
-                    @Override
-                    public void onSuccess(@Nullable CommitInfo result) {
-                        LOG.info(result.toString());
-                    }
+                this._executor);
 
-                    @Override
-                    public void onFailure(final Throwable failure) {
-                        failure.printStackTrace();
-                        LOG.error("Failed writing to "
-                                + storeType + " Datastore: " + path);
-                    }
-
-                }, this._executor);
+        return future;
     }
 
     public void writeOperationalDataFrom(@Nonnull final YangModeled object) {
@@ -326,13 +320,13 @@ public class YangPool {
                 txn.commit(), new FutureCallback<CommitInfo>() {
 
                     @Override
-                    public void onSuccess(@Nullable CommitInfo result) {
+                    public void onSuccess(@Nullable final CommitInfo result) {
                         LOG.info(result.toString());
                     }
 
                     @Override
-                    public void onFailure(final Throwable failure) {
-                        failure.printStackTrace();
+                    public void onFailure(@Nonnull final Throwable t) {
+                        t.printStackTrace();
                         LOG.error("Failed writing to "
                                 + storeType + " Datastore: " + iid);
                     }
@@ -361,12 +355,12 @@ public class YangPool {
                 txn.commit(), new FutureCallback<CommitInfo>() {
 
                     @Override
-                    public void onSuccess(@Nullable CommitInfo result) {
+                    public void onSuccess(@Nullable final CommitInfo result) {
                         LOG.info(result.toString());
                     }
 
                     @Override
-                    public void onFailure(final Throwable failure) {
+                    public void onFailure(@Nonnull final Throwable failure) {
                         failure.printStackTrace();
                         LOG.error("Failed deleting from "
                                 + storeType + " Datastore: " + iid);
