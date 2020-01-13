@@ -3,9 +3,10 @@ package com.adva.netemu;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.annotation.Nonnull;
@@ -15,6 +16,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -57,6 +59,9 @@ import static org.opendaylight.mdsal.dom.store.inmemory
         .InMemoryDOMDataStoreConfigProperties
         .DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE;
 
+import com.adva.netemu.datastore.DaggerYangDatastore;
+import com.adva.netemu.datastore.YangDatastore;
+
 
 public class YangPool {
 
@@ -81,6 +86,9 @@ public class YangPool {
     public SchemaContext getYangContext() {
         return this._context.getSchemaContext();
     }
+
+    @Nonnull
+    private final YangDatastore _datastore = DaggerYangDatastore.create();
 
     @Nonnull
     private final BindingDOMDataBrokerAdapter _broker;
@@ -115,8 +123,8 @@ public class YangPool {
     }
 
     @Nonnull
-    private ArrayList<YangModeled<?, ?>> _yangModeledRegistry =
-            new ArrayList<>();
+    private final List<YangModeled<?, ?>> _yangModeledRegistry =
+            Collections.synchronizedList(new ArrayList<>());
 
     public YangPool(
             @Nonnull final String id, final YangModuleInfo... modules) {
@@ -180,22 +188,26 @@ public class YangPool {
     }
 
     @Nonnull
-    public Optional<NormalizedNode<?, ?>> readConfigurationData() {
+    public
+    FluentFuture<Optional<NormalizedNode<?, ?>>> readConfigurationData() {
         return this.readData(LogicalDatastoreType.CONFIGURATION);
     }
 
     @Nonnull
-    public Optional<NormalizedNode<?, ?>> readOperationalData() {
+    public
+    FluentFuture<Optional<NormalizedNode<?, ?>>> readOperationalData() {
         return this.readData(LogicalDatastoreType.OPERATIONAL);
     }
 
     @Nonnull
-    public Optional<NormalizedNode<?, ?>> readData(
+    public FluentFuture<Optional<NormalizedNode<?, ?>>> readData(
             @Nonnull final LogicalDatastoreType storeType) {
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
-            for (final YangModeled<?, ?> object : this._yangModeledRegistry) {
-                this.writeOperationalDataFrom(object);
+            synchronized (this._yangModeledRegistry) {
+                for (final var object : this._yangModeledRegistry) {
+                    this.writeOperationalDataFrom(object);
+                }
             }
         }
 
@@ -204,19 +216,11 @@ public class YangPool {
                 storeType, YangInstanceIdentifier.empty());
 
         LOG.info("Reading from " + storeType + " Datastore");
-        final Optional<NormalizedNode<?, ?>> node;
-        try {
-            node = future.get();
+        future.addCallback(
+                this._datastore.injectReading().of(storeType).futureCallback,
+                this._executor);
 
-        } catch (final
-                InterruptedException |
-                ExecutionException e) {
-
-            e.printStackTrace();
-            return Optional.empty();
-        }
-
-        return node;
+        return future;
     }
 
     public void writeConfigurationDataFrom(
