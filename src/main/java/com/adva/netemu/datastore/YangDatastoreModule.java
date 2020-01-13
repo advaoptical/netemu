@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 
+import org.opendaylight.mdsal.common.api.CommitInfo;
+
 
 @AssistedModule
 @Module(includes = {AssistedInject_YangDatastoreModule.class})
@@ -38,8 +40,27 @@ class YangDatastoreModule {
             @Override
             public void onFailure(@Nonnull final Throwable t) {
                 t.printStackTrace();
-                LOG.error("Failed reading from " + this.storeType
-                        + " Datastore");
+                LOG.error("Failed reading from "
+                        + this.storeType + " Datastore");
+            }
+        };
+    }
+
+    @Provides
+    static
+    YangDatastore.WritingFutureCallback provideWritingFutureCallback() {
+        return new YangDatastore.WritingFutureCallback() {
+
+            @Override
+            public void onSuccess(@Nullable final CommitInfo result) {
+                LOG.info(result.toString());
+            }
+
+            @Override
+            public void onFailure(@Nonnull final Throwable t) {
+                t.printStackTrace();
+                LOG.error("Failed writing to "
+                        + this.storeType + " Datastore: " + this.yangPath);
             }
         };
     }
