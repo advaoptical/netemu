@@ -6,6 +6,7 @@ import java.io.StringReader;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
@@ -19,6 +20,7 @@ import javax.xml.stream.XMLStreamWriter;
 
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 
+import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +113,19 @@ public class NetconfRequest implements RpcHandler {
             return Optional.empty();
         }
 
-        final var node = this._pool.readOperationalData();
+        final var future = this._pool.readOperationalData();
+        final Optional<NormalizedNode<?, ?>> node;
+        try {
+                node = future.get();
+
+        } catch (final
+                InterruptedException |
+                ExecutionException e) {
+
+            e.printStackTrace();
+            return Optional.empty();
+        }
+
         if (node.isEmpty()) {
             return Optional.of(response);
         }
