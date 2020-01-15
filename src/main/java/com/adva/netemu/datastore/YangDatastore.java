@@ -11,6 +11,7 @@ import com.squareup.inject.assisted.AssistedInject;
 
 import dagger.Component;
 
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 
@@ -84,10 +85,50 @@ public interface YangDatastore {
         @AssistedInject.Factory
         interface Factory {
             Writing of(
-                    @Nonnull final LogicalDatastoreType storeType,
-                    @Nonnull final YangInstanceIdentifier yangPath);
+                    final LogicalDatastoreType storeType,
+                    final YangInstanceIdentifier yangPath);
         }
     }
 
     YangDatastore$Writing_AssistedFactory injectWriting();
+
+    abstract class ModeledWritingFutureCallback
+            implements FutureCallback<CommitInfo> {
+
+        LogicalDatastoreType storeType;
+        InstanceIdentifier<?> yangModeledPath;
+
+        ModeledWritingFutureCallback of(
+                @Nonnull final LogicalDatastoreType storeType,
+                @Nonnull final InstanceIdentifier<?> yangModeledPath) {
+
+            this.storeType = storeType;
+            this.yangModeledPath = yangModeledPath;
+            return this;
+        }
+    }
+
+    class ModeledWriting {
+
+        public final ModeledWritingFutureCallback futureCallback;
+
+        @AssistedInject
+        ModeledWriting(
+                @Nonnull final ModeledWritingFutureCallback callback,
+                @Assisted @Nonnull final LogicalDatastoreType storeType,
+                @Assisted @Nonnull
+                final InstanceIdentifier<?> yangModeledPath) {
+
+            this.futureCallback = callback.of(storeType, yangModeledPath);
+        }
+
+        @AssistedInject.Factory
+        interface Factory {
+            ModeledWriting of(
+                    final LogicalDatastoreType storeType,
+                    final InstanceIdentifier<?> yangModeledPath);
+        }
+    }
+
+    YangDatastore$ModeledWriting_AssistedFactory injectModeledWriting();
 }

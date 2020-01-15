@@ -64,4 +64,25 @@ class YangDatastoreModule {
             }
         };
     }
+
+    @Provides
+    static
+    YangDatastore.ModeledWritingFutureCallback
+    provideModeledWritingFutureCallback() {
+        return new YangDatastore.ModeledWritingFutureCallback() {
+
+            @Override
+            public void onSuccess(@Nullable final CommitInfo result) {
+                LOG.info(result.toString());
+            }
+
+            @Override
+            public void onFailure(@Nonnull final Throwable t) {
+                t.printStackTrace();
+                LOG.error("Failed writing to "
+                        + this.storeType + " Datastore: "
+                        + this.yangModeledPath);
+            }
+        };
+    }
 }
