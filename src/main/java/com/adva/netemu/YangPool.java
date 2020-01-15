@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -327,18 +326,11 @@ public class YangPool {
             @Nonnull final YangModeled object,
             @Nonnull final LogicalDatastoreType storeType) {
 
-        final var iid = object.getIidBuilder().build();
-        final var txn = this._broker.newWriteOnlyTransaction();
-        txn.put(storeType, iid, object.toYangData());
-        final var future = txn.commit();
+        final var writing = this._datastore.injectModeledWriting().of(
+                storeType, object.getIidBuilder().build());
 
-        LOG.info("Writing to " + storeType + " Datastore: " + iid);
-        future.addCallback(
-                this._datastore.injectModeledWriting().of(storeType, iid)
-                        .futureCallback,
-
-                this._executor);
-
+        final var future = writing.transactor.apply(this._broker, object);
+        future.addCallback(writing.futureCallback, this._executor);
         return future;
     }
 
