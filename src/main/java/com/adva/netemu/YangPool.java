@@ -7,7 +7,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -15,10 +17,12 @@ import javax.annotation.Nullable;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.slf4j.Logger;
@@ -204,10 +208,20 @@ public class YangPool {
             @Nonnull final LogicalDatastoreType storeType) {
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
+            final ListenableFuture<List<CommitInfo>> updatingFuture;
             synchronized (this._yangModeledRegistry) {
-                for (final var object : this._yangModeledRegistry) {
-                    this.writeOperationalDataFrom(object);
-                }
+                updatingFuture = Futures.allAsList(
+                        this._yangModeledRegistry.stream()
+                                .map(this::writeOperationalDataFrom)
+                                .collect(ImmutableList.toImmutableList()));
+            }
+
+            try { updatingFuture.get(); } catch (final
+                    InterruptedException |
+                    ExecutionException e) {
+
+                return FluentFuture.from(Futures.immediateFailedFuture(
+                        e.getCause()));
             }
         }
 
@@ -297,41 +311,35 @@ public class YangPool {
         return future;
     }
 
-    public void writeOperationalDataFrom(@Nonnull final YangModeled object) {
-        this.writeData(object, LogicalDatastoreType.OPERATIONAL);
-    }
-
-    public void writeConfigurationDataFrom(
+    public FluentFuture<? extends CommitInfo> writeOperationalDataFrom(
             @Nonnull final YangModeled object) {
 
-        this.writeData(object, LogicalDatastoreType.CONFIGURATION);
+        return this.writeData(object, LogicalDatastoreType.OPERATIONAL);
     }
 
-    public void writeData(
+    public FluentFuture<? extends CommitInfo> writeConfigurationDataFrom(
+            @Nonnull final YangModeled object) {
+
+        return this.writeData(object, LogicalDatastoreType.CONFIGURATION);
+    }
+
+    public FluentFuture<? extends CommitInfo> writeData(
             @Nonnull final YangModeled object,
             @Nonnull final LogicalDatastoreType storeType) {
 
         final var iid = object.getIidBuilder().build();
         final var txn = this._broker.newWriteOnlyTransaction();
         txn.put(storeType, iid, object.toYangData());
+        final var future = txn.commit();
 
         LOG.info("Writing to " + storeType + " Datastore: " + iid);
-        Futures.addCallback(
-                txn.commit(), new FutureCallback<CommitInfo>() {
+        future.addCallback(
+                this._datastore.injectModeledWriting().of(storeType, iid)
+                        .futureCallback,
 
-                    @Override
-                    public void onSuccess(@Nullable final CommitInfo result) {
-                        LOG.info(result.toString());
-                    }
+                this._executor);
 
-                    @Override
-                    public void onFailure(@Nonnull final Throwable t) {
-                        t.printStackTrace();
-                        LOG.error("Failed writing to "
-                                + storeType + " Datastore: " + iid);
-                    }
-
-                }, this._executor);
+        return future;
     }
 
     public void deleteOperationalDataOf(@Nonnull final YangModeled object) {
