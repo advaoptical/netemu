@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 
 import com.squareup.inject.assisted.Assisted;
@@ -11,12 +12,17 @@ import com.squareup.inject.assisted.AssistedInject;
 
 import dagger.Component;
 
+import org.opendaylight.yangtools.concepts.Builder;
+import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 
+import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+
+import com.adva.netemu.YangModeled;
 
 
 @Component(modules = {YangDatastoreModule.class})
@@ -92,6 +98,31 @@ public interface YangDatastore {
 
     YangDatastore$Writing_AssistedFactory injectWriting();
 
+    @FunctionalInterface
+    interface ModeledWritingFunction {
+
+        @Nonnull
+        <Y extends ChildOf> FluentFuture<? extends CommitInfo> apply(
+                @Nonnull final DataBroker dataBroker,
+                @Nonnull final YangModeled<Y, Builder<Y>> object);
+    }
+
+    abstract class ModeledWritingTransactor
+            implements ModeledWritingFunction {
+
+        LogicalDatastoreType storeType;
+        InstanceIdentifier<?> yangModeledPath;
+
+        ModeledWritingTransactor of(
+                @Nonnull final LogicalDatastoreType storeType,
+                @Nonnull final InstanceIdentifier<?> yangModeledPath) {
+
+            this.storeType = storeType;
+            this.yangModeledPath = yangModeledPath;
+            return this;
+        }
+    }
+
     abstract class ModeledWritingFutureCallback
             implements FutureCallback<CommitInfo> {
 
@@ -110,15 +141,19 @@ public interface YangDatastore {
 
     class ModeledWriting {
 
+        public final ModeledWritingTransactor transactor;
+
         public final ModeledWritingFutureCallback futureCallback;
 
         @AssistedInject
         ModeledWriting(
+                @Nonnull final ModeledWritingTransactor transactor,
                 @Nonnull final ModeledWritingFutureCallback callback,
                 @Assisted @Nonnull final LogicalDatastoreType storeType,
                 @Assisted @Nonnull
                 final InstanceIdentifier<?> yangModeledPath) {
 
+            this.transactor = transactor.of(storeType, yangModeledPath);
             this.futureCallback = callback.of(storeType, yangModeledPath);
         }
 

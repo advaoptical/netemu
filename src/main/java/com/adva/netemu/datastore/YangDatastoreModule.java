@@ -5,6 +5,8 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.adva.netemu.YangModeled;
+import com.google.common.util.concurrent.FluentFuture;
 import com.squareup.inject.assisted.dagger2.AssistedModule;
 
 import dagger.Module;
@@ -13,8 +15,12 @@ import dagger.Provides;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.opendaylight.yangtools.concepts.Builder;
+import org.opendaylight.yangtools.yang.binding.ChildOf;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 
+import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
 
@@ -61,6 +67,31 @@ class YangDatastoreModule {
                 t.printStackTrace();
                 LOG.error("Failed writing to "
                         + this.storeType + " Datastore: " + this.yangPath);
+            }
+        };
+    }
+
+    @Provides
+    static
+    YangDatastore.ModeledWritingTransactor
+    provideModeledWritingTransactor() {
+        return new YangDatastore.ModeledWritingTransactor() {
+
+            @Override
+            public <Y extends ChildOf>
+            FluentFuture<? extends CommitInfo> apply(
+                    @Nonnull final DataBroker dataBroker,
+                    @Nonnull final YangModeled<Y, Builder<Y>> object) {
+
+                LOG.info("Writing to " + this.storeType + " Datastore: "
+                        + this.yangModeledPath);
+
+                final var txn = dataBroker.newWriteOnlyTransaction();
+                txn.put(this.storeType,
+                        (InstanceIdentifier<Y>) this.yangModeledPath,
+                        object.toYangData());
+
+                return txn.commit();
             }
         };
     }
