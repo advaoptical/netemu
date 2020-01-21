@@ -4,3 +4,6 @@
 [submodule "opendaylight-mdsal"]
 	path = opendaylight-mdsal
 	url = https://github.com/opendaylight/mdsal.git
+[submodule "opendaylight-yangtools"]
+	path = opendaylight-yangtools
+	url = https://github.com/opendaylight/yangtools.git
