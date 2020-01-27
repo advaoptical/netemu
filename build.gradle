@@ -1,7 +1,6 @@
 // import com.sun.tools.sjavac.Util
 
 plugins {
-    id 'application'
     id 'groovy'
     id 'java'
     id 'java-gradle-plugin'
@@ -12,10 +11,6 @@ apply plugin: 'groovy'
 apply plugin: 'java'
 apply plugin: 'java-gradle-plugin'
 apply plugin: 'maven'
-
-application {
-    mainClassName = "com.adva.netemu.Main"
-}
 
 group = "com.adva"
 version = "0.1.0-SNAPSHOT"
@@ -43,14 +38,9 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
 
-    implementation "com.google.code.findbugs:findbugs-annotations:3.0.1"
-
     implementation "javax.activation:activation:1.1.1"
     implementation "javax.xml.bind:jaxb-api:2.3.1"
     implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
-
-    // Needed by auto-generated MD-SAL Java code from YANG
-    api "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
 
     implementation "com.google.dagger:dagger:2.25.4"
     implementation(
@@ -60,17 +50,23 @@ dependencies {
     annotationProcessor(
             "com.squareup.inject:assisted-inject-processor-dagger2:0.5.2")
 
-    api "org.opendaylight.yangtools:rfc7952-data-util:4.0.2"
-    api "org.opendaylight.yangtools:yang-data-codec-xml:4.0.2"
+    // Needed by auto-generated MD-SAL Java code from YANG
+    api "com.google.code.findbugs:findbugs-annotations:3.0.1"
+    api "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
+
+    api "org.opendaylight.yangtools:rfc7952-data-util:4.0.6"
+
+    api "org.opendaylight.yangtools:yang-data-util:4.0.6"
+    api "org.opendaylight.yangtools:yang-data-codec-xml:4.0.6"
 
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
-    api "org.opendaylight.mdsal:yang-binding:3.0.4"
-    api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:3.0.4"
+    api "org.opendaylight.mdsal:yang-binding:3.0.6"
+    api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:3.0.6"
 
-    api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:5.0.4"
+    api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:5.0.6"
 
-    api "org.opendaylight.yangtools:yang-maven-plugin:4.0.2"
+    api "org.opendaylight.yangtools:yang-maven-plugin:4.0.6"
 
     api "org.opendaylight.netconf:netconf-testtool:1.7.1"
     // implementation ":netconf-testtool-1.7.0-executable"
