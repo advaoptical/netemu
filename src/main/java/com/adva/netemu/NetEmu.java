@@ -100,4 +100,36 @@ public final class NetEmu extends NetconfDeviceSimulator {
         this.loadConfigurationFromXml(
                 new File("configuration.xml").getAbsoluteFile());
     }
+
+    public void applyOperationalDataFromXml(
+            @Nonnull final File file, @Nonnull final Charset encoding) {
+
+        final XMLStreamReader xmlReader;
+        try {
+            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(
+                    new FileReader(file, encoding));
+
+        } catch (final
+                IOException |
+                XMLStreamException e) {
+
+            LOG.error("Cannot open file for loading Operational XML Data: "
+                    + file);
+
+            e.printStackTrace();
+            LOG.error("Failed reading Operational XML Data from: " + file);
+            return;
+        }
+
+        this._pool.writeOperationalDataFrom(xmlReader);
+    }
+
+    public void applyOperationalDataFromXml(@Nonnull final File file) {
+        this.applyOperationalDataFromXml(file, UTF_8);
+    }
+
+    public void applyOperationalDataFromXml() {
+        this.applyOperationalDataFromXml(
+                new File("configuration.xml").getAbsoluteFile());
+    }
 }
