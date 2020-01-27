@@ -189,8 +189,11 @@ public class YangXmlDataInput extends StreamReaderDelegate {
             tagType = super.nextTag();
 
             if (tagType == XMLStreamConstants.END_ELEMENT) {
-                if (super.getName() == this._treeTag) {
+                if (super.getName().equals(this._treeTag)) {
                     this._finishedTree = true;
+
+                    LOG.info("Reached end of YANG Data tree: {}",
+                            this._yangTreeNode);
                 }
             }
         }
