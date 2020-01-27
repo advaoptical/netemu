@@ -3,6 +3,7 @@ package com.adva.netemu;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -131,6 +132,13 @@ public class YangPool {
 
     public YangPool(
             @Nonnull final String id, final YangModuleInfo... modules) {
+
+        this(id, List.of(modules));
+    }
+
+    public YangPool(
+            @Nonnull final String id,
+            @Nonnull final Collection<YangModuleInfo> modules) {
 
         this._modules = ImmutableSet.copyOf(modules);
 
