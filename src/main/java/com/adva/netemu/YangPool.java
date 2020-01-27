@@ -239,13 +239,25 @@ public class YangPool {
     public void writeConfigurationDataFrom(
             @Nonnull final XMLStreamReader xmlReader) {
 
+        this.writeData(xmlReader, LogicalDatastoreType.CONFIGURATION);
+    }
+
+    public void writeOperationalDataFrom(
+            @Nonnull final XMLStreamReader xmlReader) {
+
+        this.writeData(xmlReader, LogicalDatastoreType.OPERATIONAL);
+    }
+
+    public void writeData(
+            @Nonnull final XMLStreamReader xmlReader,
+            @Nonnull final LogicalDatastoreType storeType) {
+
         final var input = YangXmlDataInput.using(
                 xmlReader, this.getYangContext());
 
         final var dataNodes = new ArrayList<NormalizedNode<?, ?>>();
         try {
-            while (input.hasNext()) {
-                input.nextYangTree();
+            while (input.nextYangTree()) {
 
                 final var nodeResult = new NormalizedNodeResult();
                 final var nodeWriter =
@@ -273,7 +285,7 @@ public class YangPool {
         } catch (YangXmlDataInput.EndOfDocument ignored) {}
 
         for (final var node : dataNodes) {
-            this.writeConfigurationData(node);
+            this.writeData(node, storeType);
         }
     }
 
