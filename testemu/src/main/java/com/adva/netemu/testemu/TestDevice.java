@@ -43,12 +43,12 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
 
     @Override
     public void loadConfiguration(@Nonnull Interfaces data) {
-        this._interfaces = Owned.by(this, data.getInterface().stream().map(
-            (intfData) -> {
-                final var intf = new TestInterface(intfData.key().getName());
-                intf.loadConfiguration(intfData);
-                return intf;
+        this._interfaces = Owned.by(this, data.nonnullInterface().stream()
+                .map((intfData) -> {
+                    final var intf = new TestInterface(intfData.key().getName());
+                    intf.loadConfiguration(intfData);
+                    return intf;
 
-            }).collect(ImmutableList.toImmutableList()));
+                }).collect(ImmutableList.toImmutableList()));
     }
 }
