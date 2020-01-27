@@ -15,12 +15,18 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.util.StreamReaderDelegate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
 
 public class YangXmlDataInput extends StreamReaderDelegate {
+
+    private static final Logger LOG = LoggerFactory.getLogger(
+            YangXmlDataInput.class);
 
     public static class EndOfDocument extends Exception {}
 
@@ -110,7 +116,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
         return NamespaceMap.using(super.getNamespaceContext());
     }
 
-    public void nextYangTree() throws XMLStreamException, EndOfDocument {
+    public boolean nextYangTree() throws XMLStreamException, EndOfDocument {
         this._nextTagType = -1;
         this._treeTag = null;
         this._finishedTree = false;
@@ -162,14 +168,15 @@ public class YangXmlDataInput extends StreamReaderDelegate {
                 continue;
             }
 
+            LOG.info("Found YANG Data tree: {}", node.get().getQName());
             this._yangTreeNode = node.get();
             this._treeTag = super.getName();
             this._nextTagType = tagType;
 
-            return;
+            return true;
         }
 
-        throw new XMLStreamException("TODO!");
+        return false; // throw new XMLStreamException("TODO!");
     }
 
     @Override
