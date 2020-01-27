@@ -4,12 +4,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.ImmutableList;
 
 import org.apache.maven.project.MavenProject;
-import org.eclipse.jdt.annotation.NonNull;
 
 import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
+
+import org.opendaylight.mdsal.binding.maven.api.gen.plugin
+        .NetEmuCodeGenerator;
 
 
 public class NetEmuYangToSourcesProcessor extends YangToSourcesProcessor {
@@ -19,21 +23,21 @@ public class NetEmuYangToSourcesProcessor extends YangToSourcesProcessor {
         @Override
         void addYangsToMetaInf(
                 final MavenProject project,
-                final Collection<YangTextSchemaSource> __) {
-        }
+                final Collection<YangTextSchemaSource> __) {}
     }
 
+    @Nonnull
     public static final Path YANG_PATH = Paths.get(
             "META-INF", "yang");
 
-    public static final String CODE_GENERATOR_CLASS =
-            "org.opendaylight.mdsal.binding"
-                    + ".maven.api.gen.plugin.CodeGeneratorImpl";
+    @Nonnull
+    public static final String CODE_GENERATOR_CLASS
+            = NetEmuCodeGenerator.class.getName();
 
     public NetEmuYangToSourcesProcessor(
-            @NonNull final Path resources,
-            @NonNull final String outputDir,
-            @NonNull final MavenProject project) {
+            @Nonnull final Path resources,
+            @Nonnull final String outputDir,
+            @Nonnull final MavenProject project) {
 
         super(
                 resources.resolve(YANG_PATH).toFile(),
