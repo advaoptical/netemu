@@ -25,7 +25,7 @@ public final class Main {
                         .$YangModuleInfoImpl.getInstance());
 
         final var device = pool.registerYangModeled(new TestDevice());
-        final var intf = device.getInterfaces().get(0);
+        // final var intf = device.getInterfaces().get(0);
         // intf._buildIid();
 
         /*
@@ -36,8 +36,8 @@ public final class Main {
         /*
         System.out.println(intf.toYangData().key());
         System.out.println(YangData.of(intf).get().getName());
-        */
         System.out.println(intf.getIidBuilder().build());
+        */
 
         final var emu = new NetEmu(pool);
         emu.loadConfigurationFromXml();
