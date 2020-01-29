@@ -24,7 +24,7 @@ public final class Main {
                         .iana._if.type.rev170119
                         .$YangModuleInfoImpl.getInstance());
 
-        final var device = pool.registerYangModeled(new TestDevice(7));
+        final var device = pool.registerYangModeled(new TestDevice());
         final var intf = device.getInterfaces().get(0);
         // intf._buildIid();
 

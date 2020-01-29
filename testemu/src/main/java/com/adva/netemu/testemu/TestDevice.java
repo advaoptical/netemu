@@ -24,22 +24,39 @@ import static com.adva.netemu.YangProviders.streamOperationalDataFrom;
 public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
 
     @Nonnull
-    private List<TestInterface> _interfaces;
+    private List<TestInterface> _interfaces = ImmutableList.of();
 
     @Nonnull
     public ImmutableList<TestInterface> getInterfaces() {
         return ImmutableList.copyOf(this._interfaces);
     }
 
-    public TestDevice(@Nonnegative final Integer intfCount) {
+    private TestDevice(@Nonnegative final Integer numberOfInterfaces) {
+        this();
         this._interfaces = Owned.by(
-                this, IntStream.range(0, intfCount)
+                this, IntStream.range(0, numberOfInterfaces)
                         .mapToObj((n) -> TestInterface.withName("test" + n))
                         .collect(toImmutableList()));
+    }
 
+    public TestDevice() {
         super.providesOperationalDataUsing(builder -> builder
                 .setInterface(streamOperationalDataFrom(this._interfaces)
                         .collect(toList())));
+    }
+
+    @Nonnull
+    public TestDevice withNumberOfInterfaces(
+            @Nonnegative final Integer number) {
+
+        return new TestDevice(number);
+    }
+
+    @Nonnull
+    public TestDevice fromConfigurationData(@Nonnull final Interfaces data) {
+        final var device = new TestDevice();
+        device.applyConfigurationData(data);
+        return device;
     }
 
     @Override
