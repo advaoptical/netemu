@@ -2,7 +2,10 @@ package com.adva.netemu;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.function.Function;
+import static java.util.Collections.synchronizedMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -49,11 +52,14 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         public abstract K getKey();
     }
 
-    public class ConfigurationBinding
+    public abstract class DataBinding
             implements DataTreeChangeListener<T> {
 
         @Nonnull
-        final YangModeled<T, B> _object;
+        private final LogicalDatastoreType _storeType;
+
+        @Nonnull
+        private final YangModeled<T, B> _object;
 
         @Nonnull
         public InstanceIdentifier<T> getIid() {
@@ -62,13 +68,14 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
 
         @Nonnull
         public DataTreeIdentifier<T> getDataTreeId() {
-            return DataTreeIdentifier.create(
-                    LogicalDatastoreType.CONFIGURATION, this.getIid());
+            return DataTreeIdentifier.create(this._storeType, this.getIid());
         }
 
-        public ConfigurationBinding(
+        protected DataBinding(
+                @Nonnull final LogicalDatastoreType storeType,
                 @Nonnull final YangModeled<T, B> object) {
 
+            this._storeType = storeType;
             this._object = object;
         }
 
@@ -76,31 +83,55 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         public void onDataTreeChanged(
                 @Nonnull final Collection<DataTreeModification<T>> changes) {
 
-            LOG.info("Applying changed " + LogicalDatastoreType.CONFIGURATION
-                    + " Data to: " + this._object);
+            LOG.info("Applying changed {} Data to: {}",
+                    this._storeType, this._object);
 
             for (final var change : changes) {
                 final var node = change.getRootNode();
                 switch (node.getModificationType()) {
                     case WRITE:
-                        this._object.loadConfiguration(node.getDataAfter());
-                        break;
+                        this._object.applyData(
+                                this._storeType, node.getDataAfter());
+
+                        continue;
 
                     case SUBTREE_MODIFIED:
                         // TODO!
-                        // break;
+                        // continue;
 
                     case DELETE:
                         // TODO!
-                        break;
                 }
             }
         }
     }
 
+    public final class ConfigurationDataBinding extends DataBinding {
+
+        public ConfigurationDataBinding(
+                @Nonnull final YangModeled<T, B> object) {
+
+            super(LogicalDatastoreType.CONFIGURATION, object);
+        }
+    }
+
     @Nonnull
-    public ConfigurationBinding createConfigurationBinding() {
-        return new ConfigurationBinding(this);
+    public ConfigurationDataBinding createConfigurationDataBinding() {
+        return new ConfigurationDataBinding(this);
+    }
+
+    public final class OperationalDataBinding extends DataBinding {
+
+        public OperationalDataBinding(
+                @Nonnull final YangModeled<T, B> object) {
+
+            super(LogicalDatastoreType.OPERATIONAL, object);
+        }
+    }
+
+    @Nonnull
+    public OperationalDataBinding createOperationalDataBinding() {
+        return new OperationalDataBinding(this);
     }
 
     @Nonnull
@@ -127,6 +158,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         return this.getIidBuilder().build();
     }
 
+    @Nullable
     protected YangModeled _owner = null;
 
     @Nullable
@@ -140,13 +172,55 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         this._owner = owner;
     }
 
-    public abstract void loadConfiguration(@Nonnull final T data);
+    @Nonnull
+    private final Map<LogicalDatastoreType, Function<T, T>> _dataAppliers =
+            synchronizedMap(new EnumMap<>(LogicalDatastoreType.class));
+
+    protected void appliesConfigurationDataUsing(
+            @Nullable final Function<T, T> applier) {
+
+        this._dataAppliers.put(LogicalDatastoreType.CONFIGURATION, applier);
+    }
+
+    protected void appliesOperationalDataUsing(
+            @Nullable final Function<T, T> applier) {
+
+        this._dataAppliers.put(LogicalDatastoreType.OPERATIONAL, applier);
+    }
+
+    public void applyConfigurationData(@Nonnull final T data) {
+        final var applier = this._dataAppliers.get(LogicalDatastoreType.CONFIGURATION);
+        if (applier != null) {
+            applier.apply(data);
+        }
+    }
+
+    public void applyOperationalData(@Nonnull final T data) {
+        final var applier = this._dataAppliers.get(LogicalDatastoreType.OPERATIONAL);
+        if (applier != null) {
+            applier.apply(data);
+        }
+    }
+
+    private void applyData(
+            @Nonnull final LogicalDatastoreType storeType,
+            @Nonnull final T data) {
+
+        switch (storeType) {
+            case CONFIGURATION:
+                this.applyConfigurationData(data);
+                return;
+
+            case OPERATIONAL:
+                this.applyOperationalData(data);
+        }
+    }
 
     @Nullable
     private Function<B, B> _operationalDataProvider = null;
 
     protected void providesOperationalDataUsing(
-            @Nonnull final Function<B, B> provider) {
+            @Nullable final Function<B, B> provider) {
 
         this._operationalDataProvider = provider;
     }

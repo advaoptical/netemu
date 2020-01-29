@@ -188,11 +188,13 @@ public class YangPool {
             B extends Builder<Y>>
 
     T registerYangModeled(@Nonnull final T object) {
-        final YangModeled<Y, B>.ConfigurationBinding binding =
-                object.createConfigurationBinding();
+        for (final YangModeled<Y, B>.DataBinding binding: List.of(
+                object.createConfigurationDataBinding(),
+                object.createOperationalDataBinding())) {
 
-        this._broker.registerDataTreeChangeListener(
-                binding.getDataTreeId(), binding);
+            this._broker.registerDataTreeChangeListener(
+                    binding.getDataTreeId(), binding);
+        }
 
         this._yangModeledRegistry.add(object);
         return object;
