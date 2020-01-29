@@ -34,7 +34,7 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
     public TestDevice(@Nonnegative final Integer intfCount) {
         this._interfaces = Owned.by(
                 this, IntStream.range(0, intfCount)
-                        .mapToObj((n) -> new TestInterface("test" + n))
+                        .mapToObj((n) -> TestInterface.withName("test" + n))
                         .collect(toImmutableList()));
 
         super.providesOperationalDataUsing(builder -> builder
@@ -45,12 +45,8 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
     @Override
     public void applyConfigurationData(@Nonnull final Interfaces data) {
         this._interfaces = Owned.by(this, data.nonnullInterface().stream()
-                .map((final var intfData) -> {
-                    final var intf = new TestInterface(intfData.key().getName());
-                    intf.applyConfigurationData(intfData);
-                    return intf;
-
-                }).collect(toImmutableList()));
+                .map(TestInterface::fromConfigurationData)
+                .collect(toImmutableList()));
     }
 
     @Override
@@ -58,8 +54,8 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
         for (final var intfData: data.nonnullInterface()) {
             this._interfaces.stream()
                     .filter(intf -> intf.getKey().equals(intfData.key()))
-                    .findFirst()
-                    .ifPresent(intf -> intf.applyOperationalData(intfData));
+                    .findFirst().ifPresent(
+                            intf -> intf.applyOperationalData(intfData));
         }
     }
 }

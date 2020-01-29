@@ -53,13 +53,27 @@ public class TestInterface extends YangModeled.ListItem<
         return new InterfaceKey(this._name);
     }
 
-    public TestInterface(@Nonnull final String name) {
+    private TestInterface(@Nonnull final String name) {
         this._name = name;
 
         super.providesOperationalDataUsing((builder) -> builder
                 .setType(IETF_INTERFACE_TYPE)
                 .setName(this._name)
                 .setEnabled(this._enabled.get()));
+    }
+
+    @Nonnull
+    public static TestInterface withName(@Nonnull final String name) {
+        return new TestInterface(name);
+    }
+
+    @Nonnull
+    public static TestInterface fromConfigurationData(
+            @Nonnull final Interface data) {
+
+        final var intf = TestInterface.withName(data.getName());
+        intf.applyConfigurationData(data);
+        return intf;
     }
 
     @Override
