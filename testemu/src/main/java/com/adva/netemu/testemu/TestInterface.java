@@ -67,6 +67,11 @@ public class TestInterface extends YangModeled.ListItem<
         this._enabled.set(data.isEnabled());
     }
 
+    @Override
+    public void applyOperationalData(@Nonnull final Interface data) {
+        this._enabled.set(data.isEnabled());
+    }
+
     public void enable() {
         this._enabled.set(true);
     }
