@@ -114,12 +114,6 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         return (Class<B>) (new TypeToken<B>(this.getClass()) {}).getRawType();
     }
 
-    private DataBroker _broker;
-
-    public void setDataBroker(@Nonnull final DataBroker broker) {
-        this._broker = broker;
-    }
-
     @Nonnull
     public InstanceIdentifierBuilder<T> getIidBuilder() {
         if (this._owner == null) {
