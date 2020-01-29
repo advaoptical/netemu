@@ -52,4 +52,14 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
 
                 }).collect(toImmutableList()));
     }
+
+    @Override
+    public void applyOperationalData(@Nonnull final Interfaces data) {
+        for (final var intfData: data.nonnullInterface()) {
+            this._interfaces.stream()
+                    .filter(intf -> intf.getKey().equals(intfData.key()))
+                    .findFirst()
+                    .ifPresent(intf -> intf.applyOperationalData(intfData));
+        }
+    }
 }
