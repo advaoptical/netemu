@@ -63,7 +63,7 @@ public class TestInterface extends YangModeled.ListItem<
     }
 
     @Override
-    public void loadConfiguration(@Nonnull final Interface data) {
+    public void applyConfigurationData(@Nonnull final Interface data) {
         this._enabled.set(data.isEnabled());
     }
 

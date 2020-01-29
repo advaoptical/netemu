@@ -1,13 +1,14 @@
 package com.adva.netemu.testemu;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import static java.util.stream.Collectors.toList;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.Interfaces;
@@ -34,21 +35,21 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
         this._interfaces = Owned.by(
                 this, IntStream.range(0, intfCount)
                         .mapToObj((n) -> new TestInterface("test" + n))
-                        .collect(ImmutableList.toImmutableList()));
+                        .collect(toImmutableList()));
 
-        super.providesOperationalDataUsing((builder) -> builder
+        super.providesOperationalDataUsing(builder -> builder
                 .setInterface(streamOperationalDataFrom(this._interfaces)
-                        .collect(Collectors.toList())));
+                        .collect(toList())));
     }
 
     @Override
-    public void loadConfiguration(@Nonnull Interfaces data) {
+    public void applyConfigurationData(@Nonnull final Interfaces data) {
         this._interfaces = Owned.by(this, data.nonnullInterface().stream()
-                .map((intfData) -> {
+                .map((final var intfData) -> {
                     final var intf = new TestInterface(intfData.key().getName());
-                    intf.loadConfiguration(intfData);
+                    intf.applyConfigurationData(intfData);
                     return intf;
 
-                }).collect(ImmutableList.toImmutableList()));
+                }).collect(toImmutableList()));
     }
 }
