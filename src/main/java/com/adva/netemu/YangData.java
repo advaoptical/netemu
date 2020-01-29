@@ -28,7 +28,7 @@ public class YangData<Y extends ChildOf> {
             T extends YangModeled<Y, ? extends Builder<Y>>>
 
     YangData<Y> of(@Nonnull final T object) {
-        return new YangData<>(object.toYangData());
+        return new YangData<>(object.provideOperationalData());
     }
 
     @Nonnull
@@ -37,6 +37,6 @@ public class YangData<Y extends ChildOf> {
             T extends YangModeled<Y, ? extends Builder<Y>>>
 
     Stream<Y> streamOf(@Nonnull final Collection<T> objects) {
-        return objects.stream().map(YangModeled::toYangData);
+        return objects.stream().map(YangModeled::provideOperationalData);
     }
 }

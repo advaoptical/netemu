@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.reflect.TypeToken;
 
-import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +20,8 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import static org.opendaylight.yangtools.yang.binding.InstanceIdentifier
         .InstanceIdentifierBuilder;
 
-import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.api.DataTreeChangeListener;
+import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
 import org.opendaylight.mdsal.binding.api.DataTreeModification;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
@@ -143,17 +142,18 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
 
     public abstract void loadConfiguration(@Nonnull final T data);
 
-    private Function<B, B> _providerAction = null;
+    @Nullable
+    private Function<B, B> _operationalDataProvider = null;
 
-    protected void provideOperationalDataVia(
-            @Nonnull final Function<B, B> action) {
+    protected void providesOperationalDataUsing(
+            @Nonnull final Function<B, B> provider) {
 
-        this._providerAction = action;
+        this._operationalDataProvider = provider;
     }
 
     @Nullable
-    public T toYangData() {
-        if (this._providerAction == null) {
+    public T provideOperationalData() {
+        if (this._operationalDataProvider == null) {
             return null;
         }
 
@@ -172,7 +172,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
             return null;
         }
 
-        return this._providerAction.apply(builder).build();
+        return this._operationalDataProvider.apply(builder).build();
     }
 
     public void writeDataTo(

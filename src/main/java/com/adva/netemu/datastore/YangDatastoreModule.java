@@ -5,8 +5,8 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.adva.netemu.YangModeled;
 import com.google.common.util.concurrent.FluentFuture;
+
 import com.squareup.inject.assisted.dagger2.AssistedModule;
 
 import dagger.Module;
@@ -22,6 +22,8 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.common.api.CommitInfo;
+
+import com.adva.netemu.YangModeled;
 
 
 @AssistedModule
@@ -89,7 +91,7 @@ class YangDatastoreModule {
                 final var txn = dataBroker.newWriteOnlyTransaction();
                 txn.put(this.storeType,
                         (InstanceIdentifier<Y>) this.yangModeledPath,
-                        object.toYangData());
+                        object.provideOperationalData());
 
                 return txn.commit();
             }
