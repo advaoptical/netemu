@@ -25,10 +25,12 @@ import com.adva.netemu.YangModeled;
 public class TestInterface extends YangModeled.ListItem<
         Interface, InterfaceKey, InterfaceBuilder> {
 
+    @Nonnull
     private static Class<? extends InterfaceType> IETF_INTERFACE_TYPE =
             EthernetCsmacd.class;
 
-    private @Nonnull final String _name;
+    @Nonnull
+    private final String _name;
 
     @Nonnull
     public String getName() {
@@ -46,7 +48,7 @@ public class TestInterface extends YangModeled.ListItem<
         return !this._enabled.get();
     }
 
-    @Override
+    @Nonnull @Override
     public InterfaceKey getKey() {
         return new InterfaceKey(this._name);
     }
@@ -54,7 +56,7 @@ public class TestInterface extends YangModeled.ListItem<
     public TestInterface(@Nonnull final String name) {
         this._name = name;
 
-        super.provideOperationalDataVia((builder) -> builder
+        super.providesOperationalDataUsing((builder) -> builder
                 .setType(IETF_INTERFACE_TYPE)
                 .setName(this._name)
                 .setEnabled(this._enabled.get()));

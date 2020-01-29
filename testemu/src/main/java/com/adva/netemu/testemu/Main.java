@@ -1,9 +1,7 @@
 package com.adva.netemu.testemu;
 
 import com.adva.netemu.NetEmu;
-import com.adva.netemu.YangData;
 import com.adva.netemu.YangPool;
-import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
 
 public final class Main {

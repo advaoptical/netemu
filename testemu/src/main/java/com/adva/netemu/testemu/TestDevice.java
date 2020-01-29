@@ -16,8 +16,8 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.InterfacesBuilder;
 
 import com.adva.netemu.Owned;
-import com.adva.netemu.YangData;
 import com.adva.netemu.YangModeled;
+import static com.adva.netemu.YangProviders.streamOperationalDataFrom;
 
 
 public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
@@ -36,8 +36,8 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
                         .mapToObj((n) -> new TestInterface("test" + n))
                         .collect(ImmutableList.toImmutableList()));
 
-        super.provideOperationalDataVia((builder) -> builder
-                .setInterface(YangData.streamOf(this._interfaces)
+        super.providesOperationalDataUsing((builder) -> builder
+                .setInterface(streamOperationalDataFrom(this._interfaces)
                         .collect(Collectors.toList())));
     }
 
