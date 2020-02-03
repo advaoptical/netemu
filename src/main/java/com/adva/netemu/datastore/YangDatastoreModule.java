@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.util.concurrent.FluentFuture;
 
+import com.google.common.util.concurrent.Futures;
 import com.squareup.inject.assisted.dagger2.AssistedModule;
 
 import dagger.Module;
@@ -85,13 +86,19 @@ class YangDatastoreModule {
                     @Nonnull final DataBroker dataBroker,
                     @Nonnull final YangModeled<Y, Builder<Y>> object) {
 
+                final var data = object.provideOperationalData();
+                if (data == null) {
+                    return FluentFuture.from(Futures.immediateFuture(
+                            CommitInfo.empty()));
+                }
+
                 LOG.info("Writing to " + this.storeType + " Datastore: "
                         + this.yangModeledPath);
 
                 final var txn = dataBroker.newWriteOnlyTransaction();
                 txn.put(this.storeType,
                         (InstanceIdentifier<Y>) this.yangModeledPath,
-                        object.provideOperationalData());
+                        data);
 
                 return txn.commit();
             }
