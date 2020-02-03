@@ -42,8 +42,19 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
 
             extends YangModeled<T, B> {
 
+        @Nonnull
+        public Class<K> getKeyClass() {
+            return (Class<K>) (new TypeToken<K>(this.getClass()) {})
+                    .getRawType();
+        }
+
         @Nonnull @Override
         public InstanceIdentifierBuilder<T> getIidBuilder() {
+            if (this._owner == null) {
+                return InstanceIdentifier.builder(
+                        this.getDataClass(), this.getKey());
+            }
+
             return this._owner.getIidBuilder().child(
                     this.getDataClass(), this.getKey());
         }
