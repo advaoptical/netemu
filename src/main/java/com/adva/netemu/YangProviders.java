@@ -1,8 +1,10 @@
 package com.adva.netemu;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -32,7 +34,34 @@ public final class YangProviders {
             T extends YangModeled<Y, ? extends Builder<Y>>>
 
     Stream<Y> streamOperationalDataFrom(@Nonnull final Collection<T> objects) {
-        return objects.stream().map(YangModeled::provideOperationalData)
+        return streamOperationalDataFrom(objects.stream());
+    }
+
+    @Nonnull
+    public static <
+            Y extends ChildOf,
+            T extends YangModeled<Y, ? extends Builder<Y>>>
+
+    Stream<Y> streamOperationalDataFrom(@Nonnull final Stream<T> objects) {
+        return objects.map(YangModeled::provideOperationalData)
                 .filter(Objects::nonNull);
+    }
+
+    @Nonnull
+    public static <
+            Y extends ChildOf,
+            T extends YangModeled<Y, ? extends Builder<Y>>>
+
+    List<Y> listOperationalDataFrom(@Nonnull final Collection<T> objects) {
+        return streamOperationalDataFrom(objects).collect(Collectors.toList());
+    }
+
+    @Nonnull
+    public static <
+            Y extends ChildOf,
+            T extends YangModeled<Y, ? extends Builder<Y>>>
+
+    List<Y> listOperationalDataFrom(@Nonnull final Stream<T> objects) {
+        return streamOperationalDataFrom(objects).collect(Collectors.toList());
     }
 }
