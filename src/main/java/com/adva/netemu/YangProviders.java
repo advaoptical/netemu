@@ -21,8 +21,8 @@ public final class YangProviders {
 
     @Nonnull
     public static <
-            Y extends ChildOf,
-            T extends YangModeled<Y, ? extends Builder<Y>>>
+            T extends YangBinding<Y, ? extends Builder<Y>>,
+            Y extends ChildOf>
 
     Optional<Y> operationalDataFrom(@Nonnull final T object) {
         return Optional.ofNullable(object.provideOperationalData());
@@ -30,8 +30,8 @@ public final class YangProviders {
 
     @Nonnull
     public static <
-            Y extends ChildOf,
-            T extends YangModeled<Y, ? extends Builder<Y>>>
+            T extends YangBinding<Y, ? extends Builder<Y>>,
+            Y extends ChildOf>
 
     Stream<Y> streamOperationalDataFrom(@Nonnull final Collection<T> objects) {
         return streamOperationalDataFrom(objects.stream());
@@ -39,18 +39,18 @@ public final class YangProviders {
 
     @Nonnull
     public static <
-            Y extends ChildOf,
-            T extends YangModeled<Y, ? extends Builder<Y>>>
+            T extends YangBinding<Y, ? extends Builder<Y>>,
+            Y extends ChildOf>
 
     Stream<Y> streamOperationalDataFrom(@Nonnull final Stream<T> objects) {
-        return objects.map(YangModeled::provideOperationalData)
+        return objects.map(YangBinding::provideOperationalData)
                 .filter(Objects::nonNull);
     }
 
     @Nonnull
     public static <
-            Y extends ChildOf,
-            T extends YangModeled<Y, ? extends Builder<Y>>>
+            T extends YangBinding<Y, ? extends Builder<Y>>,
+            Y extends ChildOf>
 
     List<Y> listOperationalDataFrom(@Nonnull final Collection<T> objects) {
         return streamOperationalDataFrom(objects).collect(Collectors.toList());
@@ -58,8 +58,8 @@ public final class YangProviders {
 
     @Nonnull
     public static <
-            Y extends ChildOf,
-            T extends YangModeled<Y, ? extends Builder<Y>>>
+            T extends YangBinding<Y, ? extends Builder<Y>>,
+            Y extends ChildOf>
 
     List<Y> listOperationalDataFrom(@Nonnull final Stream<T> objects) {
         return streamOperationalDataFrom(objects).collect(Collectors.toList());

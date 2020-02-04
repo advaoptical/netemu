@@ -13,7 +13,7 @@ public class Owned {
     }
 
     @Nonnull
-    public static <T extends YangModeled, O extends YangModeled> T by(
+    public static <T extends YangBinding, O extends YangBinding> T by(
             @Nonnull final O owner, @Nonnull final T objectToOwn) {
 
         objectToOwn.makeOwned(new Maker(), owner);
@@ -21,7 +21,7 @@ public class Owned {
     }
 
     @Nonnull
-    public static <T extends YangModeled, O extends YangModeled>
+    public static <T extends YangBinding, O extends YangBinding>
     Stream<T> by(
             @Nonnull final O owner,
             @Nonnull final Stream<T> objectsToOwn) {
@@ -32,8 +32,8 @@ public class Owned {
 
     @Nonnull
     public static <
-            C extends Collection<? extends YangModeled>,
-            O extends YangModeled>
+            C extends Collection<? extends YangBinding>,
+            O extends YangBinding>
     C by(
             @Nonnull final O owner, @Nonnull final C objectsToOwn) {
 

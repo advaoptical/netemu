@@ -19,10 +19,10 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .iana._if.type.rev170119.EthernetCsmacd;
 
-import com.adva.netemu.YangModeled;
+import com.adva.netemu.YangListBinding;
 
 
-public class TestInterface extends YangModeled.ListItem<
+public class TestInterface extends YangListBinding<
         Interface, InterfaceKey, InterfaceBuilder> {
 
     @Nonnull

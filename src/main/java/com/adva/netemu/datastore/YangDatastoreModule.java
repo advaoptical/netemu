@@ -24,7 +24,7 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
-import com.adva.netemu.YangModeled;
+import com.adva.netemu.YangBinding;
 
 
 @AssistedModule
@@ -84,7 +84,7 @@ class YangDatastoreModule {
             public <Y extends ChildOf>
             FluentFuture<? extends CommitInfo> apply(
                     @Nonnull final DataBroker dataBroker,
-                    @Nonnull final YangModeled<Y, Builder<Y>> object) {
+                    @Nonnull final YangBinding<Y, Builder<Y>> object) {
 
                 final var data = object.provideOperationalData();
                 if (data == null) {

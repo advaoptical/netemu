@@ -17,11 +17,11 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.InterfacesBuilder;
 
 import com.adva.netemu.Owned;
-import com.adva.netemu.YangModeled;
+import com.adva.netemu.YangBinding;
 import static com.adva.netemu.YangProviders.streamOperationalDataFrom;
 
 
-public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
+public class TestDevice extends YangBinding<Interfaces, InterfacesBuilder> {
 
     @Nonnull
     private List<TestInterface> _interfaces = ImmutableList.of();
@@ -35,7 +35,7 @@ public class TestDevice extends YangModeled<Interfaces, InterfacesBuilder> {
         this();
         this._interfaces = Owned.by(
                 this, IntStream.range(0, numberOfInterfaces)
-                        .mapToObj((n) -> TestInterface.withName("test" + n))
+                        .mapToObj(n -> TestInterface.withName("test" + n))
                         .collect(toImmutableList()));
     }
 

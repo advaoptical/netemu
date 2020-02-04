@@ -22,7 +22,7 @@ import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
-import com.adva.netemu.YangModeled;
+import com.adva.netemu.YangBinding;
 
 
 @Component(modules = {YangDatastoreModule.class})
@@ -104,7 +104,7 @@ public interface YangDatastore {
         @Nonnull
         <Y extends ChildOf> FluentFuture<? extends CommitInfo> apply(
                 @Nonnull final DataBroker dataBroker,
-                @Nonnull final YangModeled<Y, Builder<Y>> object);
+                @Nonnull final YangBinding<Y, Builder<Y>> object);
     }
 
     abstract class ModeledWritingTransactor

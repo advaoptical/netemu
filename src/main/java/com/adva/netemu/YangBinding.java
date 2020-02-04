@@ -17,8 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
-import org.opendaylight.yangtools.yang.binding.Identifiable;
-import org.opendaylight.yangtools.yang.binding.Identifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import static org.opendaylight.yangtools.yang.binding.InstanceIdentifier
         .InstanceIdentifierBuilder;
@@ -29,39 +27,11 @@ import org.opendaylight.mdsal.binding.api.DataTreeModification;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
 
-public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
+public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
         implements AutoCloseable {
 
     protected static final Logger LOG = LoggerFactory.getLogger(
-            YangModeled.class);
-
-    public static abstract class ListItem<
-            T extends ChildOf & Identifiable<K>,
-            K extends Identifier<T>,
-            B extends Builder<T>>
-
-            extends YangModeled<T, B> {
-
-        @Nonnull
-        public Class<K> getKeyClass() {
-            return (Class<K>) (new TypeToken<K>(this.getClass()) {})
-                    .getRawType();
-        }
-
-        @Nonnull @Override
-        public InstanceIdentifierBuilder<T> getIidBuilder() {
-            if (this._owner == null) {
-                return InstanceIdentifier.builder(
-                        this.getDataClass(), this.getKey());
-            }
-
-            return this._owner.getIidBuilder().child(
-                    this.getDataClass(), this.getKey());
-        }
-
-        @Nonnull
-        public abstract K getKey();
-    }
+            YangBinding.class);
 
     public abstract class DataBinding
             implements DataTreeChangeListener<T> {
@@ -70,7 +40,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
         private final LogicalDatastoreType _storeType;
 
         @Nonnull
-        private final YangModeled<T, B> _object;
+        private final YangBinding<T, B> _object;
 
         @Nonnull
         public InstanceIdentifier<T> getIid() {
@@ -84,7 +54,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
 
         protected DataBinding(
                 @Nonnull final LogicalDatastoreType storeType,
-                @Nonnull final YangModeled<T, B> object) {
+                @Nonnull final YangBinding<T, B> object) {
 
             this._storeType = storeType;
             this._object = object;
@@ -120,7 +90,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
     public final class ConfigurationDataBinding extends DataBinding {
 
         public ConfigurationDataBinding(
-                @Nonnull final YangModeled<T, B> object) {
+                @Nonnull final YangBinding<T, B> object) {
 
             super(LogicalDatastoreType.CONFIGURATION, object);
         }
@@ -134,7 +104,7 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
     public final class OperationalDataBinding extends DataBinding {
 
         public OperationalDataBinding(
-                @Nonnull final YangModeled<T, B> object) {
+                @Nonnull final YangBinding<T, B> object) {
 
             super(LogicalDatastoreType.OPERATIONAL, object);
         }
@@ -170,15 +140,15 @@ public abstract class YangModeled<T extends ChildOf, B extends Builder<T>>
     }
 
     @Nullable
-    protected YangModeled _owner = null;
+    protected YangBinding _owner = null;
 
     @Nullable
-    public YangModeled getOwner() {
+    public YangBinding getOwner() {
         return this._owner;
     }
 
     public void makeOwned(
-            @Nonnull final Owned.Maker __, @Nonnull final YangModeled owner) {
+            @Nonnull final Owned.Maker __, @Nonnull final YangBinding owner) {
 
         this._owner = owner;
     }

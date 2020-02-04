@@ -127,7 +127,7 @@ public class YangPool {
     }
 
     @Nonnull
-    private final List<YangModeled<?, ?>> _yangModeledRegistry =
+    private final List<YangBinding<?, ?>> _yangBindingRegistry =
             Collections.synchronizedList(new ArrayList<>());
 
     public YangPool(
@@ -183,20 +183,34 @@ public class YangPool {
     }
 
     @Nonnull
-    public <T extends YangModeled<Y, B>,
+    public <T extends YangBinding<Y, B>,
             Y extends ChildOf,
             B extends Builder<Y>>
 
-    T registerYangModeled(@Nonnull final T object) {
-        for (final YangModeled<Y, B>.DataBinding binding: List.of(
-                object.createConfigurationDataBinding(),
-                object.createOperationalDataBinding())) {
+    T registerYangBinding(@Nonnull final T binding) {
+        for (final YangBinding<Y, B>.DataBinding storeBinding: List.of(
+                binding.createConfigurationDataBinding(),
+                binding.createOperationalDataBinding())) {
 
             this._broker.registerDataTreeChangeListener(
-                    binding.getDataTreeId(), binding);
+                    storeBinding.getDataTreeId(), storeBinding);
         }
 
-        this._yangModeledRegistry.add(object);
+        this._yangBindingRegistry.add(binding);
+        return binding;
+    }
+
+    @Nonnull
+    public <T extends YangBindable>
+    T registerYangBindable(@Nonnull final T object) {
+        this.registerYangBinding(object.getYangBinding());
+        return object;
+    }
+
+    @Nonnull
+    public <T extends YangListBindable>
+    T registerYangBindable(@Nonnull final T object) {
+        this.registerYangBinding(object.getYangListBinding());
         return object;
     }
 
@@ -218,9 +232,9 @@ public class YangPool {
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
             final ListenableFuture<List<CommitInfo>> updatingFuture;
-            synchronized (this._yangModeledRegistry) {
+            synchronized (this._yangBindingRegistry) {
                 updatingFuture = Futures.allAsList(
-                        this._yangModeledRegistry.stream()
+                        this._yangBindingRegistry.stream()
                                 .map(this::writeOperationalDataFrom)
                                 .collect(ImmutableList.toImmutableList()));
             }
@@ -333,19 +347,19 @@ public class YangPool {
     }
 
     public FluentFuture<? extends CommitInfo> writeOperationalDataFrom(
-            @Nonnull final YangModeled object) {
+            @Nonnull final YangBinding object) {
 
         return this.writeData(object, LogicalDatastoreType.OPERATIONAL);
     }
 
     public FluentFuture<? extends CommitInfo> writeConfigurationDataFrom(
-            @Nonnull final YangModeled object) {
+            @Nonnull final YangBinding object) {
 
         return this.writeData(object, LogicalDatastoreType.CONFIGURATION);
     }
 
     public FluentFuture<? extends CommitInfo> writeData(
-            @Nonnull final YangModeled object,
+            @Nonnull final YangBinding object,
             @Nonnull final LogicalDatastoreType storeType) {
 
         final var writing = this._datastore.injectModeledWriting().of(
@@ -356,16 +370,16 @@ public class YangPool {
         return future;
     }
 
-    public void deleteOperationalDataOf(@Nonnull final YangModeled object) {
+    public void deleteOperationalDataOf(@Nonnull final YangBinding object) {
         this.deleteData(object, LogicalDatastoreType.OPERATIONAL);
     }
 
-    public void deleteConfigurationDataOf(@Nonnull final YangModeled object) {
+    public void deleteConfigurationDataOf(@Nonnull final YangBinding object) {
         this.deleteData(object, LogicalDatastoreType.CONFIGURATION);
     }
 
     public void deleteData(
-            @Nonnull final YangModeled object,
+            @Nonnull final YangBinding object,
             @Nonnull final LogicalDatastoreType storeType) {
 
         final var iid = object.getIidBuilder().build();
