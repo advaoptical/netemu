@@ -7,17 +7,17 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 
 import org.gradle.api.plugins.JavaPluginConvention
-
+import org.opendaylight.mdsal.binding.spec.naming.BindingMapping
 import org.opendaylight.yangtools.yang2sources.plugin.
         NetEmuYangToSourcesProcessor
 
-import java.util.stream.Collectors
-
 import static org.opendaylight.mdsal.binding.maven.api.gen.plugin.
-        NetEmuCodeGenerator.YANG_MODULE_PACKAGES
+        NetEmuCodeGenerator.YANG_MODULES
 
 
 class NetEmuPlugin implements Plugin<Project> {
+
+    final String CONTEXT_CLASS_NAME = "NetEmuDefined"
 
     @Override
     void apply(final Project prj) {
@@ -38,27 +38,84 @@ class NetEmuPlugin implements Plugin<Project> {
 
             proc.execute()
 
-            final packageName = prj.group.toString()
+            final yang = resources.resolve "META-INF/yang"
+            final yangFiles = yang.toFile().listFiles().collect { it.name }
+
+            final packageName = ext.contextPackage ?: prj.group.toString()
             final packagePath = output.resolve packageName.replace('.', '/')
 
-            final className = "YangToSources"
-            final classFile = packagePath.resolve className + ".java"
+            final classFile = packagePath.resolve CONTEXT_CLASS_NAME + ".java"
             Files.createParentDirs classFile.toFile()
             classFile.write """
             package ${packageName};
 
-            import com.google.common.collect.ImmutableSet;
+            import java.util.Set;
 
             import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 
-            \nclass ${className} {
+            \npublic final class ${CONTEXT_CLASS_NAME} {
+
+                private ${CONTEXT_CLASS_NAME}() {
+                    throw new UnsupportedOperationException();
+                }
 
                 public static
-                final ImmutableSet<YangModuleInfo> YANG_MODULE_INFOS =
-                        ImmutableSet.of(${String.join",\n\n",
-                                YANG_MODULE_PACKAGES.get().stream().map() {
-                                    it + ".\$YangModuleInfoImpl.getInstance()"
+                final Set<YangModuleInfo> YANG_MODULE_INFOS =
+                        Set.of(${String.join",\n\n",
+                                YANG_MODULES.get().stream().map() {
+                                    final pkg = BindingMapping
+                                            .getRootPackageName(
+                                                    it.getQNameModule());
+
+                                    "${pkg}.\$YangModuleInfoImpl" +
+                                            ".getInstance()"
+
                                 }.collect()});
+
+                class CompileTime {
+
+                    class YangModules {
+
+                        class NorevLookup {
+
+                            ${String.join """\n
+                            """, YANG_MODULES.get().stream().map() {
+                                final name = it.getName()
+                                final revision = it.getRevision()
+                                        .map { it.toString() }.orElse ''
+
+                                final namespace = it.getNamespace().toString()
+                                final pkg = BindingMapping.getRootPackageName(
+                                        it.getQNameModule())
+
+                                "class " + pkg
+                                        .replaceAll(/\.[^.]+$/, '.norev')
+                                        .replace('.', '$') + " {\n" +
+
+                                "    final String NAME =\n" +
+                                "            \"${name}\";\n\n" +
+
+                                "    final String REVISION =\n" +
+                                "            \"${revision}\";\n\n" +
+
+                                "    final String NAMESPACE =\n" +
+                                "            \"${namespace}\";\n\n" +
+
+                                "    final String PACKAGE =\n" +
+                                "            \"${pkg}\";\n\n" +
+
+                                "    final String RESOURCE =\n" +
+                                "            \"/META-INF/yang/" +
+
+                                yangFiles.find {
+                                    it.matches "^${name}(@[0-9-]+)?\\.yang\$"
+
+                                } + "\";\n}"
+
+                            }.collect()}
+                        }
+                    }
+                }
             }
             """.stripIndent()
 
