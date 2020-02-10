@@ -292,7 +292,9 @@ public class YangBoundProcessor extends AbstractProcessor {
                             "Generating class %s", bindingClassName));
 
             try (final var writer = super.processingEnv.getFiler()
-                    .createSourceFile(bindingClassName.canonicalName(), annotatedClass)
+                    .createSourceFile(
+                            bindingClassName.canonicalName(), annotatedClass)
+
                     .openWriter()) {
 
                 HANDLEBARS.compile(this.provideBindingClassSuffix() + ".java")
