@@ -1,78 +1,97 @@
 package com.adva.netemu.testemu;
 
 import java.util.List;
-import java.util.stream.IntStream;
-import static java.util.stream.Collectors.toList;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.ImmutableList;
-import static com.google.common.collect.ImmutableList.toImmutableList;
+import one.util.streamex.IntStreamEx;
+import one.util.streamex.StreamEx;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.Interfaces;
 
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
-        .ietf.interfaces.rev180220.InterfacesBuilder;
-
 import com.adva.netemu.Owned;
+import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangBinding;
-import static com.adva.netemu.YangProviders.streamOperationalDataFrom;
+import com.adva.netemu.YangBound;
 
 
-public class TestDevice extends YangBinding<Interfaces, InterfacesBuilder> {
+@YangBound(
+        context = NetEmuDefined.class,
+        namespace = "urn:ietf:params:xml:ns:yang:ietf-interfaces",
+        value = "interfaces")
+
+public class TestDevice implements YangBindable {
 
     @Nonnull
-    private List<TestInterface> _interfaces = ImmutableList.of();
+    private final TestDevice$YangBinding _yangBinding =
+            new TestDevice$YangBinding();
+
+    @Nonnull @Override
+    public Optional<YangBinding<?, ?>> getYangBinding() {
+        return Optional.of(this._yangBinding);
+    }
 
     @Nonnull
-    public ImmutableList<TestInterface> getInterfaces() {
-        return ImmutableList.copyOf(this._interfaces);
+    private final AtomicReference<List<TestInterface>> _interfaces =
+            new AtomicReference<>(List.of());
+
+    @Nonnull
+    public List<TestInterface> getInterfaces() {
+        return List.copyOf(this._interfaces.get());
     }
 
     private TestDevice(@Nonnegative final Integer numberOfInterfaces) {
         this();
-        this._interfaces = Owned.by(
-                this, IntStream.range(0, numberOfInterfaces)
+        this._interfaces.set(Owned.by(this,
+                IntStreamEx.range(0, numberOfInterfaces)
                         .mapToObj(n -> TestInterface.withName("test" + n))
-                        .collect(toImmutableList()));
+                        .toImmutableList()));
     }
 
     public TestDevice() {
-        super.providesOperationalDataUsing(builder -> builder
-                .setInterface(streamOperationalDataFrom(this._interfaces)
-                        .collect(toList())));
+        this._yangBinding.appliesConfigurationDataUsing(data -> {
+            this._interfaces.set(Owned.by(this,
+                    StreamEx.of(data.nonnullInterface())
+                            .map(TestInterface::fromConfigurationData)
+                            .toImmutableList()));
+        });
+
+        this._yangBinding.appliesOperationalDataUsing(data -> {
+            synchronized (this._interfaces) {
+                for (final var intfData : data.nonnullInterface()) {
+                    TestInterface$Yang.bindingStreamOf(this._interfaces.get())
+                            .findFirst(intf ->
+                                    intf.getKey().equals(intfData.key()))
+
+                            .ifPresent(intf ->
+                                    intf.applyOperationalData(intfData));
+                }
+            }
+        });
+
+        this._yangBinding.providesOperationalDataUsing(builder -> builder
+                .setInterface(TestInterface$Yang
+                        .streamOperationalDataFrom(this._interfaces.get())
+                        .toImmutableList()));
     }
 
     @Nonnull
-    public TestDevice withNumberOfInterfaces(
+    public static TestDevice withNumberOfInterfaces(
             @Nonnegative final Integer number) {
 
         return new TestDevice(number);
     }
 
     @Nonnull
-    public TestDevice fromConfigurationData(@Nonnull final Interfaces data) {
+    public static TestDevice fromConfigurationData(
+            @Nonnull final Interfaces data) {
+
         final var device = new TestDevice();
-        device.applyConfigurationData(data);
+        device._yangBinding.applyConfigurationData(data);
         return device;
-    }
-
-    @Override
-    public void applyConfigurationData(@Nonnull final Interfaces data) {
-        this._interfaces = Owned.by(this, data.nonnullInterface().stream()
-                .map(TestInterface::fromConfigurationData)
-                .collect(toImmutableList()));
-    }
-
-    @Override
-    public void applyOperationalData(@Nonnull final Interfaces data) {
-        for (final var intfData: data.nonnullInterface()) {
-            this._interfaces.stream()
-                    .filter(intf -> intf.getKey().equals(intfData.key()))
-                    .findFirst().ifPresent(
-                            intf -> intf.applyOperationalData(intfData));
-        }
     }
 }

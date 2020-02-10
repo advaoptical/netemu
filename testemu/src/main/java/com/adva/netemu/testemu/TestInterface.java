@@ -1,17 +1,9 @@
 package com.adva.netemu.testemu;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
-
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
-        .ietf.interfaces.rev180220.interfaces.Interface;
-
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
-        .ietf.interfaces.rev180220.interfaces.InterfaceKey;
-
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
-        .ietf.interfaces.rev180220.interfaces.InterfaceBuilder;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.InterfaceType;
@@ -19,15 +11,32 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .iana._if.type.rev170119.EthernetCsmacd;
 
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
+        .ietf.interfaces.rev180220.interfaces.Interface;
+
+import com.adva.netemu.YangListBindable;
 import com.adva.netemu.YangListBinding;
+import com.adva.netemu.YangListBound;
 
 
-public class TestInterface extends YangListBinding<
-        Interface, InterfaceKey, InterfaceBuilder> {
+@YangListBound(
+        context = NetEmuDefined.class,
+        namespace = "urn:ietf:params:xml:ns:yang:ietf-interfaces",
+        value = "interfaces/interface")
+
+public class TestInterface implements YangListBindable {
 
     @Nonnull
-    private static Class<? extends InterfaceType> IETF_INTERFACE_TYPE =
+    private static final Class<? extends InterfaceType> IETF_INTERFACE_TYPE =
             EthernetCsmacd.class;
+
+    @Nonnull
+    private final TestInterface$YangListBinding _yangBinding;
+
+    @Nonnull @Override
+    public Optional<YangListBinding<?, ?, ?>> getYangListBinding() {
+        return Optional.of(this._yangBinding);
+    }
 
     @Nonnull
     private final String _name;
@@ -48,15 +57,21 @@ public class TestInterface extends YangListBinding<
         return !this._enabled.get();
     }
 
-    @Nonnull @Override
-    public InterfaceKey getKey() {
-        return new InterfaceKey(this._name);
-    }
-
     private TestInterface(@Nonnull final String name) {
         this._name = name;
+        this._yangBinding =
+                TestInterface$YangListBinding.withKey(
+                        TestInterface$Yang.ListKey.from(name));
 
-        super.providesOperationalDataUsing((builder) -> builder
+        this._yangBinding.appliesConfigurationDataUsing(data -> {
+            this._enabled.set(data.isEnabled());
+        });
+
+        this._yangBinding.appliesOperationalDataUsing(data -> {
+            this._enabled.set(data.isEnabled());
+        });
+
+        this._yangBinding.providesOperationalDataUsing((builder) -> builder
                 .setType(IETF_INTERFACE_TYPE)
                 .setName(this._name)
                 .setEnabled(this._enabled.get()));
@@ -72,18 +87,8 @@ public class TestInterface extends YangListBinding<
             @Nonnull final Interface data) {
 
         final var intf = TestInterface.withName(data.getName());
-        intf.applyConfigurationData(data);
+        intf._yangBinding.applyConfigurationData(data);
         return intf;
-    }
-
-    @Override
-    public void applyConfigurationData(@Nonnull final Interface data) {
-        this._enabled.set(data.isEnabled());
-    }
-
-    @Override
-    public void applyOperationalData(@Nonnull final Interface data) {
-        this._enabled.set(data.isEnabled());
     }
 
     public void enable() {

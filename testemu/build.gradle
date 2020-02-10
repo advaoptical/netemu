@@ -35,6 +35,8 @@ netEmu {
         // outputDir = "build"
         // generateIn "build"
     }
+
+    definesContextInPackage "com.adva.netemu.testemu"
 }
 
 sourceSets {
@@ -47,6 +49,7 @@ repositories {
 }
 
 dependencies {
+    annotationProcessor "com.adva:netemu:0.1.0-SNAPSHOT"
     implementation "com.adva:netemu:0.1.0-SNAPSHOT"
 
     // testImplementation group: 'junit', name: 'junit', version: '4.12'
