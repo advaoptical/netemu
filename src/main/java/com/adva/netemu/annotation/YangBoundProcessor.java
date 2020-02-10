@@ -4,19 +4,13 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.net.URI;
 
-import static java.lang.String.format;
-
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static java.util.Arrays.stream;
-import static java.util.Collections.synchronizedMap;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 import javax.annotation.Nonnull;
 import javax.annotation.processing.AbstractProcessor;
@@ -33,16 +27,12 @@ import javax.lang.model.type.MirroredTypeException;
 import javax.tools.Diagnostic;
 
 import com.google.auto.service.AutoService;
-
-import static com.google.common.collect.ImmutableSet.toImmutableSet;
-
 import com.squareup.javapoet.ClassName;
+import one.util.streamex.StreamEx;
 
 import com.github.jknack.handlebars.Handlebars;
-import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 
-import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
@@ -50,6 +40,7 @@ import org.opendaylight.yangtools.yang.common.QNameModule;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
+import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 import org.opendaylight.mdsal.binding.model.util.BindingGeneratorUtil;
 import org.opendaylight.mdsal.binding.spec.naming.BindingMapping;
 
@@ -72,16 +63,14 @@ public class YangBoundProcessor extends AbstractProcessor {
 
         public CompileTimeClassFieldMap(@Nonnull final TypeElement element) {
             this._element = element;
-            this._entries = element.getEnclosedElements().stream()
+            this._entries = StreamEx.of(element.getEnclosedElements())
                     .filter(member -> member.getKind() == ElementKind.FIELD)
-                    .map(member -> new AbstractMap.SimpleImmutableEntry<>(
-                            ((VariableElement) member).getSimpleName()
-                                    .toString(),
+                    .map(VariableElement.class::cast)
+                    .mapToEntry(
+                            member -> member.getSimpleName().toString(),
+                            member -> member.getConstantValue().toString())
 
-                            ((VariableElement) member).getConstantValue()
-                                    .toString()))
-
-                    .collect(toImmutableSet());
+                    .toImmutableSet();
         }
 
         @Nonnull @Override
@@ -119,7 +108,7 @@ public class YangBoundProcessor extends AbstractProcessor {
 
     @Nonnull
     private static Map<TypeElement, SchemaContext> YANG_CONTEXT_CACHE =
-            synchronizedMap(new HashMap<>());
+            Collections.synchronizedMap(new HashMap<>());
 
     @Nonnull
     private final Class<? extends Annotation> _annotationClass;
@@ -173,9 +162,10 @@ public class YangBoundProcessor extends AbstractProcessor {
             Set<? extends TypeElement> annotations,
             RoundEnvironment roundEnv) {
 
-        for (final var annotatedElement: annotations.stream()
-                .map(roundEnv::getElementsAnnotatedWith).flatMap(Set::stream)
-                .collect(toSet())) {
+        for (final var annotatedElement : StreamEx.of(annotations)
+                .map(roundEnv::getElementsAnnotatedWith)
+                .flatMap(Set::stream)
+                .toSet()) {
 
             if (annotatedElement.getKind() != ElementKind.CLASS) {
                 super.processingEnv.getMessager().printMessage(
@@ -211,7 +201,9 @@ public class YangBoundProcessor extends AbstractProcessor {
                         if (member.getKind() != ElementKind.CLASS) {
                             super.processingEnv.getMessager().printMessage(
                                     Diagnostic.Kind.ERROR,
-                                    format("'%s' is not a class", memberName),
+                                    String.format("'%s' is not a class",
+                                            memberName),
+
                                     member);
 
                             return true;
@@ -226,7 +218,9 @@ public class YangBoundProcessor extends AbstractProcessor {
                 if (!foundMember) {
                     super.processingEnv.getMessager().printMessage(
                             Diagnostic.Kind.ERROR,
-                            format("Missing inner class '%s'", memberName),
+                            String.format("Missing inner class '%s'",
+                                    memberName),
+
                             yangNorevLookup);
 
                     return true;
@@ -234,10 +228,10 @@ public class YangBoundProcessor extends AbstractProcessor {
             }
 
             final var yangModuleInfos = new HashSet<YangModuleInfo>();
-            for (final var yangModuleElement: yangNorevLookup
-                    .getEnclosedElements().stream()
-                    .filter(element -> element.getKind() == ElementKind.CLASS)
-                    .collect(toList())) {
+            for (final var yangModuleElement : StreamEx
+                    .of(yangNorevLookup.getEnclosedElements())
+                    .filter(element ->
+                            element.getKind() == ElementKind.CLASS)) {
 
                 /*
                 yangModuleInfos.add(new CompileTimeYangModuleInfo(
@@ -257,8 +251,9 @@ public class YangBoundProcessor extends AbstractProcessor {
             String yangModulePackage = null;
             for (final var member: yangNorevLookup.getEnclosedElements()) {
                 if (member.getSimpleName().toString().equals("PACKAGE")) {
-                    yangModulePackage = (String)
-                            ((VariableElement) member).getConstantValue();
+                    yangModulePackage = String.class.cast(
+                            VariableElement.class.cast(member)
+                                    .getConstantValue());
 
                     break;
                 }
@@ -275,10 +270,10 @@ public class YangBoundProcessor extends AbstractProcessor {
 
             // final var yangContext = yangRegistry.getSchemaContext();
 
-            final List<QName> yangPathSegments =
-                    stream(this.provideYangPathFrom(annotation).split("/"))
-                            .map(name -> QName.create(yangNamespace, name))
-                            .collect(toList());
+            final List<QName> yangPathSegments = StreamEx
+                    .of(this.provideYangPathFrom(annotation).split("/"))
+                    .map(name -> QName.create(yangNamespace, name))
+                    .toList();
 
             final var yangPath = SchemaPath.create(yangPathSegments, true);
             final var yangClassName = ClassName.get(
@@ -293,29 +288,19 @@ public class YangBoundProcessor extends AbstractProcessor {
                             + this.provideBindingClassSuffix());
 
             super.processingEnv.getMessager().printMessage(
-                    Diagnostic.Kind.NOTE, format(
+                    Diagnostic.Kind.NOTE, String.format(
                             "Generating class %s", bindingClassName));
 
-            final Template bindingClassTemplate;
-            try {
-                bindingClassTemplate = HANDLEBARS.compile(
-                        this.provideBindingClassSuffix() + ".java");
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
             try (final var writer = super.processingEnv.getFiler()
-                    .createSourceFile(
-                            bindingClassName.canonicalName(), annotatedClass)
-
+                    .createSourceFile(bindingClassName.canonicalName(), annotatedClass)
                     .openWriter()) {
 
-                bindingClassTemplate.apply(Map.of(
-                        "package", className.packageName(),
-                        "class", className.simpleName(),
-                        "yangPackage", yangClassName.packageName(),
-                        "yangClass", yangClassName.simpleName()
+                HANDLEBARS.compile(this.provideBindingClassSuffix() + ".java")
+                        .apply(Map.of(
+                                "package", className.packageName(),
+                                "class", className.simpleName(),
+                                "yangPackage", yangClassName.packageName(),
+                                "yangClass", yangClassName.simpleName()
 
                 ), writer);
 

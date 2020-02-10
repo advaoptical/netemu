@@ -18,11 +18,9 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypeException;
 import javax.tools.Diagnostic;
 
-import one.util.streamex.StreamEx;
-
 import com.google.auto.service.AutoService;
-
 import com.squareup.javapoet.ClassName;
+import one.util.streamex.StreamEx;
 
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
