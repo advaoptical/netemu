@@ -1,7 +1,12 @@
 package com.adva.netemu;
 
+import java.util.Optional;
+
+import javax.annotation.Nonnull;
+
 
 public interface YangBindable {
 
-    public YangBinding<?, ?> getYangBinding();
+    @Nonnull
+    Optional<YangBinding<?, ?>> getYangBinding();
 }

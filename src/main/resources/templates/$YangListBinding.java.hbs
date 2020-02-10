@@ -1,0 +1,69 @@
+package {{package}};
+
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nonnull;
+
+import {{yangPackage}}.{{yangClass}};
+
+import {{yangPackage}}.{{yangClass}}Key;
+
+import {{yangPackage}}.{{yangClass}}Builder;
+
+import com.adva.netemu.YangListBinding;
+import com.adva.netemu.YangListProvider;
+
+
+@YangListProvider(
+        origin = {{class}}.class,
+        value = {{yangClass}}.class,
+        key = {{yangClass}}Key.class)
+
+public class {{class}}$YangListBinding
+        extends YangListBinding<
+                {{yangClass}}, {{yangClass}}Key, {{yangClass}}Builder> {
+
+    @Nonnull
+    private final {{class}}$Yang.ListKey _key;
+
+    @Nonnull @Override
+    public {{yangClass}}Key getKey() {
+        return this._key;
+    }
+
+    private {{class}}$YangListBinding (
+            @Nonnull final {{class}}$Yang.ListKey key) {
+
+        this._key = key;
+    }
+
+    @Nonnull
+    public static {{class}}$YangListBinding withKey(
+            @Nonnull final {{class}}$Yang.ListKey key) {
+
+        return new {{class}}$YangListBinding(key);
+    }
+
+@Override
+    public void appliesConfigurationDataUsing(
+            @Nonnull final Consumer<{{yangClass}}> applier) {
+
+        super.appliesConfigurationDataUsing(applier);
+    }
+
+    @Override
+    public void appliesOperationalDataUsing(
+            @Nonnull final Consumer<{{yangClass}}> applier) {
+
+        super.appliesOperationalDataUsing(applier);
+    }
+
+    @Override
+    public void providesOperationalDataUsing(
+            @Nonnull final
+            Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
+
+        super.providesOperationalDataUsing(provider);
+    }
+}

@@ -1,11 +1,14 @@
 package com.adva.netemu;
 
 import java.lang.reflect.InvocationTargetException;
+
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import static java.util.Collections.synchronizedMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,8 +21,6 @@ import org.slf4j.LoggerFactory;
 import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
-import static org.opendaylight.yangtools.yang.binding.InstanceIdentifier
-        .InstanceIdentifierBuilder;
 
 import org.opendaylight.mdsal.binding.api.DataTreeChangeListener;
 import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
@@ -28,10 +29,15 @@ import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
 
 public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
-        implements AutoCloseable {
+        implements YangBindable, AutoCloseable {
 
     protected static final Logger LOG = LoggerFactory.getLogger(
             YangBinding.class);
+
+    @Nonnull @Override
+    public Optional<YangBinding<?, ?>> getYangBinding() {
+        return Optional.of(this);
+    }
 
     public abstract class DataBinding
             implements DataTreeChangeListener<T> {
@@ -126,7 +132,7 @@ public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
     }
 
     @Nonnull
-    public InstanceIdentifierBuilder<T> getIidBuilder() {
+    public InstanceIdentifier.InstanceIdentifierBuilder<T> getIidBuilder() {
         if (this._owner == null) {
             return InstanceIdentifier.builder(this.getDataClass());
         }
@@ -140,31 +146,33 @@ public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
     }
 
     @Nullable
-    protected YangBinding _owner = null;
+    protected YangBinding<?, ?> _owner = null;
 
     @Nullable
-    public YangBinding getOwner() {
+    public YangBinding<?, ?> getOwner() {
         return this._owner;
     }
 
     public void makeOwned(
-            @Nonnull final Owned.Maker __, @Nonnull final YangBinding owner) {
+            @Nonnull final Owned.Maker __,
+            @Nullable final YangBinding owner) {
 
         this._owner = owner;
     }
 
     @Nonnull
-    private final Map<LogicalDatastoreType, Function<T, T>> _dataAppliers =
-            synchronizedMap(new EnumMap<>(LogicalDatastoreType.class));
+    private final Map<LogicalDatastoreType, Consumer<T>> _dataAppliers =
+            Collections.synchronizedMap(
+                    new EnumMap<>(LogicalDatastoreType.class));
 
     protected void appliesConfigurationDataUsing(
-            @Nullable final Function<T, T> applier) {
+            @Nullable final Consumer<T> applier) {
 
         this._dataAppliers.put(LogicalDatastoreType.CONFIGURATION, applier);
     }
 
     protected void appliesOperationalDataUsing(
-            @Nullable final Function<T, T> applier) {
+            @Nullable final Consumer<T> applier) {
 
         this._dataAppliers.put(LogicalDatastoreType.OPERATIONAL, applier);
     }
@@ -172,14 +180,14 @@ public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
     public void applyConfigurationData(@Nonnull final T data) {
         final var applier = this._dataAppliers.get(LogicalDatastoreType.CONFIGURATION);
         if (applier != null) {
-            applier.apply(data);
+            applier.accept(data);
         }
     }
 
     public void applyOperationalData(@Nonnull final T data) {
         final var applier = this._dataAppliers.get(LogicalDatastoreType.OPERATIONAL);
         if (applier != null) {
-            applier.apply(data);
+            applier.accept(data);
         }
     }
 

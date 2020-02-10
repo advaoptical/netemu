@@ -1,0 +1,71 @@
+package {{package}};
+
+import java.util.Optional;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import {{yangPackage}}.{{yangClass}};
+
+{{#block "extended imports"}}
+{{/block}}
+
+import com.adva.netemu.YangData;
+
+
+public final class {{class}}$Yang {
+
+    public static final class Data extends YangData<{{yangClass}}> {
+
+        @Nonnull
+        private static final Data EMPTY = new Data(null);
+
+        private Data(@Nullable final {{yangClass}} object) {
+            super(object);
+        }
+
+        @Nonnull
+        public static Data of(@Nonnull final {{yangClass}} object) {
+            return new Data(object);
+        }
+
+        @Nonnull
+        public static Data empty() {
+            return EMPTY;
+        }
+    }
+
+    @Nonnull
+    public static Optional<{{class}}{{bindingClassSuffix}}> bindingOf(
+            @Nonnull final {{class}} object) {
+
+        return object.{{bindingGetter}}().map(
+                {{class}}{{bindingClassSuffix}}.class::cast);
+    }
+
+    /*
+    @Nonnull
+    public static Data configurationDataFrom(
+            @Nonnull final {{class}} object) {
+
+        final var data = ({{yangClass}}) object.{{bindingGetter}}()
+                .provideConfigurationData();
+
+        return (data != null) ? Data.of(data) : Data.empty();
+    }
+    */
+
+    @Nonnull
+    public static Data operationalDataFrom(
+            @Nonnull final {{class}} object) {
+
+        final var data = bindingOf(object)
+                .map({{class}}{{bindingClassSuffix}}::provideOperationalData)
+                .orElse(null);
+
+        return (data != null) ? Data.of(data) : Data.empty();
+    }
+
+    {{#block "extended members"}}
+    {{/block}}
+}

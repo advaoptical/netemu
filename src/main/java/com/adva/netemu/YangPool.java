@@ -2,12 +2,14 @@ package com.adva.netemu;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -19,6 +21,7 @@ import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -203,14 +206,14 @@ public class YangPool {
     @Nonnull
     public <T extends YangBindable>
     T registerYangBindable(@Nonnull final T object) {
-        this.registerYangBinding(object.getYangBinding());
+        object.getYangBinding().ifPresent(this::registerYangBinding);
         return object;
     }
 
     @Nonnull
     public <T extends YangListBindable>
     T registerYangBindable(@Nonnull final T object) {
-        this.registerYangBinding(object.getYangListBinding());
+        object.getYangListBinding().ifPresent(this::registerYangBinding);
         return object;
     }
 

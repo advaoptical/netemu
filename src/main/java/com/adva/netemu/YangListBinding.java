@@ -1,5 +1,7 @@
 package com.adva.netemu;
 
+import java.util.Optional;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.reflect.TypeToken;
@@ -16,7 +18,13 @@ public abstract class YangListBinding<
         K extends Identifier<Y>,
         B extends Builder<Y>>
 
-        extends YangBinding<Y, B> {
+        extends YangBinding<Y, B>
+        implements YangListBindable {
+
+    @Nonnull @Override
+    public Optional<YangListBinding<?, ?, ?>> getYangListBinding() {
+        return Optional.of(this);
+    }
 
     @Nonnull
     public Class<K> getKeyClass() {

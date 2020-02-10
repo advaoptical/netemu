@@ -1,0 +1,41 @@
+package {{package}};
+
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nonnull;
+
+import {{yangPackage}}.{{yangClass}};
+
+import {{yangPackage}}.{{yangClass}}Builder;
+
+import com.adva.netemu.YangBinding;
+import com.adva.netemu.YangProvider;
+
+
+@YangProvider(origin = {{class}}.class, value = {{yangClass}}.class)
+public class {{class}}$YangBinding
+        extends YangBinding<{{yangClass}}, {{yangClass}}Builder> {
+
+    @Override
+    public void appliesConfigurationDataUsing(
+            @Nonnull final Consumer<{{yangClass}}> applier) {
+
+        super.appliesConfigurationDataUsing(applier);
+    }
+
+    @Override
+    public void appliesOperationalDataUsing(
+            @Nonnull final Consumer<{{yangClass}}> applier) {
+
+        super.appliesOperationalDataUsing(applier);
+    }
+
+    @Override
+    public void providesOperationalDataUsing(
+            @Nonnull final
+            Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
+
+        super.providesOperationalDataUsing(provider);
+    }
+}

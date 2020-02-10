@@ -1,0 +1,66 @@
+{{~#partial "extended imports"~}}
+    import java.util.Collection;
+    import java.util.stream.Stream;
+
+    import one.util.streamex.StreamEx;
+
+    import {{yangPackage}}.{{yangClass}}Key;
+{{~/partial~}}
+
+{{~#partial "extended members"~}}
+    public static class ListKey extends {{yangClass}}Key {
+
+        private ListKey(@Nonnull final {{keyClass}} key) {
+            super(key);
+        }
+
+        @Nonnull
+        public static ListKey from(@Nonnull final {{keyClass}} key) {
+            return new ListKey(key);
+        }
+    }
+
+    @Nonnull
+    public static
+    StreamEx<{{class}}{{bindingClassSuffix}}> bindingStreamOf(
+            @Nonnull final Collection<{{class}}> objects) {
+
+        return StreamEx.of(objects).map({{class}}$Yang::bindingOf)
+                .filter(Optional::isPresent)
+                .map(Optional::get);
+    }
+
+    /*
+    @Nonnull
+    public static StreamEx<{{yangClass}}> streamConfigurationDataFrom(
+            @Nonnull final Collection<{{class}}> objects) {
+
+        return streamConfigurationDataFrom(objects.stream());
+    }
+
+    @Nonnull
+    public static StreamEx<{{yangClass}}> streamConfigurationDataFrom(
+            @Nonnull final Stream<{{class}}> objects) {
+
+        return StreamEx.of(objects).map({{class}}$Yang::configurationDataFrom)
+                .filter(Data::isPresent).map(Data::get);
+    }
+    */
+
+    @Nonnull
+    public static StreamEx<{{yangClass}}> streamOperationalDataFrom(
+            @Nonnull final Collection<{{class}}> objects) {
+
+        return streamOperationalDataFrom(objects.stream());
+    }
+
+    @Nonnull
+    public static StreamEx<{{yangClass}}> streamOperationalDataFrom(
+            @Nonnull final Stream<{{class}}> objects) {
+
+        return StreamEx.of(objects).map({{class}}$Yang::operationalDataFrom)
+                .filter(Data::isPresent).map(Data::get);
+    }
+{{~/partial~}}
+
+{{~> $Yang.java}}

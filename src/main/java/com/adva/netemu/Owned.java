@@ -1,5 +1,7 @@
 package com.adva.netemu;
 
+import org.opendaylight.mdsal.binding.spec.reflect.BindingReflections;
+
 import java.util.Collection;
 import java.util.stream.Stream;
 
@@ -13,32 +15,47 @@ public class Owned {
     }
 
     @Nonnull
-    public static <T extends YangBinding, O extends YangBinding> T by(
+    public static <T extends YangBindable, O extends YangBindable> T by(
             @Nonnull final O owner, @Nonnull final T objectToOwn) {
 
-        objectToOwn.makeOwned(new Maker(), owner);
+        objectToOwn.getYangBinding().ifPresent(binding -> binding
+                .makeOwned(new Maker(), owner.getYangBinding().orElse(null)));
+
         return objectToOwn;
     }
 
     @Nonnull
-    public static <T extends YangBinding, O extends YangBinding>
+    public static <T extends YangListBindable, O extends YangBindable> T by(
+            @Nonnull final O owner, @Nonnull final T objectToOwn) {
+
+        objectToOwn.getYangListBinding().ifPresent(binding -> binding
+                .makeOwned(new Maker(), owner.getYangBinding().orElse(null)));
+
+        return objectToOwn;
+    }
+
+    @Nonnull
+    public static <T extends YangListBindable, O extends YangBindable>
     Stream<T> by(
-            @Nonnull final O owner,
-            @Nonnull final Stream<T> objectsToOwn) {
+            @Nonnull final O owner, @Nonnull final Stream<T> objectsToOwn) {
 
         final var maker = new Maker();
-        return objectsToOwn.peek((obj) -> obj.makeOwned(maker, owner));
+        return objectsToOwn.peek(object -> object.getYangListBinding()
+                .ifPresent(binding -> binding.makeOwned(maker, owner
+                        .getYangBinding().orElse(null))));
     }
 
     @Nonnull
     public static <
-            C extends Collection<? extends YangBinding>,
-            O extends YangBinding>
-    C by(
-            @Nonnull final O owner, @Nonnull final C objectsToOwn) {
+            C extends Collection<? extends YangListBindable>,
+            O extends YangBindable>
 
+    C by(@Nonnull final O owner, @Nonnull final C objectsToOwn) {
         final var maker = new Maker();
-        objectsToOwn.forEach((obj) -> obj.makeOwned(maker, owner));
+        objectsToOwn.forEach(object -> object.getYangListBinding()
+                .ifPresent(binding -> binding.makeOwned(maker, owner
+                        .getYangBinding().orElse(null))));
+
         return objectsToOwn;
     }
 }
