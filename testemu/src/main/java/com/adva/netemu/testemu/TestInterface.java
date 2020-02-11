@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+
 import javax.xml.bind.DatatypeConverter;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang

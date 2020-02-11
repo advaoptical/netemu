@@ -3,18 +3,12 @@ package com.adva.netemu.testemu;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
-import one.util.streamex.IntStreamEx;
 import one.util.streamex.StreamEx;
-
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
-        .ietf.interfaces.rev180220.Interfaces;
 
 import com.adva.netemu.Owned;
 import com.adva.netemu.YangBindable;
