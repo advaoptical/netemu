@@ -1,6 +1,9 @@
 package com.adva.netemu.testemu;
 
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -44,25 +47,33 @@ public class TestDevice implements YangBindable {
         return List.copyOf(this._interfaces.get());
     }
 
-    private TestDevice(@Nonnegative final Integer numberOfInterfaces) {
-        this();
-        this._interfaces.set(Owned.by(this,
-                IntStreamEx.range(0, numberOfInterfaces)
-                        .mapToObj(n -> TestInterface.withName("test" + n))
-                        .toImmutableList()));
-    }
-
     public TestDevice() {
+        try {
+            this._interfaces.set(StreamEx
+                    .of(NetworkInterface.getNetworkInterfaces()).nonNull()
+                    .map(TestInterface::from)
+                    .toImmutableList());
+
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
+
         this._yangBinding.appliesConfigurationDataUsing(data -> {
-            this._interfaces.set(Owned.by(this,
-                    StreamEx.of(data.nonnullInterface())
-                            .map(TestInterface::fromConfigurationData)
-                            .toImmutableList()));
+            this._interfaces.set(Owned.by(this, StreamEx
+                    .of(data.map(yang -> yang.nonnullInterface())
+                            .orElse(List.of()))
+
+                    .map(TestInterface$Yang.Data::of)
+                    .map(TestInterface::fromConfigurationData)
+                    .toImmutableList()));
         });
 
         this._yangBinding.appliesOperationalDataUsing(data -> {
             synchronized (this._interfaces) {
-                for (final var intfData : data.nonnullInterface()) {
+                for (final var intfData : data
+                        .map(yang -> yang.nonnullInterface())
+                        .orElse(List.of())) {
+
                     TestInterface$Yang.bindingStreamOf(this._interfaces.get())
                             .findFirst(intf ->
                                     intf.getKey().equals(intfData.key()))
@@ -80,15 +91,8 @@ public class TestDevice implements YangBindable {
     }
 
     @Nonnull
-    public static TestDevice withNumberOfInterfaces(
-            @Nonnegative final Integer number) {
-
-        return new TestDevice(number);
-    }
-
-    @Nonnull
     public static TestDevice fromConfigurationData(
-            @Nonnull final Interfaces data) {
+            @Nonnull final TestDevice$Yang.Data data) {
 
         final var device = new TestDevice();
         device._yangBinding.applyConfigurationData(data);

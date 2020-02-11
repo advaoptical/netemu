@@ -40,7 +40,7 @@ public final class Main {
         */
 
         final var emu = new NetEmu(pool);
-        emu.loadConfigurationFromXml();
+        // emu.loadConfigurationFromXml();
 
         // pool.writeOperationalDataFrom(device);
 

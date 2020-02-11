@@ -1,18 +1,22 @@
 package com.adva.netemu.testemu;
 
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.xml.bind.DatatypeConverter;
+
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
+        .ietf.yang.types.rev130715.PhysAddress;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .ietf.interfaces.rev180220.InterfaceType;
 
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
         .iana._if.type.rev170119.EthernetCsmacd;
-
-import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang
-        .ietf.interfaces.rev180220.interfaces.Interface;
 
 import com.adva.netemu.YangListBindable;
 import com.adva.netemu.YangListBinding;
@@ -31,6 +35,9 @@ public class TestInterface implements YangListBindable {
             EthernetCsmacd.class;
 
     @Nonnull
+    private final NetworkInterface _adapter;
+
+    @Nonnull
     private final TestInterface$YangListBinding _yangBinding;
 
     @Nonnull @Override
@@ -39,11 +46,8 @@ public class TestInterface implements YangListBindable {
     }
 
     @Nonnull
-    private final String _name;
-
-    @Nonnull
     public String getName() {
-        return this._name;
+        return this._adapter.getName();
     }
 
     @Nonnull
@@ -57,36 +61,67 @@ public class TestInterface implements YangListBindable {
         return !this._enabled.get();
     }
 
-    private TestInterface(@Nonnull final String name) {
-        this._name = name;
-        this._yangBinding =
-                TestInterface$YangListBinding.withKey(
-                        TestInterface$Yang.ListKey.from(name));
+    private TestInterface(@Nonnull final NetworkInterface adapter) {
+        this._adapter = adapter;
+
+        this._yangBinding = TestInterface$YangListBinding.withKey(
+                TestInterface$Yang.ListKey.from(adapter.getName()));
 
         this._yangBinding.appliesConfigurationDataUsing(data -> {
-            this._enabled.set(data.isEnabled());
+            data.map(yang -> yang.isEnabled()).ifPresent(this._enabled::set);
         });
 
         this._yangBinding.appliesOperationalDataUsing(data -> {
-            this._enabled.set(data.isEnabled());
+            data.map(yang -> yang.isEnabled()).ifPresent(this._enabled::set);
         });
 
-        this._yangBinding.providesOperationalDataUsing((builder) -> builder
+        @Nonnull final Optional<String> macAddress;
+        try {
+            macAddress =
+                    Optional.ofNullable(adapter.getHardwareAddress())
+                            .map(DatatypeConverter::printHexBinary)
+                            .map(hex -> hex.replaceAll("(..)", ":$1")
+                                    .substring(1));
+
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
+
+        this._yangBinding.providesOperationalDataUsing(builder -> builder
                 .setType(IETF_INTERFACE_TYPE)
-                .setName(this._name)
-                .setEnabled(this._enabled.get()));
+                .setName(adapter.getName())
+                .setEnabled(this._enabled.get())
+
+                .setDescription(adapter.getDisplayName())
+                .setPhysAddress(macAddress.map(PhysAddress::new)
+                        .orElse(null)));
+    }
+
+    @Nonnull
+    public static TestInterface from(
+            @Nonnull final NetworkInterface adapter) {
+
+        return new TestInterface(adapter);
     }
 
     @Nonnull
     public static TestInterface withName(@Nonnull final String name) {
-        return new TestInterface(name);
+        try {
+            return new TestInterface(NetworkInterface.getByName(name));
+
+        } catch (SocketException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     @Nonnull
     public static TestInterface fromConfigurationData(
-            @Nonnull final Interface data) {
+            @Nonnull final TestInterface$Yang.Data data) {
 
-        final var intf = TestInterface.withName(data.getName());
+        final var intf = TestInterface.withName(data.map(yang -> yang.getName())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No 'name' leaf value present in YANG Data")));
+
         intf._yangBinding.applyConfigurationData(data);
         return intf;
     }
