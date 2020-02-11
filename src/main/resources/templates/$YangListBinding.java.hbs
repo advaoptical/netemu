@@ -11,6 +11,7 @@ import {{yangPackage}}.{{yangClass}}Key;
 
 import {{yangPackage}}.{{yangClass}}Builder;
 
+import com.adva.netemu.YangData;
 import com.adva.netemu.YangListBinding;
 import com.adva.netemu.YangListProvider;
 
@@ -45,16 +46,16 @@ public class {{class}}$YangListBinding
         return new {{class}}$YangListBinding(key);
     }
 
-@Override
+    @Override
     public void appliesConfigurationDataUsing(
-            @Nonnull final Consumer<{{yangClass}}> applier) {
+            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
 
         super.appliesConfigurationDataUsing(applier);
     }
 
     @Override
     public void appliesOperationalDataUsing(
-            @Nonnull final Consumer<{{yangClass}}> applier) {
+            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
 
         super.appliesOperationalDataUsing(applier);
     }

@@ -10,6 +10,7 @@ import {{yangPackage}}.{{yangClass}};
 import {{yangPackage}}.{{yangClass}}Builder;
 
 import com.adva.netemu.YangBinding;
+import com.adva.netemu.YangData;
 import com.adva.netemu.YangProvider;
 
 
@@ -19,14 +20,14 @@ public class {{class}}$YangBinding
 
     @Override
     public void appliesConfigurationDataUsing(
-            @Nonnull final Consumer<{{yangClass}}> applier) {
+            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
 
         super.appliesConfigurationDataUsing(applier);
     }
 
     @Override
     public void appliesOperationalDataUsing(
-            @Nonnull final Consumer<{{yangClass}}> applier) {
+            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
 
         super.appliesOperationalDataUsing(applier);
     }

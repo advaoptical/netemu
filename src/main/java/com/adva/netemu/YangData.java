@@ -1,6 +1,7 @@
 package com.adva.netemu;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.annotation.Nonnull;
@@ -11,13 +12,17 @@ import org.opendaylight.yangtools.yang.binding.DataObject;
 
 public class YangData<Y extends DataObject> {
 
+    @Nonnull
+    private final static YangData<? extends DataObject> EMPTY =
+            new YangData<>(null);
+
     @Nullable
     private final Y _object;
 
     @Nonnull
     public Y get() {
         if (this._object == null) {
-            throw new NullPointerException("YangData is empty."
+            throw new NullPointerException("Empty YangData<>!"
                     + " Check YangData::isPresent before YangData::get");
         }
 
@@ -29,15 +34,16 @@ public class YangData<Y extends DataObject> {
     }
 
     @Nonnull
-    public static YangData<? extends DataObject> of(
-            @Nonnull final DataObject object) {
+    public static <Y extends DataObject> YangData<Y> of(
+            @Nonnull final Y object) {
 
         return new YangData<>(object);
     }
 
     @Nonnull
-    public static YangData<? extends DataObject> empty() {
-        return new YangData<>(null);
+    @SuppressWarnings("unchecked")
+    public static <Y extends DataObject> YangData<Y> empty() {
+        return (YangData<Y>) EMPTY;
     }
 
     public boolean isEmpty() {
@@ -48,6 +54,11 @@ public class YangData<Y extends DataObject> {
         return this._object != null;
     }
 
+    public void ifPresent(@Nonnull final Consumer<Y> action) {
+        Optional.ofNullable(this._object).ifPresent(action);
+    }
+
+    @Nonnull
     public <T> Optional<T> map(@Nonnull final Function<Y, T> mapper) {
         return Optional.ofNullable(this._object).map(mapper);
     }

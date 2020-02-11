@@ -161,39 +161,56 @@ public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
     }
 
     @Nonnull
-    private final Map<LogicalDatastoreType, Consumer<T>> _dataAppliers =
+    private final
+    Map<LogicalDatastoreType, Consumer<YangData<T>>> _dataAppliers =
             Collections.synchronizedMap(
                     new EnumMap<>(LogicalDatastoreType.class));
 
     protected void appliesConfigurationDataUsing(
-            @Nullable final Consumer<T> applier) {
+            @Nullable final Consumer<YangData<T>> applier) {
 
         this._dataAppliers.put(LogicalDatastoreType.CONFIGURATION, applier);
     }
 
     protected void appliesOperationalDataUsing(
-            @Nullable final Consumer<T> applier) {
+            @Nullable final Consumer<YangData<T>> applier) {
 
         this._dataAppliers.put(LogicalDatastoreType.OPERATIONAL, applier);
     }
 
-    public void applyConfigurationData(@Nonnull final T data) {
-        final var applier = this._dataAppliers.get(LogicalDatastoreType.CONFIGURATION);
+    public void applyConfigurationData(@Nonnull final YangData<T> data) {
+        final var applier = this._dataAppliers.get(
+                LogicalDatastoreType.CONFIGURATION);
+
         if (applier != null) {
             applier.accept(data);
         }
     }
 
-    public void applyOperationalData(@Nonnull final T data) {
-        final var applier = this._dataAppliers.get(LogicalDatastoreType.OPERATIONAL);
+    public void applyConfigurationData(@Nullable final T data) {
+        if (data != null) {
+            this.applyConfigurationData(YangData.of(data));
+        }
+    }
+
+    public void applyOperationalData(@Nonnull final YangData<T> data) {
+        final var applier = this._dataAppliers.get(
+                LogicalDatastoreType.OPERATIONAL);
+
         if (applier != null) {
             applier.accept(data);
+        }
+    }
+
+    public void applyOperationalData(@Nullable final T data) {
+        if (data != null) {
+            this.applyOperationalData(YangData.of(data));
         }
     }
 
     private void applyData(
             @Nonnull final LogicalDatastoreType storeType,
-            @Nonnull final T data) {
+            @Nonnull final YangData<T> data) {
 
         switch (storeType) {
             case CONFIGURATION:
@@ -202,6 +219,15 @@ public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
 
             case OPERATIONAL:
                 this.applyOperationalData(data);
+        }
+    }
+
+    private void applyData(
+            @Nonnull final LogicalDatastoreType storeType,
+            @Nullable final T data) {
+
+        if (data != null) {
+            this.applyData(storeType, YangData.of(data));
         }
     }
 
