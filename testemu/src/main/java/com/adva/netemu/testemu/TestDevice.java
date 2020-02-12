@@ -23,6 +23,11 @@ import com.adva.netemu.YangBound;
 
 public class TestDevice implements YangBindable {
 
+    static class YangBindingConnector {
+
+        private YangBindingConnector() {}
+    }
+
     @Nonnull
     private final TestDevice$YangBinding _yangBinding =
             new TestDevice$YangBinding();
@@ -52,7 +57,9 @@ public class TestDevice implements YangBindable {
             throw new RuntimeException(e);
         }
 
-        this._yangBinding.appliesConfigurationDataUsing(data -> {
+        @Nonnull final var connector = new YangBindingConnector();
+
+        this._yangBinding.appliesConfigurationDataUsing(connector, data -> {
             this._interfaces.set(Owned.by(this, StreamEx
                     .of(data.map(yang -> yang.nonnullInterface())
                             .orElse(List.of()))
@@ -62,15 +69,18 @@ public class TestDevice implements YangBindable {
                     .toImmutableList()));
         });
 
-        this._yangBinding.appliesOperationalDataUsing(data -> {
+        this._yangBinding.appliesOperationalDataUsing(connector, data -> {
             synchronized (this._interfaces) {
-                for (final var intfData : data
-                        .map(yang -> yang.nonnullInterface())
-                        .orElse(List.of())) {
+                for (final var intfData : StreamEx
+                        .of(data.map(yang -> yang.nonnullInterface())
+                                .orElse(List.of()))
+
+                        .map(TestInterface$Yang.Data::of)) {
 
                     TestInterface$Yang.bindingStreamOf(this._interfaces.get())
-                            .findFirst(intf ->
-                                    intf.getKey().equals(intfData.key()))
+                            .findFirst(intf -> intfData.getName()
+                                    .map(intf.getKey().getName()::equals)
+                                    .orElse(false))
 
                             .ifPresent(intf ->
                                     intf.applyOperationalData(intfData));
@@ -78,10 +88,13 @@ public class TestDevice implements YangBindable {
             }
         });
 
-        this._yangBinding.providesOperationalDataUsing(builder -> builder
-                .setInterface(TestInterface$Yang
-                        .streamOperationalDataFrom(this._interfaces.get())
-                        .toImmutableList()));
+        this._yangBinding
+                .providesOperationalDataUsing(connector, builder -> builder
+                        .setInterface(TestInterface$Yang
+                                .streamOperationalDataFrom(
+                                        this._interfaces.get())
+
+                                .toImmutableList()));
     }
 
     @Nonnull

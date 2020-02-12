@@ -30,6 +30,11 @@ import com.adva.netemu.YangListBound;
 
 public class TestInterface implements YangListBindable {
 
+    static class YangBindingConnector {
+
+        private YangBindingConnector() {}
+    }
+
     @Nonnull
     private static final Class<? extends InterfaceType> IETF_INTERFACE_TYPE =
             EthernetCsmacd.class;
@@ -63,16 +68,17 @@ public class TestInterface implements YangListBindable {
 
     private TestInterface(@Nonnull final NetworkInterface adapter) {
         this._adapter = adapter;
-
         this._yangBinding = TestInterface$YangListBinding.withKey(
                 TestInterface$Yang.ListKey.from(adapter.getName()));
 
-        this._yangBinding.appliesConfigurationDataUsing(data -> {
-            data.map(yang -> yang.isEnabled()).ifPresent(this._enabled::set);
+        @Nonnull final var connector = new YangBindingConnector();
+
+        this._yangBinding.appliesConfigurationDataUsing(connector, data -> {
+            data.getEnabled().ifPresent(this._enabled::set);
         });
 
-        this._yangBinding.appliesOperationalDataUsing(data -> {
-            data.map(yang -> yang.isEnabled()).ifPresent(this._enabled::set);
+        this._yangBinding.appliesOperationalDataUsing(connector, data -> {
+            data.getEnabled().ifPresent(this._enabled::set);
         });
 
         @Nonnull final Optional<String> macAddress;
@@ -87,14 +93,15 @@ public class TestInterface implements YangListBindable {
             throw new RuntimeException(e);
         }
 
-        this._yangBinding.providesOperationalDataUsing(builder -> builder
-                .setType(IETF_INTERFACE_TYPE)
-                .setName(adapter.getName())
-                .setEnabled(this._enabled.get())
+        this._yangBinding
+                .providesOperationalDataUsing(connector, builder -> builder
+                        .setType(IETF_INTERFACE_TYPE)
+                        .setName(adapter.getName())
+                        .setEnabled(this._enabled.get())
 
-                .setDescription(adapter.getDisplayName())
-                .setPhysAddress(macAddress.map(PhysAddress::new)
-                        .orElse(null)));
+                        .setDescription(adapter.getDisplayName())
+                        .setPhysAddress(macAddress.map(PhysAddress::new)
+                                .orElse(null)));
     }
 
     @Nonnull
@@ -118,7 +125,7 @@ public class TestInterface implements YangListBindable {
     public static TestInterface fromConfigurationData(
             @Nonnull final TestInterface$Yang.Data data) {
 
-        final var intf = TestInterface.withName(data.map(yang -> yang.getName())
+        final var intf = TestInterface.withName(data.getName()
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No 'name' leaf value present in YANG Data")));
 
