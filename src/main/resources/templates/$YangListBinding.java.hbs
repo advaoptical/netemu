@@ -46,25 +46,44 @@ public class {{class}}$YangListBinding
         return new {{class}}$YangListBinding(key);
     }
 
-    @Override
-    public void appliesConfigurationDataUsing(
-            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
+    public {{class}}$YangListBinding appliesConfigurationDataUsing(
+            @Nonnull final {{class}}.YangBindingConnector connector,
+            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
 
-        super.appliesConfigurationDataUsing(applier);
+        super.appliesConfigurationDataUsing((applier != null) ?
+                data -> {
+                    if (data.isPresent()) {
+                        applier.accept({{class}}$Yang.Data.of(data.get()));
+                    }
+                }
+
+                : null);
+
+        return this;
     }
 
-    @Override
-    public void appliesOperationalDataUsing(
-            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
+    public {{class}}$YangListBinding appliesOperationalDataUsing(
+            @Nonnull final {{class}}.YangBindingConnector connector,
+            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
 
-        super.appliesOperationalDataUsing(applier);
+        super.appliesOperationalDataUsing((applier != null) ?
+                data -> {
+                    if (data.isPresent()) {
+                        applier.accept({{class}}$Yang.Data.of(data.get()));
+                    }
+                }
+
+                : null);
+
+        return this;
     }
 
-    @Override
-    public void providesOperationalDataUsing(
+    public {{class}}$YangListBinding providesOperationalDataUsing(
+            @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final
             Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
 
         super.providesOperationalDataUsing(provider);
+        return this;
     }
 }

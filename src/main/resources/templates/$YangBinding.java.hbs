@@ -18,25 +18,44 @@ import com.adva.netemu.YangProvider;
 public class {{class}}$YangBinding
         extends YangBinding<{{yangClass}}, {{yangClass}}Builder> {
 
-    @Override
-    public void appliesConfigurationDataUsing(
-            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
+    public {{class}}$YangBinding appliesConfigurationDataUsing(
+            @Nonnull final {{class}}.YangBindingConnector connector,
+            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
 
-        super.appliesConfigurationDataUsing(applier);
+        super.appliesConfigurationDataUsing((applier != null) ?
+                data -> {
+                    if (data.isPresent()) {
+                        applier.accept({{class}}$Yang.Data.of(data.get()));
+                    }
+                }
+
+                : null);
+
+        return this;
     }
 
-    @Override
-    public void appliesOperationalDataUsing(
-            @Nonnull final Consumer<YangData<{{yangClass}}>> applier) {
+    public {{class}}$YangBinding appliesOperationalDataUsing(
+            @Nonnull final {{class}}.YangBindingConnector connector,
+            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
 
-        super.appliesOperationalDataUsing(applier);
+        super.appliesOperationalDataUsing((applier != null) ?
+                data -> {
+                    if (data.isPresent()) {
+                        applier.accept({{class}}$Yang.Data.of(data.get()));
+                    }
+                }
+
+                : null);
+
+        return this;
     }
 
-    @Override
-    public void providesOperationalDataUsing(
+    public {{class}}$YangBinding providesOperationalDataUsing(
+            @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final
             Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
 
         super.providesOperationalDataUsing(provider);
+        return this;
     }
 }
