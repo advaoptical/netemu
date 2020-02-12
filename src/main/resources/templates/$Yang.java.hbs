@@ -33,6 +33,13 @@ public final class {{class}}$Yang {
         public static Data empty() {
             return EMPTY;
         }
+
+        {{#each yangDataGetters}}
+            @Nonnull
+            Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
+                return super.map({{yangClass}}::{{@key}});
+            }
+        {{/each}}
     }
 
     @Nonnull

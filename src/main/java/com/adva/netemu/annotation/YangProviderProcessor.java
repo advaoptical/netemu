@@ -2,8 +2,11 @@ package com.adva.netemu.annotation;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.processing.AbstractProcessor;
@@ -16,10 +19,12 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic;
 
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.ClassName;
+import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
 import com.github.jknack.handlebars.Handlebars;
@@ -59,24 +64,43 @@ public class YangProviderProcessor extends AbstractProcessor {
     }
 
     @Nonnull
-    protected Map<String, String> provideTemplateContextFrom(
+    protected Map<String, Object> provideTemplateContextFrom(
             @Nonnull final Annotation annotation) {
 
-        final var originClassName = ClassName.get(
+        @Nonnull final var originClassName = ClassName.get(
                 this.provideOriginClassFrom(annotation));
 
-        final var yangClassName = ClassName.get(
-                this.provideYangClassFrom(annotation));
+        @Nonnull final var yangClass =  this.provideYangClassFrom(annotation);
+        @Nonnull final var yangClassName = ClassName.get(yangClass);
+        @Nonnull final var yangDataGetters = EntryStream.of(StreamEx
+                .of(ElementFilter.methodsIn(yangClass.getEnclosedElements()))
+                .mapToEntry(
+                        method -> method.getSimpleName().toString(),
+                        Function.identity())
+
+                .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
+                .mapKeyValue((name, method) -> new SimpleImmutableEntry<>(
+                        name, Map.of(
+                                "valueClass",
+                                ((TypeElement) this.processingEnv
+                                        .getTypeUtils()
+                                        .asElement(method.getReturnType())
+
+                                ).getQualifiedName().toString(),
+
+                                "reprefixedName",
+                                name.replaceFirst("^is", "get")))));
 
         return Map.of(
                 "package", originClassName.packageName(),
                 "class", originClassName.simpleName(),
 
+                "bindingClassSuffix", this.provideBindingClassSuffix(),
+                "bindingGetter", this.provideBindingGetterName(),
+
                 "yangPackage", yangClassName.packageName(),
                 "yangClass", yangClassName.simpleName(),
-
-                "bindingClassSuffix", this.provideBindingClassSuffix(),
-                "bindingGetter", this.provideBindingGetterName());
+                "yangDataGetters", yangDataGetters.toImmutableMap());
     }
 
     @Nonnull
@@ -124,11 +148,11 @@ public class YangProviderProcessor extends AbstractProcessor {
             @Nonnull final Set<? extends TypeElement> annotations,
             @Nonnull final RoundEnvironment roundEnv) {
 
-        for (final var annotatedElement: StreamEx.of(annotations)
+        for (@Nonnull final var annotatedElement: StreamEx.of(annotations)
                 .map(roundEnv::getElementsAnnotatedWith)
                 .flatMap(Set::stream).toSet()) {
 
-            final var annotation = annotatedElement.getAnnotation(
+            @Nonnull final var annotation = annotatedElement.getAnnotation(
                     this._annotationClass);
 
             if (annotatedElement.getKind() != ElementKind.CLASS) {
@@ -142,7 +166,7 @@ public class YangProviderProcessor extends AbstractProcessor {
                 return true;
             }
 
-            final var utilityClassName =
+            @Nonnull final var utilityClassName =
                     this.provideOriginClassFrom(annotation).getQualifiedName()
                             + UTILITY_CLASS_SUFFIX;
 
@@ -150,7 +174,7 @@ public class YangProviderProcessor extends AbstractProcessor {
                     Diagnostic.Kind.NOTE, String.format(
                             "Generating class %s", utilityClassName));
 
-            try (final var writer = this.processingEnv.getFiler()
+            try (@Nonnull final var writer = this.processingEnv.getFiler()
                     .createSourceFile(utilityClassName).openWriter()) {
 
                 HANDLEBARS.compile(this.provideUtilityClassTemplateName())

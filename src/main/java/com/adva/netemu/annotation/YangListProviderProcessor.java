@@ -39,7 +39,7 @@ public class YangListProviderProcessor extends YangProviderProcessor {
     }
 
     @Nonnull @Override
-    protected Map<String, String> provideTemplateContextFrom(
+    protected Map<String, Object> provideTemplateContextFrom(
             @Nonnull final Annotation annotation) {
 
         final TypeElement yangKeyClass;
