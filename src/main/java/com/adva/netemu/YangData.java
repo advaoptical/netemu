@@ -13,30 +13,27 @@ import org.opendaylight.yangtools.yang.binding.DataObject;
 public class YangData<Y extends DataObject> {
 
     @Nonnull
-    private final static YangData<? extends DataObject> EMPTY =
-            new YangData<>(null);
+    private final static YangData<? extends DataObject> EMPTY = new YangData<>(null);
 
     @Nullable
-    private final Y _object;
+    private final Y object;
 
     @Nonnull
     public Y get() {
-        if (this._object == null) {
+        if (this.object == null) {
             throw new NullPointerException("Empty YangData<>!"
                     + " Check YangData::isPresent before YangData::get");
         }
 
-        return this._object;
+        return this.object;
     }
 
     protected YangData(@Nullable final Y object) {
-        this._object = object;
+        this.object = object;
     }
 
     @Nonnull
-    public static <Y extends DataObject> YangData<Y> of(
-            @Nonnull final Y object) {
-
+    public static <Y extends DataObject> YangData<Y> of(@Nonnull final Y object) {
         return new YangData<>(object);
     }
 
@@ -47,19 +44,19 @@ public class YangData<Y extends DataObject> {
     }
 
     public boolean isEmpty() {
-        return this._object == null;
+        return this.object == null;
     }
 
     public boolean isPresent() {
-        return this._object != null;
+        return this.object != null;
     }
 
     public void ifPresent(@Nonnull final Consumer<Y> action) {
-        Optional.ofNullable(this._object).ifPresent(action);
+        Optional.ofNullable(this.object).ifPresent(action);
     }
 
     @Nonnull
     public <T> Optional<T> map(@Nonnull final Function<Y, T> mapper) {
-        return Optional.ofNullable(this._object).map(mapper);
+        return Optional.ofNullable(this.object).map(mapper);
     }
 }

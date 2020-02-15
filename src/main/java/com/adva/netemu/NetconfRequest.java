@@ -4,9 +4,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -14,6 +15,7 @@ import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -38,11 +40,8 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
-import org.opendaylight.yangtools.yang.data.api.schema.stream
-        .NormalizedNodeWriter;
-
-import org.opendaylight.yangtools.yang.data.codec.xml
-        .XMLStreamNormalizedNodeStreamWriter;
+import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
+import org.opendaylight.yangtools.yang.data.codec.xml.XMLStreamNormalizedNodeStreamWriter;
 
 import org.opendaylight.netconf.api.DocumentedException;
 import org.opendaylight.netconf.api.xml.MissingNameSpaceException;
@@ -53,84 +52,78 @@ import org.opendaylight.netconf.test.tool.rpchandler.RpcHandler;
 
 public class NetconfRequest implements RpcHandler {
 
+    @Nonnull
     private static Logger LOG = LoggerFactory.getLogger(NetconfRequest.class);
 
-    private static final XMLInputFactory XML_INPUT_FACTORY =
-            XMLInputFactory.newInstance();
+    @Nonnull
+    private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
-    private static final XMLOutputFactory XML_OUTPUT_FACTORY =
-            XMLOutputFactory.newFactory();
+    @Nonnull
+    private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newFactory();
 
-    private static final TransformerFactory XML_TRANSFORMER_FACTORY =
-            TransformerFactory.newDefaultInstance();
+    @Nonnull
+    private static final TransformerFactory XML_TRANSFORMER_FACTORY = TransformerFactory.newDefaultInstance();
 
+    @Nonnull
     private static final DocumentBuilder RESPONSE_BUILDER;
     static {
         try {
-            final var factory = DocumentBuilderFactory.newInstance();
+            @Nonnull final var factory = DocumentBuilderFactory.newInstance();
 
-            /*  Without namespace awareness enabled, the builder would not be
-                able to parse any XML using namespace syntax. Learned from
-                https://docs.oracle.com/javase/tutorial/jaxp/dom
-                        /readingXML.html
-             */
+            /*  Without namespace awareness enabled, the builder would not be able to parse any XML using namespace syntax.
+                Learned from https://docs.oracle.com/javase/tutorial/jaxp/dom/readingXML.html
+            */
 
             factory.setNamespaceAware(true);
             RESPONSE_BUILDER = factory.newDocumentBuilder();
 
         } catch (final ParserConfigurationException e) {
-            e.printStackTrace();
-            throw new RuntimeException("TODO!");
+            throw new RuntimeException("Failed creating XML Document builder for NETCONF responses", e);
         }
     }
 
     @Nonnull
-    private YangPool _pool;
+    private YangPool pool;
 
     public NetconfRequest(@Nonnull final YangPool pool) {
-        this._pool = pool;
+        this.pool = pool;
     }
 
     @Nonnull @Override
-    public Optional<Document> getResponse(final XmlElement request) {
+    public Optional<Document> getResponse(@Nullable final XmlElement request) {
         if (request == null) {
             LOG.debug("Received null request!");
             return Optional.empty();
         }
 
-        LOG.debug("Received request: {}", request.toString());
+        LOG.debug("Received request: {}", request);
 
-        final var id = request.getDomElement().getOwnerDocument()
-                .getDocumentElement().getAttribute(
-                        XmlNetconfConstants.MESSAGE_ID);
+        @Nullable final var id = request.getDomElement().getOwnerDocument().getDocumentElement().getAttribute(
+                XmlNetconfConstants.MESSAGE_ID);
 
         if (id == null) {
             LOG.error("Received <{}> request has no ID!", request.getName());
             return Optional.empty();
         }
 
-        LOG.info("Received <{}> request with {}: {}",
-                request.getName(), XmlNetconfConstants.MESSAGE_ID, id);
+        LOG.info("Received <{}> request with {}: {}", request.getName(), XmlNetconfConstants.MESSAGE_ID, id);
 
-        final var response = RESPONSE_BUILDER.newDocument();
-        final Element root;
+        @Nonnull final var response = RESPONSE_BUILDER.newDocument();
+        @Nonnull final Element root;
         try {
-            root = response.createElementNS(
-                    request.getNamespace(), "rpc-reply");
-
+            root = response.createElementNS(request.getNamespace(), "rpc-reply");
             response.appendChild(root);
             root.setAttribute(XmlNetconfConstants.MESSAGE_ID, id);
 
         } catch (final MissingNameSpaceException e) {
-            e.printStackTrace();
-            LOG.error("Request has no namespace!");
+            LOG.error("Request has no namespace!", e);
             return Optional.empty();
         }
 
-        final Element data;
+        @Nonnull final Optional<Element> data;
         switch (request.getName()) {
             case "get":
-                data = this.applyGetRequest(request);
+                data = this.applyGetRequest(Objects.requireNonNull(request));
                 break;
 
             case "edit-config":
@@ -141,131 +134,112 @@ public class NetconfRequest implements RpcHandler {
                 return Optional.empty();
         }
 
-        if (data != null) {
-            root.appendChild(response.importNode(data, true));
-        }
-
+        data.ifPresent(element -> root.appendChild(response.importNode(element, true)));
         return Optional.of(response);
     }
 
-    @Nullable
-    Element applyGetRequest(@Nonnull final XmlElement request) {
-
-        final var future = this._pool.readOperationalData();
-        final Optional<NormalizedNode<?, ?>> node;
+    @Nonnull
+    Optional<Element> applyGetRequest(@SuppressWarnings({"unused"}) final XmlElement request) {
+        @Nonnull final var futureData = this.pool.readOperationalData();
+        @Nonnull final Optional<NormalizedNode<?, ?>> node;
         try {
-                node = future.get();
+                node = futureData.get();
 
-        } catch (final
-                InterruptedException |
-                ExecutionException e) {
-
+        } catch (final InterruptedException | ExecutionException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
         if (node.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
-        final var stream = new ByteArrayOutputStream();
-        final XMLStreamWriter xmlWriter;
+        @Nonnull final var stream = new ByteArrayOutputStream();
+        @Nonnull final XMLStreamWriter xmlWriter;
         try {
-            xmlWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(
-                    stream, "UTF-8");
+            xmlWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(stream, "UTF-8");
 
         } catch (XMLStreamException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        final var nodeWriter = NormalizedNodeWriter.forStreamWriter(
-                XMLStreamNormalizedNodeStreamWriter.createSchemaless(
-                        new IndentingXMLStreamWriter(xmlWriter)));
-                        // this._pool.getYangContext()));
+        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var nodeWriter = NormalizedNodeWriter.forStreamWriter(
+                XMLStreamNormalizedNodeStreamWriter.createSchemaless(new IndentingXMLStreamWriter(xmlWriter)));
+                // this._pool.getYangContext()));
 
         try {
-            nodeWriter.write(node.get());
-            nodeWriter.flush();
+            nodeWriter.write(node.get()).flush(); // TODO: @SuppressWarnings({"UnstableApiUsage"})
 
         } catch (final IOException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
         /*  Adding <data> element to response adapted from
-            https://stackoverflow.com/questions/729621
-                    /convert-string-xml-fragment-to-document-node-in-java
+            https://stackoverflow.com/questions/729621/convert-string-xml-fragment-to-document-node-in-java
         */
 
-        final Document data;
+        @Nonnull final Document data;
         try {
-            data = RESPONSE_BUILDER.parse(new InputSource(new StringReader(
-                    stream.toString(UTF_8))));
+            data = RESPONSE_BUILDER.parse(new InputSource(new StringReader(stream.toString(StandardCharsets.UTF_8))));
 
-        } catch (final
-                SAXException |
-                IOException e) {
-
+        } catch (final SAXException | IOException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        return data.getDocumentElement();
+        return Optional.of(data.getDocumentElement());
     }
 
-    @Nullable
-    Element applyEditConfigRequest(@Nonnull final XmlElement request) {
-        final XmlElement target;
+    @Nonnull
+    Optional<Element> applyEditConfigRequest(@Nonnull final XmlElement request) {
+        // @Nonnull final XmlElement target;
         try {
-            target = request.getOnlyChildElement("target")
-                    .getOnlyChildElement();
+            request.getOnlyChildElement("target").getOnlyChildElement();
 
-        } catch (DocumentedException e) {
+        } catch (final DocumentedException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        final XmlElement data;
+        @Nonnull final XmlElement data;
         try {
             data = request.getOnlyChildElement("config");
 
-        } catch (DocumentedException e) {
+        } catch (final DocumentedException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        final Transformer xmlTransformer;
+        @Nonnull final Transformer xmlTransformer;
         try {
             xmlTransformer = XML_TRANSFORMER_FACTORY.newTransformer();
 
-        } catch (TransformerConfigurationException e) {
+        } catch (final TransformerConfigurationException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        final StringWriter dataWriter = new StringWriter();
+        @Nonnull final StringWriter dataWriter = new StringWriter();
         try {
-            xmlTransformer.transform(
-                    new DOMSource(data.getDomElement()),
-                    new StreamResult(dataWriter));
+            xmlTransformer.transform(new DOMSource(data.getDomElement()), new StreamResult(dataWriter));
 
-        } catch (TransformerException e) {
+        } catch (final TransformerException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        final XMLStreamReader xmlReader;
+        @Nonnull final XMLStreamReader xmlReader;
         try {
-            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(
-                    new StringReader(dataWriter.toString()));
+            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(dataWriter.toString()));
 
         } catch (final XMLStreamException e) {
             e.printStackTrace();
-            return null;
+            return Optional.empty();
         }
 
-        this._pool.writeOperationalDataFrom(xmlReader);
-        return null;
+        this.pool.writeOperationalDataFrom(xmlReader);
+        return Optional.empty();
     }
 }

@@ -2,9 +2,9 @@ package com.adva.netemu.annotation;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -43,7 +43,7 @@ public class YangProviderProcessor extends AbstractProcessor {
             .with(new ClassPathTemplateLoader("/templates"));
 
     @Nonnull
-    private final Class<? extends Annotation> _annotationClass;
+    private final Class<? extends Annotation> annotationClass;
 
     @Nonnull
     protected final String UTILITY_CLASS_SUFFIX = "$Yang";
@@ -51,7 +51,7 @@ public class YangProviderProcessor extends AbstractProcessor {
     protected YangProviderProcessor(
             @Nonnull final Class<? extends Annotation> annotationClass) {
 
-        this._annotationClass = annotationClass;
+        this.annotationClass = annotationClass;
     }
 
     public YangProviderProcessor() {
@@ -64,34 +64,23 @@ public class YangProviderProcessor extends AbstractProcessor {
     }
 
     @Nonnull
-    protected Map<String, Object> provideTemplateContextFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull final Annotation annotation) {
         @Nonnull final var originClassName = ClassName.get(
                 this.provideOriginClassFrom(annotation));
 
         @Nonnull final var yangClass =  this.provideYangClassFrom(annotation);
         @Nonnull final var yangClassName = ClassName.get(yangClass);
-        @Nonnull final var yangDataGetters = EntryStream.of(StreamEx
-                .of(ElementFilter.methodsIn(yangClass.getEnclosedElements()))
-                .mapToEntry(
-                        method -> method.getSimpleName().toString(),
-                        Function.identity())
 
+        @Nonnull final var yangDataGetters = EntryStream.of(StreamEx.of(ElementFilter.methodsIn(yangClass.getEnclosedElements()))
+                .mapToEntry(method -> method.getSimpleName().toString(), Function.identity())
                 .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
-                .mapKeyValue((name, method) -> new SimpleImmutableEntry<>(
-                        name, Map.of(
-                                "valueClass",
-                                ((TypeElement) this.processingEnv
-                                        .getTypeUtils()
-                                        .asElement(method.getReturnType())
+                .mapKeyValue((name, method) -> new SimpleImmutableEntry<>(name, Map.of(
+                        "valueClass", ((TypeElement) this.processingEnv.getTypeUtils().asElement(method.getReturnType()))
+                                .getQualifiedName().toString(),
 
-                                ).getQualifiedName().toString(),
+                        "reprefixedName", name.replaceFirst("^is", "get")))));
 
-                                "reprefixedName",
-                                name.replaceFirst("^is", "get")))));
-
-        return Map.of(
+        return Optional.of(Map.of(
                 "package", originClassName.packageName(),
                 "class", originClassName.simpleName(),
 
@@ -100,7 +89,7 @@ public class YangProviderProcessor extends AbstractProcessor {
 
                 "yangPackage", yangClassName.packageName(),
                 "yangClass", yangClassName.simpleName(),
-                "yangDataGetters", yangDataGetters.toImmutableMap());
+                "yangDataGetters", yangDataGetters.toImmutableMap()));
     }
 
     @Nonnull
@@ -114,77 +103,56 @@ public class YangProviderProcessor extends AbstractProcessor {
     }
 
     @Nonnull
-    protected TypeElement provideOriginClassFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected TypeElement provideOriginClassFrom(@Nonnull final Annotation annotation) {
         try {
-            final var __ = ((YangProvider) annotation).origin();
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangProvider) annotation).origin();
+            throw new Error();
 
         } catch (final MirroredTypeException e) {
-            return (TypeElement) super.processingEnv.getTypeUtils()
-                    .asElement(e.getTypeMirror());
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
-
-        throw new Error();
     }
 
     @Nonnull
-    protected TypeElement provideYangClassFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected TypeElement provideYangClassFrom(@Nonnull final Annotation annotation) {
         try {
-            final var __ = ((YangProvider) annotation).value();
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangProvider) annotation).value();
+            throw new Error();
 
         } catch (final MirroredTypeException e) {
-            return (TypeElement) super.processingEnv.getTypeUtils()
-                    .asElement(e.getTypeMirror());
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
-
-        throw new Error();
     }
 
     @Override
-    public boolean process(
-            @Nonnull final Set<? extends TypeElement> annotations,
-            @Nonnull final RoundEnvironment roundEnv) {
-
-        for (@Nonnull final var annotatedElement: StreamEx.of(annotations)
-                .map(roundEnv::getElementsAnnotatedWith)
+    public boolean process(@Nonnull final Set<? extends TypeElement> annotations, @Nonnull final RoundEnvironment roundEnv) {
+        for (@Nonnull final var annotatedElement: StreamEx.of(annotations).map(roundEnv::getElementsAnnotatedWith)
                 .flatMap(Set::stream).toSet()) {
 
-            @Nonnull final var annotation = annotatedElement.getAnnotation(
-                    this._annotationClass);
-
+            @Nonnull final var annotation = annotatedElement.getAnnotation(this.annotationClass);
             if (annotatedElement.getKind() != ElementKind.CLASS) {
                 super.processingEnv.getMessager().printMessage(
-                        Diagnostic.Kind.ERROR, String.format(
-                                "@%s annotation supports only classes",
-                                this._annotationClass.getSimpleName()),
-
+                        Diagnostic.Kind.ERROR,
+                        String.format("@%s annotation supports only classes", this.annotationClass.getSimpleName()),
                         annotatedElement);
 
                 return true;
             }
 
-            @Nonnull final var utilityClassName =
-                    this.provideOriginClassFrom(annotation).getQualifiedName()
+            @Nonnull final var utilityClassName = this.provideOriginClassFrom(annotation).getQualifiedName()
                             + UTILITY_CLASS_SUFFIX;
 
             super.processingEnv.getMessager().printMessage(
-                    Diagnostic.Kind.NOTE, String.format(
-                            "Generating class %s", utilityClassName));
+                    Diagnostic.Kind.NOTE, String.format("Generating class %s", utilityClassName));
 
-            try (@Nonnull final var writer = this.processingEnv.getFiler()
-                    .createSourceFile(utilityClassName).openWriter()) {
+            this.provideTemplateContextFrom(annotation).ifPresent(context -> {
+                try (@Nonnull final var writer = this.processingEnv.getFiler().createSourceFile(utilityClassName).openWriter()) {
+                    HANDLEBARS.compile(this.provideUtilityClassTemplateName()).apply(context, writer);
 
-                HANDLEBARS.compile(this.provideUtilityClassTemplateName())
-                        .apply(
-                                this.provideTemplateContextFrom(annotation),
-                                writer);
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+                } catch (final IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
 
         return true;

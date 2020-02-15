@@ -19,7 +19,7 @@ import com.adva.netemu.YangListBound;
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"com.adva.netemu.YangListBound"})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
-public class YangListBoundProcessor  extends YangBoundProcessor {
+public class YangListBoundProcessor extends YangBoundProcessor {
 
     public YangListBoundProcessor() {
         super(YangListBound.class);
@@ -31,31 +31,23 @@ public class YangListBoundProcessor  extends YangBoundProcessor {
     }
 
     @Nonnull @Override
-    protected TypeElement provideCompileTimeContextFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected TypeElement provideCompileTimeContextFrom(@Nonnull final Annotation annotation) {
         try {
-            final var __ = ((YangListBound) annotation).context();
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListBound) annotation).context();
+            throw new Error();
 
         } catch (final MirroredTypeException e) {
-            return (TypeElement) super.processingEnv.getTypeUtils()
-                    .asElement(e.getTypeMirror());
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
-
-        throw new Error();
     }
 
     @Nonnull @Override
-    protected String provideYangNamespaceFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected String provideYangNamespaceFrom(@Nonnull final Annotation annotation) {
         return ((YangListBound) annotation).namespace();
     }
 
     @Nonnull @Override
-    protected String provideYangPathFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected String provideYangPathFrom(@Nonnull final Annotation annotation) {
         return ((YangListBound) annotation).value();
     }
 }

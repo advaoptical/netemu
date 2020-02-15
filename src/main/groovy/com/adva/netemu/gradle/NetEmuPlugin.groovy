@@ -1,55 +1,57 @@
 package com.adva.netemu.gradle
 
+import javax.annotation.Nonnull
+
 import com.google.common.io.Files
 import org.apache.maven.project.MavenProject
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-
 import org.gradle.api.plugins.JavaPluginConvention
+
+import org.opendaylight.yangtools.yang2sources.plugin.NetEmuYangToSourcesProcessor
+
 import org.opendaylight.mdsal.binding.spec.naming.BindingMapping
-import org.opendaylight.yangtools.yang2sources.plugin.
-        NetEmuYangToSourcesProcessor
 
-import static org.opendaylight.mdsal.binding.maven.api.gen.plugin.
-        NetEmuCodeGenerator.YANG_MODULES
+import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator
 
 
+@SuppressWarnings("GroovyUnusedDeclaration")
 class NetEmuPlugin implements Plugin<Project> {
 
-    final String CONTEXT_CLASS_NAME = "NetEmuDefined"
+    @Nonnull
+    private final String CONTEXT_CLASS_NAME = "NetEmuDefined"
 
     @Override
-    void apply(final Project prj) {
-        final ext = prj.extensions.create 'netEmu', NetEmuExtension
+    void apply(final Project project) {
+        @Nonnull final extension = project.extensions.create 'netEmu', NetEmuExtension
 
-        final mavenPrj = new MavenProject()
-        mavenPrj.file = prj.buildFile.canonicalFile
+        @Nonnull final mavenProject = new MavenProject()
+        mavenProject.file = project.buildFile.canonicalFile
 
-        final task = prj.tasks.create('yangToSources').doFirst {
-            final buildRoot = prj.buildDir.toPath()
+        @Nonnull final task = project.tasks.create('yangToSources').doFirst {
+            @Nonnull final buildRoot = project.buildDir.toPath()
 
-            final resources = buildRoot.resolve "resources/main"
-            final output = buildRoot.resolve ext.yangToSources.outputDir
+            @Nonnull final resources = buildRoot.resolve "resources/main"
+            @Nonnull final output = buildRoot.resolve extension.yangToSources.outputDir
 
-            final outputDir = output.toString()
-            final proc = new NetEmuYangToSourcesProcessor(
-                    resources, outputDir, mavenPrj)
+            @Nonnull final outputDir = output.toString()
+            new NetEmuYangToSourcesProcessor(resources, outputDir, mavenProject).execute()
 
-            proc.execute()
+            @Nonnull final yang = resources.resolve "META-INF/yang"
+            @Nonnull final yangFiles = yang.toFile().listFiles().collect { it.name }
 
-            final yang = resources.resolve "META-INF/yang"
-            final yangFiles = yang.toFile().listFiles().collect { it.name }
+            @Nonnull final packageName = extension.contextPackage ?: project.group.toString()
+            @Nonnull final packagePath = output.resolve packageName.replace('.', '/')
 
-            final packageName = ext.contextPackage ?: prj.group.toString()
-            final packagePath = output.resolve packageName.replace('.', '/')
-
-            final classFile = packagePath.resolve CONTEXT_CLASS_NAME + ".java"
+            @Nonnull final classFile = packagePath.resolve "${CONTEXT_CLASS_NAME}.java"
             Files.createParentDirs classFile.toFile()
             classFile.write """
             package ${packageName};
 
             import java.util.Set;
+
+            import javax.annotation.Nonnull;
 
             import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 
@@ -59,58 +61,47 @@ class NetEmuPlugin implements Plugin<Project> {
                     throw new UnsupportedOperationException();
                 }
 
-                public static
-                final Set<YangModuleInfo> YANG_MODULE_INFOS =
-                        Set.of(${String.join",\n\n",
-                                YANG_MODULES.get().stream().map() {
-                                    final pkg = BindingMapping
-                                            .getRootPackageName(
-                                                    it.getQNameModule());
+                @Nonnull
+                public static final Set<YangModuleInfo> YANG_MODULE_INFOS = Set.of(
+                        ${String.join",\n\n", NetEmuCodeGenerator.YANG_MODULES.get().stream().map() {
+                            "${BindingMapping.getRootPackageName it.getQNameModule()}.\$YangModuleInfoImpl.getInstance()"
 
-                                    "${pkg}.\$YangModuleInfoImpl" +
-                                            ".getInstance()"
+                        }.collect()});
 
-                                }.collect()});
+                @SuppressWarnings({"unused"})
+                public static class CompileTime {
 
-                class CompileTime {
+                    public static class YangModules {
 
-                    class YangModules {
-
-                        class NorevLookup {
+                        public static class NorevLookup {
 
                             ${String.join """\n
-                            """, YANG_MODULES.get().stream().map() {
-                                final name = it.getName()
-                                final revision = it.getRevision()
-                                        .map { it.toString() }.orElse ''
+                            """, NetEmuCodeGenerator.YANG_MODULES.get().stream().map() {
+                                @Nonnull final yangPackage = BindingMapping.getRootPackageName(it.getQNameModule())
+                                @Nonnull final yangNorevPackage = yangPackage.replaceAll(/\.[^.]+$/, '.norev')
 
-                                final namespace = it.getNamespace().toString()
-                                final pkg = BindingMapping.getRootPackageName(
-                                        it.getQNameModule())
+                                """
+                                public static class ${yangNorevPackage.replace'.', '$'} {
 
-                                "class " + pkg
-                                        .replaceAll(/\.[^.]+$/, '.norev')
-                                        .replace('.', '$') + " {\n" +
+                                    @Nonnull
+                                    public static final String NAME = "${it.getName()}";
 
-                                "    final String NAME =\n" +
-                                "            \"${name}\";\n\n" +
+                                    @Nonnull
+                                    public static final String REVISION = "${it.getRevision().map { it.toString() }.orElse ''}";
 
-                                "    final String REVISION =\n" +
-                                "            \"${revision}\";\n\n" +
+                                    @Nonnull
+                                    public static final String NAMESPACE = "${it.getNamespace().toString()}";
 
-                                "    final String NAMESPACE =\n" +
-                                "            \"${namespace}\";\n\n" +
+                                    @Nonnull
+                                    public static final String PACKAGE = "${yangPackage}";
 
-                                "    final String PACKAGE =\n" +
-                                "            \"${pkg}\";\n\n" +
+                                    @Nonnull
+                                    public static final String RESOURCE = "/META-INF/yang/${ yangFiles.find {
+                                        it.matches "^${name}(@[0-9-]+)?\\.yang\$"
 
-                                "    final String RESOURCE =\n" +
-                                "            \"/META-INF/yang/" +
-
-                                yangFiles.find {
-                                    it.matches "^${name}(@[0-9-]+)?\\.yang\$"
-
-                                } + "\";\n}"
+                                    } }";
+                                }
+                                """.trim()
 
                             }.collect()}
                         }
@@ -119,13 +110,11 @@ class NetEmuPlugin implements Plugin<Project> {
             }
             """.stripIndent()
 
-            final javaCon =
-                    prj.convention.plugins['java'] as JavaPluginConvention
+            @Nonnull final javaConvention = project.convention.plugins['java'] as JavaPluginConvention
+            javaConvention.sourceSets['main'].java.srcDirs += outputDir
 
-            javaCon.sourceSets['main'].java.srcDirs += outputDir
-        }
+        }.dependsOn project.tasks['processResources']
 
-        task.dependsOn prj.tasks['processResources']
-        prj.tasks['compileJava'].dependsOn task
+        project.tasks['compileJava'].dependsOn task
     }
 }

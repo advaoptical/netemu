@@ -1,30 +1,18 @@
 package com.adva.netemu.testemu;
 
+import javax.annotation.Nonnull;
+
 import com.adva.netemu.NetEmu;
 import com.adva.netemu.YangPool;
 
 
 public final class Main {
 
-    public static void main(final String[] args) {
+    public static void main(@Nonnull final String[] args) {
 
-        final var pool = new YangPool("testemu",
-                org.opendaylight.yang.gen.v1
-                        .urn.ietf.params.xml.ns.yang
-                        .ietf.yang.types.rev130715
-                        .$YangModuleInfoImpl.getInstance(),
+        @Nonnull final var pool = new YangPool("testemu", NetEmuDefined.YANG_MODULE_INFOS);
 
-                org.opendaylight.yang.gen.v1
-                        .urn.ietf.params.xml.ns.yang
-                        .ietf.interfaces.rev180220
-                        .$YangModuleInfoImpl.getInstance(),
-
-                org.opendaylight.yang.gen.v1
-                        .urn.ietf.params.xml.ns.yang
-                        .iana._if.type.rev170119
-                        .$YangModuleInfoImpl.getInstance());
-
-        final var device = pool.registerYangBindable(new TestDevice());
+        @Nonnull final var device = pool.registerYangBindable(new TestDevice());
         // final var intf = device.getInterfaces().get(0);
         // intf._buildIid();
 
@@ -39,7 +27,7 @@ public final class Main {
         System.out.println(intf.getIidBuilder().build());
         */
 
-        final var emu = new NetEmu(pool);
+        @Nonnull final var emu = new NetEmu(pool);
         // emu.loadConfigurationFromXml();
 
         // pool.writeOperationalDataFrom(device);

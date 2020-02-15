@@ -5,6 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import javax.annotation.Nonnull;
+
 import org.opendaylight.yangtools.yang.binding.DataObject;
 
 
@@ -12,7 +14,9 @@ import org.opendaylight.yangtools.yang.binding.DataObject;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface YangProvider {
 
+    @Nonnull
     Class<?> origin();
 
+    @Nonnull
     Class<? extends DataObject> value();
 }

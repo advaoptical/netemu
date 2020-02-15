@@ -3,10 +3,10 @@ package com.adva.netemu.datastore;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
-
 import com.squareup.inject.assisted.Assisted;
 import com.squareup.inject.assisted.AssistedInject;
 
@@ -28,14 +28,13 @@ import com.adva.netemu.YangBinding;
 @Component(modules = {YangDatastoreModule.class})
 public interface YangDatastore {
 
-    abstract class ReadingFutureCallback
-            implements FutureCallback<Optional<NormalizedNode<?, ?>>> {
+    abstract class ReadingFutureCallback implements FutureCallback<Optional<NormalizedNode<?, ?>>> {
 
-        LogicalDatastoreType storeType;
+        @Nullable
+        LogicalDatastoreType storeType = null;
 
-        ReadingFutureCallback of(
-                @Nonnull final LogicalDatastoreType storeType) {
-
+        @Nonnull
+        ReadingFutureCallback of(@Nonnull final LogicalDatastoreType storeType) {
             this.storeType = storeType;
             return this;
         }
@@ -43,33 +42,36 @@ public interface YangDatastore {
 
     class Reading {
 
+        @Nonnull
         public final ReadingFutureCallback futureCallback;
 
         @AssistedInject
-        Reading(@Nonnull final ReadingFutureCallback callback,
-                @Assisted @Nonnull final LogicalDatastoreType storeType) {
-
+        Reading(@Nonnull final ReadingFutureCallback callback, @Assisted @Nonnull final LogicalDatastoreType storeType) {
             this.futureCallback = callback.of(storeType);
         }
 
         @AssistedInject.Factory
         interface Factory {
+
+            @Nonnull
             Reading of(final LogicalDatastoreType storeType);
         }
     }
 
+    @Nonnull
     YangDatastore$Reading_AssistedFactory injectReading();
 
-    abstract class WritingFutureCallback
-            implements FutureCallback<CommitInfo> {
+    @SuppressWarnings({"UnstableApiUsage"})
+    abstract class WritingFutureCallback implements FutureCallback<CommitInfo> {
 
-        LogicalDatastoreType storeType;
-        YangInstanceIdentifier yangPath;
+        @Nullable
+        LogicalDatastoreType storeType = null;
 
-        WritingFutureCallback of(
-                @Nonnull final LogicalDatastoreType storeType,
-                @Nonnull final YangInstanceIdentifier yangPath) {
+        @Nullable
+        YangInstanceIdentifier yangPath = null;
 
+        @Nonnull
+        WritingFutureCallback of(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangInstanceIdentifier yangPath) {
             this.storeType = storeType;
             this.yangPath = yangPath;
             return this;
@@ -78,6 +80,7 @@ public interface YangDatastore {
 
     class Writing {
 
+        @Nonnull
         public final WritingFutureCallback futureCallback;
 
         @AssistedInject
@@ -90,32 +93,35 @@ public interface YangDatastore {
 
         @AssistedInject.Factory
         interface Factory {
-            Writing of(
-                    final LogicalDatastoreType storeType,
-                    final YangInstanceIdentifier yangPath);
+
+            @Nonnull
+            Writing of(final LogicalDatastoreType storeType, final YangInstanceIdentifier yangPath);
         }
     }
 
+    @Nonnull
     YangDatastore$Writing_AssistedFactory injectWriting();
 
     @FunctionalInterface
     interface ModeledWritingFunction {
 
         @Nonnull
-        <Y extends ChildOf> FluentFuture<? extends CommitInfo> apply(
-                @Nonnull final DataBroker dataBroker,
-                @Nonnull final YangBinding<Y, Builder<Y>> object);
+        @SuppressWarnings({"UnstableApiUsage"})
+        <Y extends ChildOf<?>, B extends Builder<Y>>
+        FluentFuture<? extends CommitInfo> apply(@Nonnull final DataBroker broker, @Nonnull final YangBinding<Y, B> object);
     }
 
-    abstract class ModeledWritingTransactor
-            implements ModeledWritingFunction {
+    abstract class ModeledWritingTransactor implements ModeledWritingFunction {
 
-        LogicalDatastoreType storeType;
-        InstanceIdentifier<?> yangModeledPath;
+        @Nullable
+        LogicalDatastoreType storeType = null;
 
+        @Nullable
+        InstanceIdentifier<?> yangModeledPath = null;
+
+        @Nonnull
         ModeledWritingTransactor of(
-                @Nonnull final LogicalDatastoreType storeType,
-                @Nonnull final InstanceIdentifier<?> yangModeledPath) {
+                @Nonnull final LogicalDatastoreType storeType, @Nonnull final InstanceIdentifier<?> yangModeledPath) {
 
             this.storeType = storeType;
             this.yangModeledPath = yangModeledPath;
@@ -123,15 +129,18 @@ public interface YangDatastore {
         }
     }
 
-    abstract class ModeledWritingFutureCallback
-            implements FutureCallback<CommitInfo> {
+    @SuppressWarnings({"UnstableApiUsage"})
+    abstract class ModeledWritingFutureCallback implements FutureCallback<CommitInfo> {
 
-        LogicalDatastoreType storeType;
-        InstanceIdentifier<?> yangModeledPath;
+        @Nullable
+        LogicalDatastoreType storeType = null;
 
+        @Nullable
+        InstanceIdentifier<?> yangModeledPath = null;
+
+        @Nonnull
         ModeledWritingFutureCallback of(
-                @Nonnull final LogicalDatastoreType storeType,
-                @Nonnull final InstanceIdentifier<?> yangModeledPath) {
+                @Nonnull final LogicalDatastoreType storeType, @Nonnull final InstanceIdentifier<?> yangModeledPath) {
 
             this.storeType = storeType;
             this.yangModeledPath = yangModeledPath;
@@ -141,8 +150,10 @@ public interface YangDatastore {
 
     class ModeledWriting {
 
+        @Nonnull
         public final ModeledWritingTransactor transactor;
 
+        @Nonnull
         public final ModeledWritingFutureCallback futureCallback;
 
         @AssistedInject
@@ -150,8 +161,7 @@ public interface YangDatastore {
                 @Nonnull final ModeledWritingTransactor transactor,
                 @Nonnull final ModeledWritingFutureCallback callback,
                 @Assisted @Nonnull final LogicalDatastoreType storeType,
-                @Assisted @Nonnull
-                final InstanceIdentifier<?> yangModeledPath) {
+                @Assisted @Nonnull final InstanceIdentifier<?> yangModeledPath) {
 
             this.transactor = transactor.of(storeType, yangModeledPath);
             this.futureCallback = callback.of(storeType, yangModeledPath);
@@ -159,11 +169,12 @@ public interface YangDatastore {
 
         @AssistedInject.Factory
         interface Factory {
-            ModeledWriting of(
-                    final LogicalDatastoreType storeType,
-                    final InstanceIdentifier<?> yangModeledPath);
+
+            @Nonnull
+            ModeledWriting of(final LogicalDatastoreType storeType, final InstanceIdentifier<?> yangModeledPath);
         }
     }
 
+    @Nonnull
     YangDatastore$ModeledWriting_AssistedFactory injectModeledWriting();
 }

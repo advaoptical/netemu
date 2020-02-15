@@ -28,58 +28,49 @@ import org.opendaylight.mdsal.binding.api.DataTreeModification;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
 
-public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
+public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TODO: ChildOf<?>
         implements YangBindable, AutoCloseable {
 
-    protected static final Logger LOG = LoggerFactory.getLogger(
-            YangBinding.class);
+    @Nonnull
+    protected static final Logger LOG = LoggerFactory.getLogger(YangBinding.class);
 
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
         return Optional.of(this);
     }
 
-    public abstract class DataBinding
-            implements DataTreeChangeListener<T> {
+    public abstract class DatastoreBinding implements DataTreeChangeListener<Y> {
 
         @Nonnull
-        private final LogicalDatastoreType _storeType;
+        private final LogicalDatastoreType storeType;
 
         @Nonnull
-        private final YangBinding<T, B> _object;
+        private final YangBinding<Y, B> object;
 
         @Nonnull
-        public InstanceIdentifier<T> getIid() {
-            return this._object.getIid();
+        public InstanceIdentifier<Y> getIid() {
+            return this.object.getIid();
         }
 
         @Nonnull
-        public DataTreeIdentifier<T> getDataTreeId() {
-            return DataTreeIdentifier.create(this._storeType, this.getIid());
+        public DataTreeIdentifier<Y> getDataTreeId() {
+            return DataTreeIdentifier.create(this.storeType, this.getIid());
         }
 
-        protected DataBinding(
-                @Nonnull final LogicalDatastoreType storeType,
-                @Nonnull final YangBinding<T, B> object) {
-
-            this._storeType = storeType;
-            this._object = object;
+        protected DatastoreBinding(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangBinding<Y, B> object) {
+            this.storeType = storeType;
+            this.object = object;
         }
 
         @Override
-        public void onDataTreeChanged(
-                @Nonnull final Collection<DataTreeModification<T>> changes) {
+        public void onDataTreeChanged(@Nonnull final Collection<DataTreeModification<Y>> changes) {
+            LOG.info("Applying changed {} Data to: {}", this.storeType, this.object);
 
-            LOG.info("Applying changed {} Data to: {}",
-                    this._storeType, this._object);
-
-            for (final var change : changes) {
-                final var node = change.getRootNode();
+            for (@Nonnull final var change : changes) {
+                @Nonnull final var node = change.getRootNode();
                 switch (node.getModificationType()) {
                     case WRITE:
-                        this._object.applyData(
-                                this._storeType, node.getDataAfter());
-
+                        this.object.applyData(this.storeType, node.getDataAfter());
                         continue;
 
                     case SUBTREE_MODIFIED:
@@ -93,125 +84,110 @@ public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
         }
     }
 
-    public final class ConfigurationDataBinding extends DataBinding {
+    public final class ConfigurationDatastoreBinding extends DatastoreBinding {
 
-        public ConfigurationDataBinding(
-                @Nonnull final YangBinding<T, B> object) {
-
+        public ConfigurationDatastoreBinding(@Nonnull final YangBinding<Y, B> object) {
             super(LogicalDatastoreType.CONFIGURATION, object);
         }
     }
 
     @Nonnull
-    public ConfigurationDataBinding createConfigurationDataBinding() {
-        return new ConfigurationDataBinding(this);
+    public ConfigurationDatastoreBinding createConfigurationDatastoreBinding() {
+        return new ConfigurationDatastoreBinding(this);
     }
 
-    public final class OperationalDataBinding extends DataBinding {
+    public final class OperationalDatastoreBinding extends DatastoreBinding {
 
-        public OperationalDataBinding(
-                @Nonnull final YangBinding<T, B> object) {
-
+        public OperationalDatastoreBinding(@Nonnull final YangBinding<Y, B> object) {
             super(LogicalDatastoreType.OPERATIONAL, object);
         }
     }
 
     @Nonnull
-    public OperationalDataBinding createOperationalDataBinding() {
-        return new OperationalDataBinding(this);
+    public OperationalDatastoreBinding createOperationalDatastoreBinding() {
+        return new OperationalDatastoreBinding(this);
     }
 
     @Nonnull
-    public Class<T> getDataClass() {
-        return (Class<T>) (new TypeToken<T>(this.getClass()) {}).getRawType();
+    @SuppressWarnings({"UnstableApiUsage", "unchecked"})
+    public Class<Y> getDataClass() {
+        return (Class<Y>) (new TypeToken<Y>(this.getClass()) {}).getRawType();
     }
 
     @Nonnull
+    @SuppressWarnings({"UnstableApiUsage", "unchecked"})
     public Class<B> getBuilderClass() {
         return (Class<B>) (new TypeToken<B>(this.getClass()) {}).getRawType();
     }
 
     @Nonnull
-    public InstanceIdentifier.InstanceIdentifierBuilder<T> getIidBuilder() {
-        if (this._owner == null) {
+    @SuppressWarnings("unchecked")
+    public InstanceIdentifier.InstanceIdentifierBuilder<Y> getIidBuilder() {
+        if (this.owner == null) {
             return InstanceIdentifier.builder(this.getDataClass());
         }
 
-        return this._owner.getIidBuilder().child(this.getDataClass());
+        return this.owner.getIidBuilder().child(this.getDataClass());
     }
 
     @Nonnull
-    public InstanceIdentifier<T> getIid() {
+    public InstanceIdentifier<Y> getIid() {
         return this.getIidBuilder().build();
     }
 
     @Nullable
-    protected YangBinding<?, ?> _owner = null;
+    protected YangBinding<?, ?> owner = null;
 
     @Nullable
-    public YangBinding<?, ?> getOwner() {
-        return this._owner;
+    public Optional<YangBinding<?, ?>> getOwner() {
+        return Optional.ofNullable(this.owner);
     }
 
     public void makeOwned(
-            @Nonnull final Owned.Maker __,
-            @Nullable final YangBinding owner) {
+            @Nonnull @SuppressWarnings({"unused"}) final Owned.Maker maker, @Nullable final YangBinding<?, ?> owner) {
 
-        this._owner = owner;
+        this.owner = owner;
     }
 
     @Nonnull
-    private final
-    Map<LogicalDatastoreType, Consumer<YangData<T>>> _dataAppliers =
-            Collections.synchronizedMap(
+    private final Map<LogicalDatastoreType, Consumer<YangData<Y>>> dataAppliers = Collections.synchronizedMap(
                     new EnumMap<>(LogicalDatastoreType.class));
 
-    protected void appliesConfigurationDataUsing(
-            @Nullable final Consumer<YangData<T>> applier) {
-
-        this._dataAppliers.put(LogicalDatastoreType.CONFIGURATION, applier);
+    protected void appliesConfigurationDataUsing(@Nullable final Consumer<YangData<Y>> applier) {
+        this.dataAppliers.put(LogicalDatastoreType.CONFIGURATION, applier);
     }
 
-    protected void appliesOperationalDataUsing(
-            @Nullable final Consumer<YangData<T>> applier) {
-
-        this._dataAppliers.put(LogicalDatastoreType.OPERATIONAL, applier);
+    protected void appliesOperationalDataUsing(@Nullable final Consumer<YangData<Y>> applier) {
+        this.dataAppliers.put(LogicalDatastoreType.OPERATIONAL, applier);
     }
 
-    public void applyConfigurationData(@Nonnull final YangData<T> data) {
-        final var applier = this._dataAppliers.get(
-                LogicalDatastoreType.CONFIGURATION);
-
+    public void applyConfigurationData(@Nonnull final YangData<Y> data) {
+        @Nullable final var applier = this.dataAppliers.get(LogicalDatastoreType.CONFIGURATION);
         if (applier != null) {
             applier.accept(data);
         }
     }
 
-    public void applyConfigurationData(@Nullable final T data) {
+    public void applyConfigurationData(@Nullable final Y data) {
         if (data != null) {
             this.applyConfigurationData(YangData.of(data));
         }
     }
 
-    public void applyOperationalData(@Nonnull final YangData<T> data) {
-        final var applier = this._dataAppliers.get(
-                LogicalDatastoreType.OPERATIONAL);
-
+    public void applyOperationalData(@Nonnull final YangData<Y> data) {
+        @Nullable final var applier = this.dataAppliers.get(LogicalDatastoreType.OPERATIONAL);
         if (applier != null) {
             applier.accept(data);
         }
     }
 
-    public void applyOperationalData(@Nullable final T data) {
+    public void applyOperationalData(@Nullable final Y data) {
         if (data != null) {
             this.applyOperationalData(YangData.of(data));
         }
     }
 
-    private void applyData(
-            @Nonnull final LogicalDatastoreType storeType,
-            @Nonnull final YangData<T> data) {
-
+    private void applyData(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangData<Y> data) {
         switch (storeType) {
             case CONFIGURATION:
                 this.applyConfigurationData(data);
@@ -222,60 +198,42 @@ public abstract class YangBinding<T extends ChildOf, B extends Builder<T>>
         }
     }
 
-    private void applyData(
-            @Nonnull final LogicalDatastoreType storeType,
-            @Nullable final T data) {
-
+    private void applyData(@Nonnull final LogicalDatastoreType storeType, @Nullable final Y data) {
         if (data != null) {
             this.applyData(storeType, YangData.of(data));
         }
     }
 
     @Nullable
-    private Function<B, B> _operationalDataProvider = null;
+    private Function<B, B> operationalDataProvider = null;
 
-    protected void providesOperationalDataUsing(
-            @Nullable final Function<B, B> provider) {
-
-        this._operationalDataProvider = provider;
+    protected void providesOperationalDataUsing(@Nullable final Function<B, B> provider) {
+        this.operationalDataProvider = provider;
     }
 
     @Nullable
-    public T provideOperationalData() {
-        if (this._operationalDataProvider == null) {
+    public Y provideOperationalData() {
+        if (this.operationalDataProvider == null) {
             return null;
         }
 
-        final B builder;
+        @Nonnull final B builder;
         try {
-            builder = this.getBuilderClass()
-                    .getDeclaredConstructor().newInstance();
+            builder = this.getBuilderClass().getDeclaredConstructor().newInstance();
 
-        } catch (final
-                NoSuchMethodException |
-                IllegalAccessException |
-                InvocationTargetException |
-                InstantiationException e) {
-
-            e.printStackTrace();
-            return null;
+        } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
+            throw new Error(e);
         }
 
-        return this._operationalDataProvider.apply(builder).build();
+        return this.operationalDataProvider.apply(builder).build();
     }
 
-    public void writeDataTo(
-            @Nonnull final YangPool pool,
-            @Nonnull final LogicalDatastoreType storeType) {
-
-        pool.writeData(this, storeType);
+    public void writeDataTo(@Nonnull final YangPool pool, @Nonnull final LogicalDatastoreType storeType) {
+        pool.writeData(storeType, this);
     }
 
-    public void deleteDataFrom(
-            @Nonnull final YangPool pool,
-            @Nonnull final LogicalDatastoreType storeType) {
-
-        pool.deleteData(this, storeType);
+    public void deleteDataFrom(@Nonnull final YangPool pool, @Nonnull final LogicalDatastoreType storeType) {
+        pool.deleteData(storeType, this);
     }
 
     @Override

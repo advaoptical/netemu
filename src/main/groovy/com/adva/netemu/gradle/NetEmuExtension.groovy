@@ -1,9 +1,9 @@
 package com.adva.netemu.gradle
 
 import javax.annotation.Nonnull
+import javax.annotation.Nullable
 
 import org.gradle.api.Action
-import org.gradle.api.Project
 import org.gradle.util.ConfigureUtil
 
 
@@ -12,41 +12,48 @@ class NetEmuExtension {
     static class YangToSources {
 
         // String yangDir = "META-INF/yang"
-        private String _outputDir = "generated/sources/mdsal"
-
-        String getOutputDir() {
-            return this._outputDir
-        }
 
         @Nonnull
+        private String outputDir = "generated/sources/mdsal"
+
+        @Nonnull
+        String getOutputDir() {
+            return this.outputDir
+        }
+
+        @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
         String generateIn(@Nonnull final String outputDir) {
-            this._outputDir = outputDir
+            this.outputDir = outputDir
             return outputDir
         }
     }
 
-   YangToSources yangToSources = new YangToSources()
+    @Nonnull
+    final YangToSources yangToSources = new YangToSources()
 
+    @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
     YangToSources yangToSources(final Closure closure) {
         ConfigureUtil.configure(closure, this.yangToSources)
         return this.yangToSources
     }
 
-    YangToSources yangToSources(
-            final Action<? extends YangToSources> action) {
-
+    @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
+    YangToSources yangToSources(final Action<? extends YangToSources> action) {
         action.execute(this.yangToSources)
         return this.yangToSources
     }
 
-    private String _contextPackage = null
+    @Nullable
+    private String contextPackage = null
 
+    @Nullable
     String getContextPackage() {
-        return this._contextPackage
+        return this.contextPackage
     }
 
-    @Nonnull
+    @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
     String definesContextInPackage(@Nonnull final String name) {
-        return this._contextPackage = name
+        this.contextPackage = name
+        return name
     }
 }

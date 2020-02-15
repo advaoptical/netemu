@@ -6,43 +6,31 @@ import java.util.function.Function;
 import javax.annotation.Nonnull;
 
 import {{yangPackage}}.{{yangClass}};
-
-import {{yangPackage}}.{{yangClass}}Key;
-
 import {{yangPackage}}.{{yangClass}}Builder;
+import {{yangPackage}}.{{yangClass}}Key;
 
 import com.adva.netemu.YangData;
 import com.adva.netemu.YangListBinding;
 import com.adva.netemu.YangListProvider;
 
 
-@YangListProvider(
-        origin = {{class}}.class,
-        value = {{yangClass}}.class,
-        key = {{yangClass}}Key.class)
-
-public class {{class}}$YangListBinding
-        extends YangListBinding<
-                {{yangClass}}, {{yangClass}}Key, {{yangClass}}Builder> {
+@YangListProvider(origin = {{class}}.class, value = {{yangClass}}.class, key = {{yangClass}}Key.class)
+public class {{class}}$YangListBinding extends YangListBinding<{{yangClass}}, {{yangClass}}Key, {{yangClass}}Builder> {
 
     @Nonnull
-    private final {{class}}$Yang.ListKey _key;
+    private final {{class}}$Yang.ListKey key;
 
     @Nonnull @Override
     public {{yangClass}}Key getKey() {
-        return this._key;
+        return this.key;
     }
 
-    private {{class}}$YangListBinding (
-            @Nonnull final {{class}}$Yang.ListKey key) {
-
-        this._key = key;
+    private {{class}}$YangListBinding (@Nonnull final {{class}}$Yang.ListKey key) {
+        this.key = key;
     }
 
     @Nonnull
-    public static {{class}}$YangListBinding withKey(
-            @Nonnull final {{class}}$Yang.ListKey key) {
-
+    public static {{class}}$YangListBinding withKey(@Nonnull final {{class}}$Yang.ListKey key) {
         return new {{class}}$YangListBinding(key);
     }
 
@@ -50,14 +38,12 @@ public class {{class}}$YangListBinding
             @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
 
-        super.appliesConfigurationDataUsing((applier != null) ?
-                data -> {
-                    if (data.isPresent()) {
-                        applier.accept({{class}}$Yang.Data.of(data.get()));
-                    }
-                }
+        super.appliesConfigurationDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
+            if (data.isPresent()) {
+                applier.accept({{class}}$Yang.Data.of(data.get()));
+            }
 
-                : null);
+        } : null);
 
         return this;
     }
@@ -66,22 +52,19 @@ public class {{class}}$YangListBinding
             @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
 
-        super.appliesOperationalDataUsing((applier != null) ?
-                data -> {
-                    if (data.isPresent()) {
-                        applier.accept({{class}}$Yang.Data.of(data.get()));
-                    }
-                }
+        super.appliesOperationalDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
+            if (data.isPresent()) {
+                applier.accept({{class}}$Yang.Data.of(data.get()));
+            }
 
-                : null);
+        } : null);
 
         return this;
     }
 
     public {{class}}$YangListBinding providesOperationalDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
-            @Nonnull final
-            Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
+            @Nonnull final Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
 
         super.providesOperationalDataUsing(provider);
         return this;

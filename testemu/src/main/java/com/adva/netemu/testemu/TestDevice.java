@@ -16,11 +16,7 @@ import com.adva.netemu.YangBinding;
 import com.adva.netemu.YangBound;
 
 
-@YangBound(
-        context = NetEmuDefined.class,
-        namespace = "urn:ietf:params:xml:ns:yang:ietf-interfaces",
-        value = "interfaces")
-
+@YangBound(context = NetEmuDefined.class, namespace = "urn:ietf:params:xml:ns:yang:ietf-interfaces", value = "interfaces")
 public class TestDevice implements YangBindable {
 
     static class YangBindingConnector {
@@ -29,80 +25,59 @@ public class TestDevice implements YangBindable {
     }
 
     @Nonnull
-    private final TestDevice$YangBinding _yangBinding =
-            new TestDevice$YangBinding();
+    private final TestDevice$YangBinding yangBinding = new TestDevice$YangBinding();
 
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
-        return Optional.of(this._yangBinding);
+        return Optional.of(this.yangBinding);
     }
 
     @Nonnull
-    private final AtomicReference<List<TestInterface>> _interfaces =
-            new AtomicReference<>(List.of());
+    private final AtomicReference<List<TestInterface>> interfaces = new AtomicReference<>(List.of());
 
     @Nonnull
     public List<TestInterface> getInterfaces() {
-        return List.copyOf(this._interfaces.get());
+        return List.copyOf(this.interfaces.get());
     }
 
     public TestDevice() {
         try {
-            this._interfaces.set(StreamEx
-                    .of(NetworkInterface.getNetworkInterfaces()).nonNull()
-                    .map(TestInterface::from)
+            this.interfaces.set(StreamEx.of(NetworkInterface.getNetworkInterfaces()).nonNull().map(TestInterface::from)
                     .toImmutableList());
 
-        } catch (SocketException e) {
+        } catch (final SocketException e) {
             throw new RuntimeException(e);
         }
 
         @Nonnull final var connector = new YangBindingConnector();
+        this.yangBinding
+                .appliesConfigurationDataUsing(connector, data -> {
+                    this.interfaces.set(Owned.by(this, StreamEx.of(data.map(yang -> yang.nonnullInterface()).orElse(List.of()))
+                            .map(TestInterface$Yang.Data::of)
+                            .map(TestInterface::fromConfigurationData)
+                            .toImmutableList()));
+                })
 
-        this._yangBinding.appliesConfigurationDataUsing(connector, data -> {
-            this._interfaces.set(Owned.by(this, StreamEx
-                    .of(data.map(yang -> yang.nonnullInterface())
-                            .orElse(List.of()))
+                .appliesOperationalDataUsing(connector, data -> {
+                    synchronized (this.interfaces) {
+                        for (final var intfData : StreamEx.of(data.map(yang -> yang.nonnullInterface()).orElse(List.of()))
+                                .map(TestInterface$Yang.Data::of)) {
 
-                    .map(TestInterface$Yang.Data::of)
-                    .map(TestInterface::fromConfigurationData)
-                    .toImmutableList()));
-        });
+                            TestInterface$Yang.bindingStreamOf(this.interfaces.get())
+                                    .findFirst(intf -> intfData.getName().map(intf.getKey().getName()::equals).orElse(false))
+                                    .ifPresent(intf -> intf.applyOperationalData(intfData));
+                        }
+                    }
+                })
 
-        this._yangBinding.appliesOperationalDataUsing(connector, data -> {
-            synchronized (this._interfaces) {
-                for (final var intfData : StreamEx
-                        .of(data.map(yang -> yang.nonnullInterface())
-                                .orElse(List.of()))
-
-                        .map(TestInterface$Yang.Data::of)) {
-
-                    TestInterface$Yang.bindingStreamOf(this._interfaces.get())
-                            .findFirst(intf -> intfData.getName()
-                                    .map(intf.getKey().getName()::equals)
-                                    .orElse(false))
-
-                            .ifPresent(intf ->
-                                    intf.applyOperationalData(intfData));
-                }
-            }
-        });
-
-        this._yangBinding
                 .providesOperationalDataUsing(connector, builder -> builder
-                        .setInterface(TestInterface$Yang
-                                .streamOperationalDataFrom(
-                                        this._interfaces.get())
-
-                                .toImmutableList()));
+                        .setInterface(TestInterface$Yang.streamOperationalDataFrom(this.interfaces.get()).toImmutableList()));
     }
 
     @Nonnull
-    public static TestDevice fromConfigurationData(
-            @Nonnull final TestDevice$Yang.Data data) {
-
+    public static TestDevice fromConfigurationData(@Nonnull final TestDevice$Yang.Data data) {
         final var device = new TestDevice();
-        device._yangBinding.applyConfigurationData(data);
+        device.yangBinding.applyConfigurationData(data);
         return device;
     }
 }

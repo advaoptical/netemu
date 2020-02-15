@@ -43,33 +43,21 @@ public final class {{class}}$Yang {
     }
 
     @Nonnull
-    public static Optional<{{class}}{{bindingClassSuffix}}> bindingOf(
-            @Nonnull final {{class}} object) {
-
-        return object.{{bindingGetter}}().map(
-                {{class}}{{bindingClassSuffix}}.class::cast);
+    public static Optional<{{class}}{{bindingClassSuffix}}> bindingOf(@Nonnull final {{class}} object) {
+        return object.{{bindingGetter}}().map({{class}}{{bindingClassSuffix}}.class::cast);
     }
 
     /*
     @Nonnull
-    public static Data configurationDataFrom(
-            @Nonnull final {{class}} object) {
-
-        final var data = ({{yangClass}}) object.{{bindingGetter}}()
-                .provideConfigurationData();
-
+    public static Data configurationDataFrom(@Nonnull final {{class}} object) {
+        @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideConfigurationData).orElse(null);
         return (data != null) ? Data.of(data) : Data.empty();
     }
     */
 
     @Nonnull
-    public static Data operationalDataFrom(
-            @Nonnull final {{class}} object) {
-
-        final var data = bindingOf(object)
-                .map({{class}}{{bindingClassSuffix}}::provideOperationalData)
-                .orElse(null);
-
+    public static Data operationalDataFrom(@Nonnull final {{class}} object) {
+        @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideOperationalData).orElse(null);
         return (data != null) ? Data.of(data) : Data.empty();
     }
 

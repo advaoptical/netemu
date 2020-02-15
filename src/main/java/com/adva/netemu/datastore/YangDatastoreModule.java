@@ -6,7 +6,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.util.concurrent.FluentFuture;
-
 import com.google.common.util.concurrent.Futures;
 import com.squareup.inject.assisted.dagger2.AssistedModule;
 
@@ -31,97 +30,82 @@ import com.adva.netemu.YangBinding;
 @Module(includes = {AssistedInject_YangDatastoreModule.class})
 class YangDatastoreModule {
 
-    private static final Logger LOG = LoggerFactory.getLogger(
-            YangDatastoreModule.class);
+    @Nonnull
+    private static final Logger LOG = LoggerFactory.getLogger(YangDatastoreModule.class);
 
-    @Provides
-    static
-    YangDatastore.ReadingFutureCallback provideReadingFutureCallback() {
+    @Provides @Nonnull
+    static YangDatastore.ReadingFutureCallback provideReadingFutureCallback() {
         return new YangDatastore.ReadingFutureCallback() {
 
             @Override
-            public void onSuccess(
-                    @Nullable final Optional<NormalizedNode<?, ?>> result) {
-
-                LOG.info("TODO: " + result);
+            public void onSuccess(@Nullable final Optional<NormalizedNode<?, ?>> result) {
+                LOG.info("TODO: {}", result);
             }
 
             @Override
             public void onFailure(@Nonnull final Throwable t) {
-                t.printStackTrace();
-                LOG.error("Failed reading from "
-                        + this.storeType + " Datastore");
+                LOG.error("While reading to {} Datastore:", this.storeType, t);
+                LOG.error("Failed reading from {} Datastore", this.storeType);
             }
         };
     }
 
-    @Provides
-    static
-    YangDatastore.WritingFutureCallback provideWritingFutureCallback() {
+    @Provides @Nonnull
+    static YangDatastore.WritingFutureCallback provideWritingFutureCallback() {
         return new YangDatastore.WritingFutureCallback() {
 
             @Override
+            @SuppressWarnings({"UnstableApiUsage"})
             public void onSuccess(@Nullable final CommitInfo result) {
-                LOG.info(result.toString());
+                LOG.info("TODO: {}", result);
             }
 
             @Override
             public void onFailure(@Nonnull final Throwable t) {
-                t.printStackTrace();
-                LOG.error("Failed writing to "
-                        + this.storeType + " Datastore: " + this.yangPath);
+                LOG.error("While writing to {} Datastore:", this.storeType, t);
+                LOG.error("Failed writing to {} Datastore: {}", this.storeType, this.yangPath);
             }
         };
     }
 
-    @Provides
-    static
-    YangDatastore.ModeledWritingTransactor
-    provideModeledWritingTransactor() {
+    @Provides @Nonnull
+    static YangDatastore.ModeledWritingTransactor provideModeledWritingTransactor() {
         return new YangDatastore.ModeledWritingTransactor() {
 
-            @Override
-            public <Y extends ChildOf>
-            FluentFuture<? extends CommitInfo> apply(
-                    @Nonnull final DataBroker dataBroker,
-                    @Nonnull final YangBinding<Y, Builder<Y>> object) {
+            @Nonnull @Override
+            @SuppressWarnings({"UnstableApiUsage"})
+            public <Y extends ChildOf<?>, B extends Builder<Y>>
+            FluentFuture<? extends CommitInfo> apply(@Nonnull final DataBroker broker, @Nonnull final YangBinding<Y, B> object) {
+                @SuppressWarnings("unchecked") final var path = (InstanceIdentifier<Y>) this.yangModeledPath;
 
-                final var data = object.provideOperationalData();
+                @Nullable final var data = object.provideOperationalData();
                 if (data == null) {
-                    return FluentFuture.from(Futures.immediateFuture(
-                            CommitInfo.empty()));
+                    return FluentFuture.from(Futures.immediateFuture(CommitInfo.empty()));
                 }
 
-                LOG.info("Writing to " + this.storeType + " Datastore: "
-                        + this.yangModeledPath);
+                LOG.info("Writing to {} Datastore: {}", this.storeType, path);
 
-                final var txn = dataBroker.newWriteOnlyTransaction();
-                txn.put(this.storeType,
-                        (InstanceIdentifier<Y>) this.yangModeledPath,
-                        data);
-
+                @Nonnull final var txn = broker.newWriteOnlyTransaction();
+                txn.put(this.storeType, path, data);
                 return txn.commit();
             }
         };
     }
 
-    @Provides
-    static
-    YangDatastore.ModeledWritingFutureCallback
-    provideModeledWritingFutureCallback() {
+    @Provides @Nonnull
+    static YangDatastore.ModeledWritingFutureCallback provideModeledWritingFutureCallback() {
         return new YangDatastore.ModeledWritingFutureCallback() {
 
             @Override
+            @SuppressWarnings({"UnstableApiUsage"})
             public void onSuccess(@Nullable final CommitInfo result) {
-                LOG.info(result.toString());
+                LOG.info("TODO: {}", result);
             }
 
             @Override
             public void onFailure(@Nonnull final Throwable t) {
-                t.printStackTrace();
-                LOG.error("Failed writing to "
-                        + this.storeType + " Datastore: "
-                        + this.yangModeledPath);
+                LOG.error("While writing to {} Datastore:", this.storeType, t);
+                LOG.error("Failed writing to {} Datastore: {}", this.storeType, this.yangModeledPath);
             }
         };
     }

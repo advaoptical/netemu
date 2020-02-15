@@ -16,10 +16,9 @@ import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic;
 
+import com.google.auto.service.AutoService;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
-
-import com.google.auto.service.AutoService;
 
 import com.adva.netemu.YangListProvider;
 
@@ -39,41 +38,31 @@ public class YangListProviderProcessor extends YangProviderProcessor {
     }
 
     @Nonnull @Override
-    protected Map<String, Object> provideTemplateContextFrom(
-            @Nonnull final Annotation annotation) {
-
-        final TypeElement yangKeyClass;
+    protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull final Annotation annotation) {
+        @Nonnull final TypeElement yangKeyClass;
         try {
-            final var __ = ((YangListProvider) annotation).key();
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).key();
             throw new Error();
 
         } catch (final MirroredTypeException e) {
-            yangKeyClass = (TypeElement) super.processingEnv.getTypeUtils()
-                    .asElement(e.getTypeMirror());
+            yangKeyClass = (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
 
-        final Optional<ExecutableElement> keyGetter = StreamEx
-                .of(ElementFilter.methodsIn(
-                        yangKeyClass.getEnclosedElements()))
-
-                .findFirst(method -> method.getSimpleName().toString()
-                        .startsWith("get"));
+        @Nonnull final Optional<ExecutableElement> keyGetter = StreamEx
+                .of(ElementFilter.methodsIn(yangKeyClass.getEnclosedElements()))
+                .findFirst(method -> method.getSimpleName().toString().startsWith("get"));
 
         if (keyGetter.isEmpty()) {
             super.processingEnv.getMessager().printMessage(
-                    Diagnostic.Kind.ERROR,
-                    "Missing get*() method in *Key class",
-                    yangKeyClass);
+                    Diagnostic.Kind.ERROR, "Missing get*() method in *Key class", yangKeyClass);
 
-            return null;
+            return Optional.empty();
         }
 
-        final var keyClass = (TypeElement) super.processingEnv.getTypeUtils()
-                .asElement(keyGetter.get().getReturnType());
-
-        return EntryStream.of(super.provideTemplateContextFrom(annotation))
+        final var keyClass = (TypeElement) super.processingEnv.getTypeUtils().asElement(keyGetter.get().getReturnType());
+        return super.provideTemplateContextFrom(annotation).map(context -> EntryStream.of(context)
                 .append("keyClass", keyClass.getQualifiedName().toString())
-                .toImmutableMap();
+                .toImmutableMap());
     }
 
     @Nonnull @Override
@@ -87,30 +76,24 @@ public class YangListProviderProcessor extends YangProviderProcessor {
     }
 
     @Nonnull @Override
-    protected TypeElement provideOriginClassFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected TypeElement provideOriginClassFrom(@Nonnull final Annotation annotation) {
         try {
-            final var __ = ((YangListProvider) annotation).origin();
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).origin();
             throw new Error();
 
         } catch (final MirroredTypeException e) {
-            return (TypeElement) super.processingEnv.getTypeUtils()
-                    .asElement(e.getTypeMirror());
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
     }
 
     @Nonnull @Override
-    protected TypeElement provideYangClassFrom(
-            @Nonnull final Annotation annotation) {
-
+    protected TypeElement provideYangClassFrom(@Nonnull final Annotation annotation) {
         try {
-            final var __ = ((YangListProvider) annotation).value();
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).value();
             throw new Error();
 
         } catch (final MirroredTypeException e) {
-            return (TypeElement) super.processingEnv.getTypeUtils()
-                    .asElement(e.getTypeMirror());
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
     }
 }

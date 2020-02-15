@@ -13,13 +13,9 @@ import org.opendaylight.yangtools.yang.binding.Identifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 
-public abstract class YangListBinding<
-        Y extends ChildOf & Identifiable<K>,
-        K extends Identifier<Y>,
-        B extends Builder<Y>>
-
-        extends YangBinding<Y, B>
-        implements YangListBindable {
+public abstract class YangListBinding
+        <Y extends ChildOf & Identifiable<K>, K extends Identifier<Y>, B extends Builder<Y>> // TODO: ChildOf<?>
+        extends YangBinding<Y, B> implements YangListBindable {
 
     @Nonnull @Override
     public Optional<YangListBinding<?, ?, ?>> getYangListBinding() {
@@ -27,20 +23,19 @@ public abstract class YangListBinding<
     }
 
     @Nonnull
+    @SuppressWarnings({"UnstableApiUsage", "unchecked"})
     public Class<K> getKeyClass() {
-        return (Class<K>) (new TypeToken<K>(this.getClass()) {})
-                .getRawType();
+        return (Class<K>) (new TypeToken<K>(this.getClass()) {}).getRawType();
     }
 
     @Nonnull @Override
+    @SuppressWarnings("unchecked")
     public InstanceIdentifier.InstanceIdentifierBuilder<Y> getIidBuilder() {
-        if (this._owner == null) {
-            return InstanceIdentifier.builder(
-                    this.getDataClass(), this.getKey());
+        if (this.owner == null) {
+            return InstanceIdentifier.builder(this.getDataClass(), this.getKey());
         }
 
-        return this._owner.getIidBuilder().child(
-                this.getDataClass(), this.getKey());
+        return this.owner.getIidBuilder().child(this.getDataClass(), this.getKey());
     }
 
     @Nonnull

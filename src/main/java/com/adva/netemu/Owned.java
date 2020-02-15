@@ -1,7 +1,5 @@
 package com.adva.netemu;
 
-import org.opendaylight.mdsal.binding.spec.reflect.BindingReflections;
-
 import java.util.Collection;
 import java.util.stream.Stream;
 
@@ -15,46 +13,40 @@ public class Owned {
     }
 
     @Nonnull
-    public static <T extends YangBindable, O extends YangBindable> T by(
-            @Nonnull final O owner, @Nonnull final T objectToOwn) {
+    public static <T extends YangBindable, O extends YangBindable>
+    T by(@Nonnull final O owner, @Nonnull final T objectToOwn) {
 
-        objectToOwn.getYangBinding().ifPresent(binding -> binding
-                .makeOwned(new Maker(), owner.getYangBinding().orElse(null)));
-
-        return objectToOwn;
-    }
-
-    @Nonnull
-    public static <T extends YangListBindable, O extends YangBindable> T by(
-            @Nonnull final O owner, @Nonnull final T objectToOwn) {
-
-        objectToOwn.getYangListBinding().ifPresent(binding -> binding
-                .makeOwned(new Maker(), owner.getYangBinding().orElse(null)));
+        objectToOwn.getYangBinding().ifPresent(binding ->
+                binding.makeOwned(new Maker(), owner.getYangBinding().orElse(null)));
 
         return objectToOwn;
     }
 
     @Nonnull
     public static <T extends YangListBindable, O extends YangBindable>
-    Stream<T> by(
-            @Nonnull final O owner, @Nonnull final Stream<T> objectsToOwn) {
+    T by(@Nonnull final O owner, @Nonnull final T objectToOwn) {
 
-        final var maker = new Maker();
-        return objectsToOwn.peek(object -> object.getYangListBinding()
-                .ifPresent(binding -> binding.makeOwned(maker, owner
-                        .getYangBinding().orElse(null))));
+        objectToOwn.getYangListBinding().ifPresent(binding ->
+                binding.makeOwned(new Maker(), owner.getYangBinding().orElse(null)));
+
+        return objectToOwn;
     }
 
     @Nonnull
-    public static <
-            C extends Collection<? extends YangListBindable>,
-            O extends YangBindable>
+    public static <T extends YangListBindable, O extends YangBindable>
+    Stream<T> by(@Nonnull final O owner, @Nonnull final Stream<T> objectsToOwn) {
 
+        @Nonnull final var maker = new Maker();
+        return objectsToOwn.peek(object -> object.getYangListBinding().ifPresent(binding ->
+                binding.makeOwned(maker, owner.getYangBinding().orElse(null))));
+    }
+
+    @Nonnull
+    public static <C extends Collection<? extends YangListBindable>, O extends YangBindable>
     C by(@Nonnull final O owner, @Nonnull final C objectsToOwn) {
-        final var maker = new Maker();
-        objectsToOwn.forEach(object -> object.getYangListBinding()
-                .ifPresent(binding -> binding.makeOwned(maker, owner
-                        .getYangBinding().orElse(null))));
+        @Nonnull final var maker = new Maker();
+        objectsToOwn.forEach(object -> object.getYangListBinding().ifPresent(binding ->
+                binding.makeOwned(maker, owner.getYangBinding().orElse(null))));
 
         return objectsToOwn;
     }
