@@ -8,8 +8,7 @@ import java.lang.annotation.Target;
 import javax.annotation.Nonnull;
 
 
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME)
 public @interface YangBound {
 
     @Nonnull

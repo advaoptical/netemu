@@ -11,8 +11,7 @@ import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.Identifier;
 
 
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME)
 public @interface YangListProvider {
 
     @Nonnull

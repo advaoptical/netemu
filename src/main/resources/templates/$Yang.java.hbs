@@ -13,7 +13,7 @@ import {{yangPackage}}.{{yangClass}};
 import com.adva.netemu.YangData;
 
 
-public final class {{class}}$Yang {
+public class {{class}}$Yang {
 
     public static final class Data extends YangData<{{yangClass}}> {
 
@@ -34,12 +34,12 @@ public final class {{class}}$Yang {
             return EMPTY;
         }
 
-        {{#each yangDataGetters}}
-            @Nonnull
-            Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
-                return super.map({{yangClass}}::{{@key}});
-            }
-        {{/each}}
+{{#each yangDataGetters}}
+        @Nonnull
+        Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
+            return super.map({{yangClass}}::{{@key}});
+        }
+{{/each}}
     }
 
     @Nonnull
@@ -61,6 +61,6 @@ public final class {{class}}$Yang {
         return (data != null) ? Data.of(data) : Data.empty();
     }
 
-    {{#block "extended members"}}
-    {{/block}}
+{{#block "extended members"}}
+{{/block}}
 }

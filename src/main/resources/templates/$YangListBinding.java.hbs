@@ -11,36 +11,36 @@ import {{yangPackage}}.{{yangClass}}Key;
 
 import com.adva.netemu.YangData;
 import com.adva.netemu.YangListBinding;
-import com.adva.netemu.YangListProvider;
+import com.adva.netemu.{{providerAnnotation}};
 
 
-@YangListProvider(origin = {{class}}.class, value = {{yangClass}}.class, key = {{yangClass}}Key.class)
-public class {{class}}$YangListBinding extends YangListBinding<{{yangClass}}, {{yangClass}}Key, {{yangClass}}Builder> {
+@{{providerAnnotation}}(origin = {{class}}.class, value = {{yangClass}}.class, key = {{yangClass}}Key.class)
+public class {{class}}{{bindingClassSuffix}} extends YangListBinding<{{yangClass}}, {{yangClass}}Key, {{yangClass}}Builder> {
 
     @Nonnull
-    private final {{class}}$Yang.ListKey key;
+    private final {{class}}{{utilityClassSuffix}}.ListKey key;
 
     @Nonnull @Override
     public {{yangClass}}Key getKey() {
         return this.key;
     }
 
-    private {{class}}$YangListBinding (@Nonnull final {{class}}$Yang.ListKey key) {
+    private {{class}}{{bindingClassSuffix}} (@Nonnull final {{class}}{{utilityClassSuffix}}.ListKey key) {
         this.key = key;
     }
 
     @Nonnull
-    public static {{class}}$YangListBinding withKey(@Nonnull final {{class}}$Yang.ListKey key) {
-        return new {{class}}$YangListBinding(key);
+    public static {{class}}{{bindingClassSuffix}} withKey(@Nonnull final {{class}}{{utilityClassSuffix}}.ListKey key) {
+        return new {{class}}{{bindingClassSuffix}}(key);
     }
 
-    public {{class}}$YangListBinding appliesConfigurationDataUsing(
+    public {{class}}{{bindingClassSuffix}} appliesConfigurationDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
-            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
+            @Nonnull final Consumer<{{class}}{{utilityClassSuffix}}.Data> applier) {
 
         super.appliesConfigurationDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
             if (data.isPresent()) {
-                applier.accept({{class}}$Yang.Data.of(data.get()));
+                applier.accept({{class}}{{utilityClassSuffix}}.Data.of(data.get()));
             }
 
         } : null);
@@ -48,13 +48,13 @@ public class {{class}}$YangListBinding extends YangListBinding<{{yangClass}}, {{
         return this;
     }
 
-    public {{class}}$YangListBinding appliesOperationalDataUsing(
+    public {{class}}{{bindingClassSuffix}} appliesOperationalDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
-            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
+            @Nonnull final Consumer<{{class}}{{utilityClassSuffix}}.Data> applier) {
 
         super.appliesOperationalDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
             if (data.isPresent()) {
-                applier.accept({{class}}$Yang.Data.of(data.get()));
+                applier.accept({{class}}{{utilityClassSuffix}}.Data.of(data.get()));
             }
 
         } : null);
@@ -62,7 +62,7 @@ public class {{class}}$YangListBinding extends YangListBinding<{{yangClass}}, {{
         return this;
     }
 
-    public {{class}}$YangListBinding providesOperationalDataUsing(
+    public {{class}}{{bindingClassSuffix}} providesOperationalDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
 

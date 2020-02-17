@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
 
 
 @Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME)
-public @interface YangListBound {
+public @interface YangModeled {
 
     @Nonnull
     Class<?> context();

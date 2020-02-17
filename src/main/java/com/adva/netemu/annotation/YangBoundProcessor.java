@@ -7,9 +7,9 @@ import java.net.URI;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -35,7 +35,6 @@ import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 
 import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
-import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.QNameModule;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
@@ -115,6 +114,115 @@ public class YangBoundProcessor extends AbstractProcessor {
     }
 
     @Nonnull
+    protected String provideBindingClassAnnotationName() {
+        return "YangProvider";
+    }
+
+    @Nonnull
+    protected String provideUtilityClassSuffix() {
+        return "$Yang";
+    }
+
+    @Nonnull
+    protected String provideBindingClassTemplateName() {
+        return "$YangBinding.java";
+    }
+
+    @Nonnull
+    protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull final TypeElement annotatedClass) {
+        @Nonnull final var annotation = annotatedClass.getAnnotation(this.annotationClass);
+        @Nonnull final var className = ClassName.get(annotatedClass);
+
+        @Nonnull final TypeElement compileTimeContext = this.provideCompileTimeContextFrom(annotation);
+        @Nonnull final String yangNamespace = this.provideYangNamespaceFrom(annotation);
+        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNorevPackage = BindingMapping.getRootPackageName(
+                QNameModule.create(URI.create(yangNamespace)));
+
+        @Nonnull TypeElement yangNorevLookup = compileTimeContext;
+        for (final var memberName: List.of("CompileTime", "YangModules", "NorevLookup")) {
+
+            boolean foundMember = false;
+            for (@Nonnull final var member: yangNorevLookup.getEnclosedElements()) {
+                if (member.getSimpleName().toString().equals(memberName)) {
+                    if (member.getKind() != ElementKind.CLASS) {
+                        super.processingEnv.getMessager().printMessage(
+                                Diagnostic.Kind.ERROR, String.format("'%s' is not a class", memberName), member);
+
+                        return Optional.empty();
+                    }
+
+                    yangNorevLookup = (TypeElement) member;
+                    foundMember = true;
+                    break;
+                }
+            }
+
+            if (!foundMember) {
+                super.processingEnv.getMessager().printMessage(
+                        Diagnostic.Kind.ERROR, String.format("Missing inner class '%s'", memberName), yangNorevLookup);
+
+                return Optional.empty();
+            }
+        }
+
+        // TODO: @Nonnull final var yangModuleInfos = new HashSet<YangModuleInfo>();
+        for (final var yangModuleElement : StreamEx.of(yangNorevLookup.getEnclosedElements())
+                .filter(element -> element.getKind() == ElementKind.CLASS)) {
+
+            /* TODO:
+            yangModuleInfos.add(new CompileTimeYangModuleInfo(
+                    (TypeElement) yangModuleElement));
+            */
+
+            if (yangModuleElement.getSimpleName().toString().equals(yangNorevPackage.replace('.', '$'))) {
+                yangNorevLookup = (TypeElement) yangModuleElement;
+            }
+        }
+
+        @Nonnull final var yangRegistry = ModuleInfoBackedContext.create();
+        // TODO: yangRegistry.addModuleInfos(yangModuleInfos);
+
+        @Nullable String yangModulePackage = null;
+        for (final var member: yangNorevLookup.getEnclosedElements()) {
+            if (member.getSimpleName().toString().equals("PACKAGE")) {
+                yangModulePackage = (String) ((VariableElement) member).getConstantValue();
+                break;
+            }
+        }
+
+        if (yangModulePackage == null) {
+            super.processingEnv.getMessager().printMessage(
+                    Diagnostic.Kind.ERROR, "Missing static 'PACKAGE' value", yangNorevLookup);
+
+            return Optional.empty();
+        }
+
+        // TODO: final var yangContext = yangRegistry.getSchemaContext();
+
+        @Nonnull final var yangPath = SchemaPath.create(
+                StreamEx.of(this.provideYangPathFrom(annotation).split("/")).map(name -> QName.create(yangNamespace, name))
+                        //  Needed to avoid "java.lang.IllegalStateException: stream has already been operated upon or closed"
+                        .toList(), // Because SchemaPath.create checks Iterables.isEmpty before iteration
+
+                true); // true -> SchemaPath is absolute
+
+        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangClassName = ClassName.get(
+                BindingGeneratorUtil.packageNameForGeneratedType(yangModulePackage, yangPath),
+                BindingMapping.getClassName(yangPath.getLastComponent()));
+
+        return Optional.of(Map.of(
+                "package", className.packageName(),
+                "class", className.simpleName(),
+
+                "yangPackage", yangClassName.packageName(),
+                "yangClass", yangClassName.simpleName(),
+
+                "bindingClassSuffix", this.provideBindingClassSuffix(),
+                "utilityClassSuffix", this.provideUtilityClassSuffix(),
+                "providerAnnotation", this.provideBindingClassAnnotationName()));
+    }
+
+   @Nonnull
     protected TypeElement provideCompileTimeContextFrom(@Nonnull final Annotation annotation) {
         try {
             @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangBound) annotation).context();
@@ -142,91 +250,14 @@ public class YangBoundProcessor extends AbstractProcessor {
 
             if (annotatedElement.getKind() != ElementKind.CLASS) {
                 super.processingEnv.getMessager().printMessage(
-                        Diagnostic.Kind.ERROR, "@YangBound annotation supports only classes", annotatedElement);
+                        Diagnostic.Kind.ERROR,
+                        String.format("@%s annotation supports only classes", this.annotationClass.getSimpleName()),
+                        annotatedElement);
 
                 return true;
             }
 
             @Nonnull final var annotatedClass = (TypeElement) annotatedElement;
-            @Nonnull final var annotation = annotatedClass.getAnnotation(this.annotationClass);
-
-            @Nonnull final TypeElement compileTimeContext = this.provideCompileTimeContextFrom(annotation);
-            @Nonnull final String yangNamespace = this.provideYangNamespaceFrom(annotation);
-            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNorevPackage = BindingMapping.getRootPackageName(
-                    QNameModule.create(URI.create(yangNamespace)));
-
-            @Nonnull TypeElement yangNorevLookup = compileTimeContext;
-            for (final var memberName: List.of("CompileTime", "YangModules", "NorevLookup")) {
-
-                boolean foundMember = false;
-                for (@Nonnull final var member: yangNorevLookup.getEnclosedElements()) {
-                    if (member.getSimpleName().toString().equals(memberName)) {
-                        if (member.getKind() != ElementKind.CLASS) {
-                            super.processingEnv.getMessager().printMessage(
-                                    Diagnostic.Kind.ERROR, String.format("'%s' is not a class", memberName), member);
-
-                            return true;
-                        }
-
-                        yangNorevLookup = (TypeElement) member;
-                        foundMember = true;
-                        break;
-                    }
-                }
-
-                if (!foundMember) {
-                    super.processingEnv.getMessager().printMessage(
-                            Diagnostic.Kind.ERROR, String.format("Missing inner class '%s'", memberName), yangNorevLookup);
-
-                    return true;
-                }
-            }
-
-            @Nonnull final var yangModuleInfos = new HashSet<YangModuleInfo>();
-            for (final var yangModuleElement : StreamEx.of(yangNorevLookup.getEnclosedElements())
-                    .filter(element -> element.getKind() == ElementKind.CLASS)) {
-
-                /* TODO:
-                yangModuleInfos.add(new CompileTimeYangModuleInfo(
-                        (TypeElement) yangModuleElement));
-                */
-
-                if (yangModuleElement.getSimpleName().toString().equals(yangNorevPackage.replace('.', '$'))) {
-                    yangNorevLookup = (TypeElement) yangModuleElement;
-                }
-            }
-
-            @Nonnull final var yangRegistry = ModuleInfoBackedContext.create();
-            yangRegistry.addModuleInfos(yangModuleInfos);
-
-            @Nullable String yangModulePackage = null;
-            for (final var member: yangNorevLookup.getEnclosedElements()) {
-                if (member.getSimpleName().toString().equals("PACKAGE")) {
-                    yangModulePackage = (String) ((VariableElement) member).getConstantValue();
-                    break;
-                }
-            }
-
-            if (yangModulePackage == null) {
-                super.processingEnv.getMessager().printMessage(
-                        Diagnostic.Kind.ERROR, "Missing static 'PACKAGE' value", yangNorevLookup);
-
-                return true;
-            }
-
-            // TODO: final var yangContext = yangRegistry.getSchemaContext();
-
-            @Nonnull final var yangPath = SchemaPath.create(
-                    StreamEx.of(this.provideYangPathFrom(annotation).split("/")).map(name -> QName.create(yangNamespace, name))
-                            //  Needed to avoid "java.lang.IllegalStateException: stream has already been operated upon or closed"
-                            .toList(), // Because SchemaPath.create checks Iterables.isEmpty before iteration
-
-                    true); // true -> SchemaPath is absolute
-
-            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangClassName = ClassName.get(
-                    BindingGeneratorUtil.packageNameForGeneratedType(yangModulePackage, yangPath),
-                    BindingMapping.getClassName(yangPath.getLastComponent()));
-
             @Nonnull final var className = ClassName.get(annotatedClass);
             @Nonnull final var bindingClassName = ClassName.get(
                     className.packageName(), className.simpleName() + this.provideBindingClassSuffix());
@@ -234,22 +265,17 @@ public class YangBoundProcessor extends AbstractProcessor {
             super.processingEnv.getMessager().printMessage(
                     Diagnostic.Kind.NOTE, String.format("Generating class %s", bindingClassName));
 
-            try (@Nonnull final var writer = super.processingEnv.getFiler()
-                    .createSourceFile(bindingClassName.canonicalName(), annotatedClass)
-                    .openWriter()) {
+            this.provideTemplateContextFrom(annotatedClass).ifPresent(context -> {
+                try (@Nonnull final var writer = super.processingEnv.getFiler()
+                        .createSourceFile(bindingClassName.canonicalName(), annotatedClass)
+                        .openWriter()) {
 
-                HANDLEBARS.compile(this.provideBindingClassSuffix() + ".java").apply(
-                        Map.of(
-                                "package", className.packageName(),
-                                "class", className.simpleName(),
-                                "yangPackage", yangClassName.packageName(),
-                                "yangClass", yangClassName.simpleName()),
+                    HANDLEBARS.compile(this.provideBindingClassTemplateName()).apply(context, writer);
 
-                        writer);
-
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
+                } catch (final IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
 
         return true;

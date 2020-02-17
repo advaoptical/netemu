@@ -1,0 +1,152 @@
+package {{package}};
+
+import java.util.Collection;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import one.util.streamex.StreamEx;
+
+import {{yangPackage}}.{{yangClass}};
+import {{yangPackage}}.{{yangClass}}Builder;
+import {{yangPackage}}.{{yangClass}}Key;
+
+import com.adva.netemu.YangData;
+import com.adva.netemu.YangListBindable;
+import com.adva.netemu.YangListBinding;
+import com.adva.netemu.YangListProvider;
+
+
+class {{class}}$YangListModel implements YangListBindable {
+
+    public static class Yang {
+
+        public static final class Data extends YangData<{{yangClass}}> {
+
+            @Nonnull
+            private static final Data EMPTY = new Data(null);
+
+            private Data(@Nullable final {{yangClass}} object) {
+                super(object);
+            }
+
+            @Nonnull
+            public static Data of(@Nonnull final {{yangClass}} object) {
+                return new Data(object);
+            }
+
+            @Nonnull
+            public static Data empty() {
+                return EMPTY;
+            }
+
+{{#each yangDataGetters}}
+            @Nonnull
+            Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
+                return super.map({{yangClass}}::{{@key}});
+            }
+{{/each}}
+        }
+
+        @Nonnull
+        public static Optional<{{class}}{{bindingClassSuffix}}> bindingOf(@Nonnull final {{class}} object) {
+            return object.{{bindingGetter}}().map({{class}}{{bindingClassSuffix}}.class::cast);
+        }
+
+        /*
+        @Nonnull
+        public static Data configurationDataFrom(@Nonnull final {{class}} object) {
+            @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideConfigurationData)
+                    .orElse(null);
+
+            return (data != null) ? Data.of(data) : Data.empty();
+        }
+        */
+
+        @Nonnull
+        public static Data operationalDataFrom(@Nonnull final {{class}} object) {
+            @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideOperationalData).orElse(null);
+            return (data != null) ? Data.of(data) : Data.empty();
+        }
+
+        public static class ListKey extends {{yangClass}}Key {
+
+            private ListKey(@Nonnull final {{keyClass}} key) {
+                super(key);
+            }
+
+            @Nonnull
+            public static ListKey from(@Nonnull final {{keyClass}} key) {
+                return new ListKey(key);
+            }
+        }
+
+        @Nonnull
+        public static StreamEx<{{class}}{{bindingClassSuffix}}> bindingStreamOf(@Nonnull final Collection<{{class}}> objects) {
+            return StreamEx.of(objects).map(Yang::bindingOf).filter(Optional::isPresent).map(Optional::get);
+        }
+
+        /*
+        @Nonnull
+        public static StreamEx<{{yangClass}}> streamConfigurationDataFrom(@Nonnull final Collection<{{class}}> objects) {
+            return streamConfigurationDataFrom(objects.stream());
+        }
+
+        @Nonnull
+        public static StreamEx<{{yangClass}}> streamConfigurationDataFrom(@Nonnull final Stream<{{class}}> objects) {
+            return StreamEx.of(objects).map(Yang::configurationDataFrom).filter(Data::isPresent).map(Data::get);
+        }
+        */
+
+        @Nonnull
+        public static StreamEx<{{yangClass}}> streamOperationalDataFrom(@Nonnull final Collection<{{class}}> objects) {
+            return streamOperationalDataFrom(objects.stream());
+        }
+
+        @Nonnull
+        public static StreamEx<{{yangClass}}> streamOperationalDataFrom(@Nonnull final Stream<{{class}}> objects) {
+            return StreamEx.of(objects).map(Yang::operationalDataFrom).filter(Data::isPresent).map(Data::get);
+        }
+    }
+
+    static class YangBindingConnector {
+
+        private YangBindingConnector() {}
+    }
+
+    @Nonnull
+    private final {{class}}{{bindingClassSuffix}} yangBinding;
+
+    @Nonnull @Override
+    public Optional<YangListBinding<?, ?, ?>> getYangListBinding() {
+        return Optional.of(this.yangBinding);
+    }
+
+    @Nonnull
+    private final AtomicReference<Yang.Data> data = new AtomicReference<>(Yang.Data.empty());
+
+    @Nonnull
+    public Yang.Data data() {
+        return this.data.get();
+    }
+
+    public {{class}}$YangListModel(@Nonnull final Yang.ListKey key) {
+        @Nonnull final var connector = new YangBindingConnector();
+        this.yangBinding = {{class}}{{bindingClassSuffix}}.withKey(key)
+                .appliesOperationalDataUsing(connector, this.data::set);
+    }
+
+{{#each yangDataGetters}}
+    @Nonnull
+    Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
+        return this.data.get().{{@key}}();
+    }
+
+    void {{this.setterName}}(@Nullable final {{this.valueClass}} value) {
+        this.data.set(Yang.Data.of(new {{yangClass}}Builder(this.data.get().get()).{{this.setterName}}(value).build()));
+    }
+{{/each}}
+}

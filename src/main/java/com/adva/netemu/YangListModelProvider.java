@@ -7,16 +7,19 @@ import java.lang.annotation.Target;
 
 import javax.annotation.Nonnull;
 
+import org.opendaylight.yangtools.yang.binding.DataObject;
+import org.opendaylight.yangtools.yang.binding.Identifier;
+
 
 @Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME)
-public @interface YangListBound {
+public @interface YangListModelProvider {
 
     @Nonnull
-    Class<?> context();
+    Class<?> origin();
 
     @Nonnull
-    String namespace();
+    Class<? extends DataObject> value();
 
     @Nonnull
-    String value();
+    Class<? extends Identifier<?>> key();
 }

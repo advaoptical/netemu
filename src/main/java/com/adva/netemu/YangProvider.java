@@ -10,8 +10,7 @@ import javax.annotation.Nonnull;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 
 
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME)
 public @interface YangProvider {
 
     @Nonnull

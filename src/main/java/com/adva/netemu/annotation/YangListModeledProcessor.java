@@ -13,46 +13,46 @@ import javax.lang.model.type.MirroredTypeException;
 
 import com.google.auto.service.AutoService;
 
-import com.adva.netemu.YangListBound;
+import com.adva.netemu.YangListModeled;
 
 
 @AutoService(Processor.class)
-@SupportedAnnotationTypes({"com.adva.netemu.YangListBound"})
+@SupportedAnnotationTypes({"com.adva.netemu.YangListModeled"})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
-public class YangListBoundProcessor extends YangBoundProcessor {
+public class YangListModeledProcessor extends YangListBoundProcessor {
 
-    protected YangListBoundProcessor(@Nonnull final Class<? extends Annotation> annotationClass) {
-        super(annotationClass);
-    }
-
-    public YangListBoundProcessor() {
-        super(YangListBound.class);
+    public YangListModeledProcessor() {
+        super(YangListModeled.class);
     }
 
     @Nonnull @Override
     protected String provideBindingClassSuffix() {
-        return "$YangListBinding";
+        return "$YangListModelBinding";
     }
 
     @Nonnull @Override
     protected String provideBindingClassAnnotationName() {
-        return "YangListProvider";
-    }
-
-    @Nonnull
-    protected String provideUtilityClassSuffix() {
-        return "$Yang";
+        return "YangListModelProvider";
     }
 
     @Nonnull @Override
-    protected String provideBindingClassTemplateName() {
-        return "$YangListBinding.java";
+    protected String provideUtilityClassSuffix() {
+        return "$YangListModel.Yang";
     }
+
+    /*
+    @Nonnull @Override
+    protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull TypeElement annotatedClass) {
+        return super.provideTemplateContextFrom(annotatedClass).map(context -> EntryStream.of(context)
+                .append("class", String.format("%s$YangListModel", annotatedClass.getSimpleName()))
+                .toMap((oldValue, newValue) -> newValue));
+    }
+    */
 
     @Nonnull @Override
     protected TypeElement provideCompileTimeContextFrom(@Nonnull final Annotation annotation) {
         try {
-            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListBound) annotation).context();
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListModeled) annotation).context();
             throw new Error();
 
         } catch (final MirroredTypeException e) {
@@ -62,11 +62,11 @@ public class YangListBoundProcessor extends YangBoundProcessor {
 
     @Nonnull @Override
     protected String provideYangNamespaceFrom(@Nonnull final Annotation annotation) {
-        return ((YangListBound) annotation).namespace();
+        return ((YangListModeled) annotation).namespace();
     }
 
     @Nonnull @Override
     protected String provideYangPathFrom(@Nonnull final Annotation annotation) {
-        return ((YangListBound) annotation).value();
+        return ((YangListModeled) annotation).value();
     }
 }

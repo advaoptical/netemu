@@ -28,8 +28,22 @@ import com.adva.netemu.YangListProvider;
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 public class YangListProviderProcessor extends YangProviderProcessor {
 
+    protected YangListProviderProcessor(@Nonnull final Class<? extends Annotation> annotationClass) {
+        super(annotationClass);
+    }
+
     public YangListProviderProcessor() {
         super(YangListProvider.class);
+    }
+
+    @Nonnull @Override
+    protected String provideBindingClassSuffix() {
+        return "$YangListBinding";
+    }
+
+    @Nonnull @Override
+    protected String provideBindingGetterName() {
+        return "getYangListBinding";
     }
 
     @Nonnull @Override
@@ -39,15 +53,7 @@ public class YangListProviderProcessor extends YangProviderProcessor {
 
     @Nonnull @Override
     protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull final Annotation annotation) {
-        @Nonnull final TypeElement yangKeyClass;
-        try {
-            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).key();
-            throw new Error();
-
-        } catch (final MirroredTypeException e) {
-            yangKeyClass = (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
-        }
-
+        @Nonnull final TypeElement yangKeyClass = this.provideYangKeyClassFrom(annotation);
         @Nonnull final Optional<ExecutableElement> keyGetter = StreamEx
                 .of(ElementFilter.methodsIn(yangKeyClass.getEnclosedElements()))
                 .findFirst(method -> method.getSimpleName().toString().startsWith("get"));
@@ -66,16 +72,6 @@ public class YangListProviderProcessor extends YangProviderProcessor {
     }
 
     @Nonnull @Override
-    protected String provideBindingClassSuffix() {
-        return "$YangListBinding";
-    }
-
-    @Nonnull @Override
-    protected String provideBindingGetterName() {
-        return "getYangListBinding";
-    }
-
-    @Nonnull @Override
     protected TypeElement provideOriginClassFrom(@Nonnull final Annotation annotation) {
         try {
             @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).origin();
@@ -90,6 +86,17 @@ public class YangListProviderProcessor extends YangProviderProcessor {
     protected TypeElement provideYangClassFrom(@Nonnull final Annotation annotation) {
         try {
             @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).value();
+            throw new Error();
+
+        } catch (final MirroredTypeException e) {
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
+        }
+    }
+
+    @Nonnull
+    protected TypeElement provideYangKeyClassFrom(@Nonnull final Annotation annotation) {
+        try {
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).key();
             throw new Error();
 
         } catch (final MirroredTypeException e) {

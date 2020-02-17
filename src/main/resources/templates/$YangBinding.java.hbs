@@ -10,19 +10,19 @@ import {{yangPackage}}.{{yangClass}}Builder;
 
 import com.adva.netemu.YangBinding;
 import com.adva.netemu.YangData;
-import com.adva.netemu.YangProvider;
+import com.adva.netemu.{{providerAnnotation}};
 
 
-@YangProvider(origin = {{class}}.class, value = {{yangClass}}.class)
-public class {{class}}$YangBinding extends YangBinding<{{yangClass}}, {{yangClass}}Builder> {
+@{{providerAnnotation}}(origin = {{class}}.class, value = {{yangClass}}.class)
+public class {{class}}{{bindingClassSuffix}} extends YangBinding<{{yangClass}}, {{yangClass}}Builder> {
 
-    public {{class}}$YangBinding appliesConfigurationDataUsing(
+    public {{class}}{{bindingClassSuffix}} appliesConfigurationDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
-            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
+            @Nonnull final Consumer<{{class}}{{utilityClassSuffix}}.Data> applier) {
 
         super.appliesConfigurationDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
             if (data.isPresent()) {
-                applier.accept({{class}}$Yang.Data.of(data.get()));
+                applier.accept({{class}}{{utilityClassSuffix}}.Data.of(data.get()));
             }
 
         } : null);
@@ -30,13 +30,13 @@ public class {{class}}$YangBinding extends YangBinding<{{yangClass}}, {{yangClas
         return this;
     }
 
-    public {{class}}$YangBinding appliesOperationalDataUsing(
+    public {{class}}{{bindingClassSuffix}} appliesOperationalDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
-            @Nonnull final Consumer<{{class}}$Yang.Data> applier) {
+            @Nonnull final Consumer<{{class}}{{utilityClassSuffix}}.Data> applier) {
 
         super.appliesOperationalDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
             if (data.isPresent()) {
-                applier.accept({{class}}$Yang.Data.of(data.get()));
+                applier.accept({{class}}{{utilityClassSuffix}}.Data.of(data.get()));
             }
 
         } : null);
@@ -44,7 +44,7 @@ public class {{class}}$YangBinding extends YangBinding<{{yangClass}}, {{yangClas
         return this;
     }
 
-    public {{class}}$YangBinding providesOperationalDataUsing(
+    public {{class}}{{bindingClassSuffix}} providesOperationalDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
 
