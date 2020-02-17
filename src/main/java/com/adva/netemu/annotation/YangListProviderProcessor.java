@@ -16,6 +16,7 @@ import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic;
 
+import com.adva.netemu.YangProvider;
 import com.google.auto.service.AutoService;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
@@ -97,6 +98,17 @@ public class YangListProviderProcessor extends YangProviderProcessor {
     protected TypeElement provideYangKeyClassFrom(@Nonnull final Annotation annotation) {
         try {
             @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).key();
+            throw new Error();
+
+        } catch (final MirroredTypeException e) {
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
+        }
+    }
+
+    @Nonnull @Override
+    protected TypeElement provideYangBuilderClassFrom(@Nonnull final Annotation annotation) {
+        try {
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListProvider) annotation).builder();
             throw new Error();
 
         } catch (final MirroredTypeException e) {

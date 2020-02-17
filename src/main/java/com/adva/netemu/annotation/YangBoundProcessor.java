@@ -169,21 +169,18 @@ public class YangBoundProcessor extends AbstractProcessor {
         for (final var yangModuleElement : StreamEx.of(yangNorevLookup.getEnclosedElements())
                 .filter(element -> element.getKind() == ElementKind.CLASS)) {
 
-            /* TODO:
-            yangModuleInfos.add(new CompileTimeYangModuleInfo(
-                    (TypeElement) yangModuleElement));
-            */
+            // TODO: yangModuleInfos.add(new CompileTimeYangModuleInfo((TypeElement) yangModuleElement));
 
             if (yangModuleElement.getSimpleName().toString().equals(yangNorevPackage.replace('.', '$'))) {
                 yangNorevLookup = (TypeElement) yangModuleElement;
             }
         }
 
-        @Nonnull final var yangRegistry = ModuleInfoBackedContext.create();
+        // TODO: @Nonnull final var yangRegistry = ModuleInfoBackedContext.create();
         // TODO: yangRegistry.addModuleInfos(yangModuleInfos);
 
         @Nullable String yangModulePackage = null;
-        for (final var member: yangNorevLookup.getEnclosedElements()) {
+        for (@Nonnull final var member: yangNorevLookup.getEnclosedElements()) {
             if (member.getSimpleName().toString().equals("PACKAGE")) {
                 yangModulePackage = (String) ((VariableElement) member).getConstantValue();
                 break;
@@ -222,7 +219,7 @@ public class YangBoundProcessor extends AbstractProcessor {
                 "providerAnnotation", this.provideBindingClassAnnotationName()));
     }
 
-   @Nonnull
+    @Nonnull
     protected TypeElement provideCompileTimeContextFrom(@Nonnull final Annotation annotation) {
         try {
             @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangBound) annotation).context();

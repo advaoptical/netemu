@@ -78,11 +78,11 @@ public class YangProviderProcessor extends AbstractProcessor {
     @Nonnull
     protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull final Annotation annotation) {
         @Nonnull final var originClassName = ClassName.get(this.provideOriginClassFrom(annotation));
+        @Nonnull final var yangClassName = ClassName.get(this.provideYangClassFrom(annotation));
 
-        @Nonnull final var yangClass =  this.provideYangClassFrom(annotation);
-        @Nonnull final var yangClassName = ClassName.get(yangClass);
-
-        @Nonnull final var yangDataGetters = EntryStream.of(StreamEx.of(ElementFilter.methodsIn(yangClass.getEnclosedElements()))
+        @Nonnull final var yangBuilderClass =  this.provideYangBuilderClassFrom(annotation);
+        @Nonnull final var yangDataGetters = EntryStream.of(StreamEx
+                .of(ElementFilter.methodsIn(yangBuilderClass.getEnclosedElements()))
                 .mapToEntry(method -> method.getSimpleName().toString(), Function.identity())
                 .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
                 .mapKeyValue((name, method) -> new SimpleImmutableEntry<>(name, Map.of(
@@ -90,7 +90,7 @@ public class YangProviderProcessor extends AbstractProcessor {
                                 .getQualifiedName().toString(),
 
                         "reprefixedName", name.replaceFirst("^is", "get"),
-                        "setterName", name.replaceFirst("^get", "set")))));
+                        "setterName", name.replaceFirst("^(get|is)", "set")))));
 
         return Optional.of(Map.of(
                 "package", originClassName.packageName(),
@@ -119,6 +119,17 @@ public class YangProviderProcessor extends AbstractProcessor {
     protected TypeElement provideYangClassFrom(@Nonnull final Annotation annotation) {
         try {
             @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangProvider) annotation).value();
+            throw new Error();
+
+        } catch (final MirroredTypeException e) {
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
+        }
+    }
+
+    @Nonnull
+    protected TypeElement provideYangBuilderClassFrom(@Nonnull final Annotation annotation) {
+        try {
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangProvider) annotation).builder();
             throw new Error();
 
         } catch (final MirroredTypeException e) {

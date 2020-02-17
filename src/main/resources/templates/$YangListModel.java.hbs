@@ -142,7 +142,7 @@ class {{class}}$YangListModel implements YangListBindable {
 {{#each yangDataGetters}}
     @Nonnull
     Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
-        return this.data.get().{{@key}}();
+        return this.data.get().{{this.reprefixedName}}();
     }
 
     void {{this.setterName}}(@Nullable final {{this.valueClass}} value) {

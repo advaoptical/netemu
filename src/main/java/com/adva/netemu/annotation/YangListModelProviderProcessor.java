@@ -72,4 +72,15 @@ public class YangListModelProviderProcessor extends YangListProviderProcessor {
             return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
         }
     }
+
+    @Nonnull @Override
+    protected TypeElement provideYangBuilderClassFrom(@Nonnull final Annotation annotation) {
+        try {
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListModelProvider) annotation).builder();
+            throw new Error();
+
+        } catch (final MirroredTypeException e) {
+            return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
+        }
+    }
 }
