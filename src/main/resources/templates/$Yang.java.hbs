@@ -36,7 +36,7 @@ public class {{class}}$Yang {
 
 {{#each yangDataGetters}}
         @Nonnull
-        Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
+        public Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
             return super.map({{yangClass}}::{{@key}});
         }
 {{/each}}

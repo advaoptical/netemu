@@ -39,7 +39,7 @@ class {{class}}$YangModel implements YangBindable {
 
 {{#each yangDataGetters}}
             @Nonnull
-            Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
+            public Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
                 return super.map({{yangClass}}::{{@key}});
             }
 {{/each}}
@@ -96,11 +96,11 @@ class {{class}}$YangModel implements YangBindable {
 
 {{#each yangDataGetters}}
     @Nonnull
-    Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
+    public Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
         return this.data.get().{{this.reprefixedName}}();
     }
 
-    void {{this.setterName}}(@Nullable final {{this.valueClass}} value) {
+    public void {{this.setterName}}(@Nullable final {{this.valueClass}} value) {
         this.data.set(Yang.Data.of(new {{yangClass}}Builder(this.data.get().get()).{{this.setterName}}(value).build()));
     }
 {{/each}}
