@@ -13,7 +13,15 @@ import com.adva.netemu.YangData;
 import com.adva.netemu.{{providerAnnotation}};
 
 
-@{{providerAnnotation}}(origin = {{class}}.class, value = {{yangClass}}.class, builder = {{yangClass}}Builder.class)
+@{{providerAnnotation}}(
+        origin = {{class}}.class,
+        value = {{yangClass}}.class,
+        builder = {{yangClass}}Builder.class
+
+{{~#if pythonizerClass}},
+        pythonizer = {{pythonizerClass}}.class
+{{~/if}})
+
 public class {{class}}{{bindingClassSuffix}} extends YangBinding<{{yangClass}}, {{yangClass}}Builder> {
 
     public {{class}}{{bindingClassSuffix}} appliesConfigurationDataUsing(

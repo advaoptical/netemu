@@ -15,6 +15,8 @@ import org.opendaylight.mdsal.binding.spec.naming.BindingMapping
 
 import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator
 
+import javax.annotation.Nullable
+
 
 @SuppressWarnings("GroovyUnusedDeclaration")
 class NetEmuPlugin implements Plugin<Project> {
@@ -29,7 +31,7 @@ class NetEmuPlugin implements Plugin<Project> {
         @Nonnull final mavenProject = new MavenProject()
         mavenProject.file = project.buildFile.canonicalFile
 
-        @Nonnull final task = project.tasks.create('yangToSources').doFirst {
+        @Nonnull final yangToSourcesTask = project.tasks.create('yangToSources').doFirst {
             @Nonnull final buildRoot = project.buildDir.toPath()
 
             @Nonnull final resources = buildRoot.resolve "resources/main"
@@ -40,6 +42,12 @@ class NetEmuPlugin implements Plugin<Project> {
 
             @Nonnull final yang = resources.resolve "META-INF/yang"
             @Nonnull final yangFiles = yang.toFile().listFiles().collect { it.name }
+
+            @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile
+            @Nullable pythonYangModelsFilePath = null
+            if (pythonYangModelsFile != null) {
+                pythonYangModelsFilePath = project.rootDir.toPath().resolve pythonYangModelsFile.toPath()
+            }
 
             @Nonnull final packageName = extension.contextPackage ?: project.group.toString()
             @Nonnull final packagePath = output.resolve packageName.replace('.', '/')
@@ -52,6 +60,7 @@ class NetEmuPlugin implements Plugin<Project> {
             import java.util.Set;
 
             import javax.annotation.Nonnull;
+            import javax.annotation.Nullable;
 
             import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 
@@ -106,6 +115,13 @@ class NetEmuPlugin implements Plugin<Project> {
                             }.collect()}
                         }
                     }
+
+                    public static class Pythonizer {
+
+                        @Nullable
+                        public static final String YANG_MODELS_FILE = ${pythonYangModelsFilePath ?
+                                "\"${pythonYangModelsFilePath}\"".replaceAll("\\\\", "/") : "null"};
+                    }
                 }
             }
             """.stripIndent()
@@ -115,6 +131,13 @@ class NetEmuPlugin implements Plugin<Project> {
 
         }.dependsOn project.tasks['processResources']
 
-        project.tasks['compileJava'].dependsOn task
+        project.tasks['compileJava'].doFirst {
+            @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile
+            if (pythonYangModelsFile != null) {
+                @Nonnull final pythonYangModelsFilePath = project.rootDir.toPath().resolve pythonYangModelsFile.toPath()
+                pythonYangModelsFilePath.text = ""
+            }
+
+        }.dependsOn yangToSourcesTask
     }
 }

@@ -1,0 +1,23 @@
+class {{replace package "." "_"}}_{{class}}_YangListModel:
+    """
+    Pythonizer for Java class ``{{class}}$YangListModel``.
+
+    From Java package ``{{package}}``
+    """
+
+    def __init__(self, java_object):
+        self._java_object = java_object
+
+{{~#each yangDataGetters}}
+
+    @property
+    def {{this.pythonName}}(self):
+        def getter():
+            optional_value = self._java_object.{{this.reprefixedName}}()
+            if optional_value.isEmpty():
+                return None
+
+            return optional_value.get()
+
+        return getter
+{{/each}}

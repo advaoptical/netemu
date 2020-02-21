@@ -7,7 +7,6 @@ import java.net.URI;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -32,6 +31,7 @@ import com.squareup.javapoet.ClassName;
 import one.util.streamex.StreamEx;
 
 import com.github.jknack.handlebars.Handlebars;
+import com.github.jknack.handlebars.helper.StringHelpers;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 
 import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
@@ -40,7 +40,7 @@ import org.opendaylight.yangtools.yang.common.QNameModule;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
-import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
+// import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 import org.opendaylight.mdsal.binding.model.util.BindingGeneratorUtil;
 import org.opendaylight.mdsal.binding.spec.naming.BindingMapping;
 
@@ -92,7 +92,8 @@ public class YangBoundProcessor extends AbstractProcessor {
     }
 
     @Nonnull
-    private static Handlebars HANDLEBARS = new Handlebars().with(new ClassPathTemplateLoader("/templates"));
+    private static Handlebars HANDLEBARS = new Handlebars().with(new ClassPathTemplateLoader("/templates"))
+            .registerHelpers(StringHelpers.class);
 
     @Nonnull @SuppressWarnings({"unused"})
     private static Map<TypeElement, SchemaContext> YANG_CONTEXT_CACHE = Collections.synchronizedMap(new HashMap<>());
@@ -128,21 +129,14 @@ public class YangBoundProcessor extends AbstractProcessor {
         return "$YangBinding.java";
     }
 
-    @Nonnull
-    protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull final TypeElement annotatedClass) {
-        @Nonnull final var annotation = annotatedClass.getAnnotation(this.annotationClass);
-        @Nonnull final var className = ClassName.get(annotatedClass);
+    protected Optional<TypeElement> resolveInnerClass(
+            @Nonnull final TypeElement outerClass, @Nonnull final String... innerClassNames) {
 
-        @Nonnull final TypeElement compileTimeContext = this.provideCompileTimeContextFrom(annotation);
-        @Nonnull final String yangNamespace = this.provideYangNamespaceFrom(annotation);
-        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNorevPackage = BindingMapping.getRootPackageName(
-                QNameModule.create(URI.create(yangNamespace)));
-
-        @Nonnull TypeElement yangNorevLookup = compileTimeContext;
-        for (final var memberName: List.of("CompileTime", "YangModules", "NorevLookup")) {
+        @Nonnull TypeElement currentClass = outerClass;
+        for (final var memberName: innerClassNames) {
 
             boolean foundMember = false;
-            for (@Nonnull final var member: yangNorevLookup.getEnclosedElements()) {
+            for (@Nonnull final var member: currentClass.getEnclosedElements()) {
                 if (member.getSimpleName().toString().equals(memberName)) {
                     if (member.getKind() != ElementKind.CLASS) {
                         super.processingEnv.getMessager().printMessage(
@@ -151,7 +145,7 @@ public class YangBoundProcessor extends AbstractProcessor {
                         return Optional.empty();
                     }
 
-                    yangNorevLookup = (TypeElement) member;
+                    currentClass = (TypeElement) member;
                     foundMember = true;
                     break;
                 }
@@ -159,14 +153,43 @@ public class YangBoundProcessor extends AbstractProcessor {
 
             if (!foundMember) {
                 super.processingEnv.getMessager().printMessage(
-                        Diagnostic.Kind.ERROR, String.format("Missing inner class '%s'", memberName), yangNorevLookup);
+                        Diagnostic.Kind.ERROR, String.format("Missing inner class '%s'", memberName), currentClass);
 
                 return Optional.empty();
             }
         }
 
+        return Optional.of(currentClass);
+    }
+
+    @Nonnull
+    protected Optional<Map<String, Object>> provideTemplateContextFrom(
+            @Nonnull final TypeElement annotatedClass, @Nonnull final Annotation annotation) {
+
+        @Nonnull final var className = ClassName.get(annotatedClass);
+
+        @Nonnull final TypeElement compileTimeContext = this.provideCompileTimeContextFrom(annotation);
+        @Nonnull final String yangNamespace = this.provideYangNamespaceFrom(annotation);
+        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNorevPackage = BindingMapping.getRootPackageName(
+                QNameModule.create(URI.create(yangNamespace)));
+
+        @Nonnull final Optional<TypeElement> yangNorevLookup = this.resolveInnerClass(
+                compileTimeContext, "CompileTime", "YangModules", "NorevLookup");
+
+        if (yangNorevLookup.isEmpty()) {
+            return Optional.empty();
+        }
+
+        @Nonnull final Optional<TypeElement> yangModuleCompileTimeInfo = this.resolveInnerClass(
+                yangNorevLookup.get(), yangNorevPackage.replace('.', '$'));
+
+        if (yangModuleCompileTimeInfo.isEmpty()) {
+            return Optional.empty();
+        }
+
         // TODO: @Nonnull final var yangModuleInfos = new HashSet<YangModuleInfo>();
-        for (final var yangModuleElement : StreamEx.of(yangNorevLookup.getEnclosedElements())
+        /*
+        for (final var yangModuleElement : StreamEx.of(yangNorevLookup.get().getEnclosedElements())
                 .filter(element -> element.getKind() == ElementKind.CLASS)) {
 
             // TODO: yangModuleInfos.add(new CompileTimeYangModuleInfo((TypeElement) yangModuleElement));
@@ -175,12 +198,13 @@ public class YangBoundProcessor extends AbstractProcessor {
                 yangNorevLookup = (TypeElement) yangModuleElement;
             }
         }
+        */
 
         // TODO: @Nonnull final var yangRegistry = ModuleInfoBackedContext.create();
         // TODO: yangRegistry.addModuleInfos(yangModuleInfos);
 
         @Nullable String yangModulePackage = null;
-        for (@Nonnull final var member: yangNorevLookup.getEnclosedElements()) {
+        for (@Nonnull final var member: yangModuleCompileTimeInfo.get().getEnclosedElements()) {
             if (member.getSimpleName().toString().equals("PACKAGE")) {
                 yangModulePackage = (String) ((VariableElement) member).getConstantValue();
                 break;
@@ -189,7 +213,7 @@ public class YangBoundProcessor extends AbstractProcessor {
 
         if (yangModulePackage == null) {
             super.processingEnv.getMessager().printMessage(
-                    Diagnostic.Kind.ERROR, "Missing static 'PACKAGE' value", yangNorevLookup);
+                    Diagnostic.Kind.ERROR, "Missing static 'PACKAGE' value", yangModuleCompileTimeInfo.get());
 
             return Optional.empty();
         }
@@ -262,17 +286,18 @@ public class YangBoundProcessor extends AbstractProcessor {
             super.processingEnv.getMessager().printMessage(
                     Diagnostic.Kind.NOTE, String.format("Generating class %s", bindingClassName));
 
-            this.provideTemplateContextFrom(annotatedClass).ifPresent(context -> {
-                try (@Nonnull final var writer = super.processingEnv.getFiler()
-                        .createSourceFile(bindingClassName.canonicalName(), annotatedClass)
-                        .openWriter()) {
+            this.provideTemplateContextFrom(annotatedClass, annotatedClass.getAnnotation(this.annotationClass))
+                    .ifPresent(context -> {
+                        try (@Nonnull final var writer = super.processingEnv.getFiler()
+                                .createSourceFile(bindingClassName.canonicalName(), annotatedClass)
+                                .openWriter()) {
 
-                    HANDLEBARS.compile(this.provideBindingClassTemplateName()).apply(context, writer);
+                            HANDLEBARS.compile(this.provideBindingClassTemplateName()).apply(context, writer);
 
-                } catch (final IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+                        } catch (final IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
         }
 
         return true;

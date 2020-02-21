@@ -105,6 +105,12 @@ public class YangPool {
     @Nonnull
     private final List<YangBinding<?, ?>> yangBindingRegistry = Collections.synchronizedList(new ArrayList<>());
 
+    @Nonnull
+    private final List<YangBindable> yangBindableRegistry = Collections.synchronizedList(new ArrayList<>());
+
+    @Nonnull
+    private final List<YangListBindable> yangListBindableRegistry = Collections.synchronizedList(new ArrayList<>());
+
     public YangPool(@Nonnull final String id, final YangModuleInfo... modules) {
         this(id, List.of(modules));
     }
@@ -161,13 +167,34 @@ public class YangPool {
     @Nonnull
     public <T extends YangBindable> T registerYangBindable(@Nonnull final T object) {
         object.getYangBinding().ifPresent(this::registerYangBinding);
+        this.yangBindableRegistry.add(object);
         return object;
     }
 
     @Nonnull
     public <T extends YangListBindable> T registerYangBindable(@Nonnull final T object) {
         object.getYangListBinding().ifPresent(this::registerYangBinding);
+        this.yangListBindableRegistry.add(object);
         return object;
+    }
+
+    @Nonnull
+    public <T> Optional<T> findRegisteredInstanceOf(@Nonnull final Class<T> registreeClass) {
+        return Optional.ofNullable(
+                StreamEx.of(this.yangBindableRegistry).findFirst(registreeClass::isInstance).map(registreeClass::cast).orElse(
+                        StreamEx.of(this.yangListBindableRegistry).findFirst(registreeClass::isInstance).map(registreeClass::cast)
+                                .orElse(null)));
+    }
+
+    @Nonnull
+    public Optional<Object> findRegisteredInstanceOf(@Nonnull final String registreeClassName) {
+        return Optional.ofNullable(StreamEx.of(this.yangBindableRegistry)
+                .findFirst(object -> object.getClass().getCanonicalName().equals(registreeClassName))
+                .map(Object.class::cast)
+                .orElse(StreamEx.of(this.yangListBindableRegistry)
+                        .findFirst(object -> object.getClass().getCanonicalName().equals(registreeClassName))
+                        .map(Object.class::cast)
+                        .orElse(null)));
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})

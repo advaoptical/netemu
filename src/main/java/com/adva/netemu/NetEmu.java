@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import org.opendaylight.netconf.test.tool.NetconfDeviceSimulator;
 import org.opendaylight.netconf.test.tool.config.ConfigurationBuilder;
+
+import com.adva.netemu.service.PythonService;
 
 
 public final class NetEmu extends NetconfDeviceSimulator {
@@ -48,6 +51,12 @@ public final class NetEmu extends NetconfDeviceSimulator {
                 .build());
 
         this.pool = pool;
+    }
+
+    @Override
+    public List<Integer> start() {
+        @Nonnull final var python = new PythonService(this.pool);
+        return super.start();
     }
 
     public void loadConfigurationFromXml(@Nonnull final Reader reader) {

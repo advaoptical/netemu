@@ -26,4 +26,7 @@ public @interface YangListModelProvider {
 
     @Nonnull
     Class<? extends Builder<?>> builder();
+
+    @Nonnull
+    Class<?> pythonizer();
 }

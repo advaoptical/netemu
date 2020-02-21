@@ -1,12 +1,12 @@
 package com.adva.netemu.annotation;
 
 import java.lang.annotation.Annotation;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
-
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypeException;
@@ -38,6 +38,11 @@ public class YangListModelProviderProcessor extends YangListProviderProcessor {
     @Nonnull @Override
     protected String provideUtilityClassTemplateName() {
         return "$YangListModel.java";
+    }
+
+    @Nonnull @Override
+    protected Optional<String> providePythonClassTemplateName() {
+        return Optional.of("_YangListModel.py");
     }
 
     @Nonnull @Override
@@ -81,6 +86,17 @@ public class YangListModelProviderProcessor extends YangListProviderProcessor {
 
         } catch (final MirroredTypeException e) {
             return (TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror());
+        }
+    }
+
+    @Nonnull @Override
+    protected Optional<TypeElement> providePythonizerClassFrom(@Nonnull final Annotation annotation) {
+        try {
+            @Nonnull @SuppressWarnings({"unused"}) final var provokeException = ((YangListModelProvider) annotation).pythonizer();
+            throw new Error();
+
+        } catch (final MirroredTypeException e) {
+            return Optional.of((TypeElement) super.processingEnv.getTypeUtils().asElement(e.getTypeMirror()));
         }
     }
 }

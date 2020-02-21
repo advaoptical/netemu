@@ -1,6 +1,8 @@
 package com.adva.netemu.annotation;
 
 import java.lang.annotation.Annotation;
+import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.processing.Processor;
@@ -14,6 +16,7 @@ import javax.lang.model.type.MirroredTypeException;
 import com.google.auto.service.AutoService;
 
 import com.adva.netemu.YangListModeled;
+import one.util.streamex.EntryStream;
 
 
 @AutoService(Processor.class)
@@ -40,14 +43,15 @@ public class YangListModeledProcessor extends YangListBoundProcessor {
         return "$YangListModel.Yang";
     }
 
-    /*
     @Nonnull @Override
-    protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull TypeElement annotatedClass) {
-        return super.provideTemplateContextFrom(annotatedClass).map(context -> EntryStream.of(context)
-                .append("class", String.format("%s$YangListModel", annotatedClass.getSimpleName()))
-                .toMap((oldValue, newValue) -> newValue));
+    protected Optional<Map<String, Object>> provideTemplateContextFrom(
+            @Nonnull final TypeElement annotatedClass, @Nonnull final Annotation annotation) {
+
+        return this.resolveInnerClass(this.provideCompileTimeContextFrom(annotation), "CompileTime", "Pythonizer")
+                .flatMap(pythonizerClass -> super.provideTemplateContextFrom(annotatedClass, annotation)
+                        .map(context -> EntryStream.of(context).append("pythonizerClass", pythonizerClass.getQualifiedName())
+                                .toMap()));
     }
-    */
 
     @Nonnull @Override
     protected TypeElement provideCompileTimeContextFrom(@Nonnull final Annotation annotation) {

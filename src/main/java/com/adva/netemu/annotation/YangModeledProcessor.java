@@ -43,14 +43,15 @@ public class YangModeledProcessor extends YangBoundProcessor {
         return "$YangModel.Yang";
     }
 
-    /*
     @Nonnull @Override
-    protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull TypeElement annotatedClass) {
-        return super.provideTemplateContextFrom(annotatedClass).map(context -> EntryStream.of(context)
-                .append("class", String.format("%s$YangModel", annotatedClass.getSimpleName()))
-                .toMap((oldValue, newValue) -> newValue));
+    protected Optional<Map<String, Object>> provideTemplateContextFrom(
+            @Nonnull final TypeElement annotatedClass, @Nonnull final Annotation annotation) {
+
+        return this.resolveInnerClass(this.provideCompileTimeContextFrom(annotation), "CompileTime", "Pythonizer")
+                .flatMap(pythonizerClass -> super.provideTemplateContextFrom(annotatedClass, annotation)
+                        .map(context -> EntryStream.of(context).append("pythonizerClass", pythonizerClass.getQualifiedName())
+                                .toMap()));
     }
-    */
 
     @Nonnull @Override
     protected TypeElement provideCompileTimeContextFrom(@Nonnull final Annotation annotation) {

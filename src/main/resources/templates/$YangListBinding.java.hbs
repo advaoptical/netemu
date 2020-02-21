@@ -15,7 +15,14 @@ import com.adva.netemu.{{providerAnnotation}};
 
 
 @{{providerAnnotation}}(
-        origin = {{class}}.class, value = {{yangClass}}.class, key = {{yangClass}}Key.class, builder = {{yangClass}}Builder.class)
+        origin = {{class}}.class,
+        value = {{yangClass}}.class,
+        key = {{yangClass}}Key.class,
+        builder = {{yangClass}}Builder.class
+
+{{~#if pythonizerClass}},
+        pythonizer = {{pythonizerClass}}.class
+{{~/if}})
 
 public class {{class}}{{bindingClassSuffix}} extends YangListBinding<{{yangClass}}, {{yangClass}}Key, {{yangClass}}Builder> {
 
