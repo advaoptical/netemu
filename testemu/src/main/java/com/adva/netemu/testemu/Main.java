@@ -4,6 +4,8 @@ import javax.annotation.Nonnull;
 
 import com.adva.netemu.NetEmu;
 import com.adva.netemu.YangPool;
+import com.adva.netemu.northbound.NetconfService;
+import com.adva.netemu.northbound.PythonKernelService;
 
 
 public final class Main {
@@ -28,6 +30,8 @@ public final class Main {
         */
 
         @Nonnull final var emu = new NetEmu(pool);
+        emu.registerService(NetconfService.class);
+        emu.registerService(PythonKernelService.class);
         // emu.loadConfigurationFromXml();
 
         // pool.writeOperationalDataFrom(device);
