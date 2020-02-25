@@ -6,28 +6,30 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import com.google.common.collect.ImmutableSet;
+import com.adva.netemu.service.EmuService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.opendaylight.netconf.test.tool.NetconfDeviceSimulator;
-import org.opendaylight.netconf.test.tool.config.ConfigurationBuilder;
-
-import com.adva.netemu.service.PythonService;
+import com.adva.netemu.service.EmuPythonService;
 
 
-public final class NetEmu extends NetconfDeviceSimulator {
+public final class NetEmu {
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(NetEmu.class);
@@ -43,21 +45,44 @@ public final class NetEmu extends NetconfDeviceSimulator {
         return this.pool;
     }
 
-    public NetEmu(@Nonnull final YangPool pool) {
-        super(new ConfigurationBuilder()
-                .setCapabilities(ImmutableSet.of("urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"))
-                .setModels(Set.copyOf(pool.getModules()))
-                .setRpcMapping(new NetconfRequest(pool))
-                .build());
+    @Nonnull
+    private final List<Class<? extends EmuService>> serviceRegistry = Collections.synchronizedList(new ArrayList<>());
 
+    @Nonnull
+    private final Map<Class<? extends EmuService>, Thread> serviceThreads = new HashMap<>();
+
+    public NetEmu(@Nonnull final YangPool pool) {
         this.pool = pool;
     }
 
-    @Override
-    public List<Integer> start() {
-        @Nonnull final var python = new PythonService(this.pool);
-        return super.start();
+    public void registerService(@Nonnull final Class<? extends EmuService> serviceClass) {
+        this.serviceRegistry.add(serviceClass);
     }
+
+    public synchronized void start() {
+        for (@Nonnull final var serviceClass : this.serviceRegistry) {
+            @Nonnull final Thread serviceThread;
+            try {
+                serviceThread = new Thread(serviceClass.getDeclaredConstructor(YangPool.class).newInstance(this.pool));
+
+            } catch (final
+                    NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+
+                throw new RuntimeException(e);
+            }
+
+            serviceThread.setDaemon(false);
+            serviceThread.start();
+            this.serviceThreads.put(serviceClass, serviceThread);
+        }
+    }
+
+    /*
+    public synchronized void stop() {
+        for (@Nonnull final var serviceThread : this.serviceThreads.values()) {
+        }
+    }
+    */
 
     public void loadConfigurationFromXml(@Nonnull final Reader reader) {
         @Nonnull final XMLStreamReader xmlReader;

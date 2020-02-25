@@ -1,13 +1,16 @@
-package com.adva.netemu;
+package com.adva.netemu.northbound;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,11 +32,11 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import com.google.common.collect.ImmutableSet;
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
@@ -47,13 +50,19 @@ import org.opendaylight.netconf.api.DocumentedException;
 import org.opendaylight.netconf.api.xml.MissingNameSpaceException;
 import org.opendaylight.netconf.api.xml.XmlElement;
 import org.opendaylight.netconf.api.xml.XmlNetconfConstants;
+
+import org.opendaylight.netconf.test.tool.NetconfDeviceSimulator;
+import org.opendaylight.netconf.test.tool.config.ConfigurationBuilder;
 import org.opendaylight.netconf.test.tool.rpchandler.RpcHandler;
 
+import com.adva.netemu.YangPool;
+import com.adva.netemu.service.EmuService;
 
-public class NetconfRequest implements RpcHandler {
+
+public class NetconfService extends EmuService implements RpcHandler {
 
     @Nonnull
-    private static Logger LOG = LoggerFactory.getLogger(NetconfRequest.class);
+    private static Logger LOG = LoggerFactory.getLogger(NetconfService.class);
 
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
@@ -83,10 +92,31 @@ public class NetconfRequest implements RpcHandler {
     }
 
     @Nonnull
-    private YangPool pool;
+    private final AtomicReference<NetconfDeviceSimulator> netconf = new AtomicReference<>(null);
 
-    public NetconfRequest(@Nonnull final YangPool pool) {
-        this.pool = pool;
+    @Nonnull
+    public NetconfDeviceSimulator netconf() {
+        return this.netconf.get();
+    }
+
+    public NetconfService(@Nonnull final YangPool pool) {
+        super(pool);
+    }
+
+    @Override
+    public synchronized void run() {
+        if (this.netconf.get() != null) {
+            return;
+        }
+
+        @Nonnull final var netconf = new NetconfDeviceSimulator(new ConfigurationBuilder()
+                .setCapabilities(ImmutableSet.of("urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"))
+                .setModels(Set.copyOf(super.yangPool().getModules()))
+                .setRpcMapping(this)
+                .build());
+
+        this.netconf.set(netconf);
+        netconf.start();
     }
 
     @Nonnull @Override
@@ -140,7 +170,7 @@ public class NetconfRequest implements RpcHandler {
 
     @Nonnull
     Optional<Element> applyGetRequest(@SuppressWarnings({"unused"}) final XmlElement request) {
-        @Nonnull final var futureData = this.pool.readOperationalData();
+        @Nonnull final var futureData = super.yangPool().readOperationalData();
         @Nonnull final Optional<NormalizedNode<?, ?>> node;
         try {
                 node = futureData.get();
@@ -239,7 +269,7 @@ public class NetconfRequest implements RpcHandler {
             return Optional.empty();
         }
 
-        this.pool.writeOperationalDataFrom(xmlReader);
+        super.yangPool().writeOperationalDataFrom(xmlReader);
         return Optional.empty();
     }
 }
