@@ -18,15 +18,15 @@ public abstract class EmuPythonService extends EmuService {
     protected static class Python {
 
         @Nonnull
-        private final Jep jep;
+        private final Jep interpreter;
 
         @Nonnull
         public Jep interpreter() {
-            return this.jep;
+            return this.interpreter;
         }
 
         private Python() throws JepException {
-            this.jep = new SharedInterpreter();
+            this.interpreter = new SharedInterpreter();
         }
 
         @Nonnull
@@ -46,13 +46,13 @@ public abstract class EmuPythonService extends EmuService {
 
         @Nonnull
         public Python createReference(@Nonnull final String variable, @Nonnull final Object value) throws JepException {
-            this.jep.set(variable, value);
+            this.interpreter.set(variable, value);
             return this;
         }
 
         @Nonnull
         public Python execute(@Nonnull final String code) throws JepException {
-            this.jep.eval(code);
+            this.interpreter.eval(code);
             return this;
         }
 
