@@ -11,6 +11,7 @@ import {{yangPackage}}.{{yangClass}}Builder;
 
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangBinding;
+import com.adva.netemu.YangData;
 import com.adva.netemu.YangProvider;
 
 
@@ -76,7 +77,7 @@ class {{class}}$YangModel implements YangBindable {
     private final {{class}}{{bindingClassSuffix}} yangBinding = new {{class}}{{bindingClassSuffix}}();
 
     @Nonnull @Override
-    public Optional<YangBinding<?, ?, ?>> getYangBinding() {
+    public Optional<YangBinding<?, ?>> getYangBinding() {
         return Optional.of(this.yangBinding);
     }
 
@@ -85,7 +86,7 @@ class {{class}}$YangModel implements YangBindable {
 
     @Nonnull
     public Yang.Data data() {
-        return this.data;
+        return this.data.get();
     }
 
     public {{class}}$YangModel() {
