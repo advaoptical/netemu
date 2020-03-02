@@ -1,4 +1,4 @@
-# ADVA :: NETEMU >>> NETCONF/YANG-driven Enhanced Management Unit
+# ADVA :: NETEMU >>> NETCONF/YANG-defined Enhanced Management Unit
 #
 # Copyright (C) 2020 ADVA Optical Networking
 #
@@ -16,74 +16,96 @@
 
 from abc import abstractmethod
 
-from jep import PyJObject
 import modeled
+from jep import PyJObject
 
+import netemu
 from .yangtools import NormalizedNode
 
 
-class YangPool(modeled.object):
+class Meta(modeled.object.meta):
+    """
+    Metaclass for :class:`netemu.YANGPool`.
+
+    Defines inner classes for CONFIGURATION/OPERATIONAL Data access
+    """
+
+    class Data(modeled.object):
+        """Abstract Data accessor for :class:`netemu.YANGPool`."""
+
+        __package__ = netemu
+        __qualname__ = 'YANGPool.Data'
+
+        #: The Java ``com.adva.netemu.YangPool`` instance.
+        _java_pool = modeled.member.strict[PyJObject]()
+
+        def __init__(self, java_pool):
+            """Create from Java ``com.adva.netemu.YangPool`` instance."""
+            super().__init__(_java_pool=java_pool)
+
+        @abstractmethod
+        def __call__(self):
+            """Read Data from Java ``com.adva.netemu.YangPool`` instance."""
+            raise NotImplementedError(
+                "'__call__' of {} is abstract".format(type(self)))
+
+    class CONFIGURATION(Data):
+        """CONFIGURATION Data accessor for :class:`netemu.YANGPool`."""
+
+        __qualname__ = 'YANGPool.CONFIGURATION'
+
+        def __call__(self):
+            """
+            Read CONFIGURATION Data from Java ``YangPool`` instance.
+
+            :return:
+                Pythonized :class:`netemu.yangtools.NormalizedNode` object.
+            """
+            java_future_node = self._java_pool.readConfigurationData()
+            java_optional_node = java_future_node.get()
+            if java_optional_node.isEmpty():
+                return None
+
+            return NormalizedNode(java_optional_node.get())
+
+    class OPERATIONAL(Data):
+        """OPERATIONAL Data accessor for :class:`netemu.YANGPool`."""
+
+        __qualname__ = 'YANGPool.OPERATIONAL'
+
+        def __call__(self):
+            """
+            Read OPERATIONAL Data from Java ``YangPool`` instance.
+
+            :return:
+                Pythonized :class:`netemu.yangtools.NormalizedNode` object.
+            """
+            java_future_node = self._java_pool.readOperationalData()
+            java_optional_node = java_future_node.get()
+            if java_optional_node.isEmpty():
+                return None
+
+            return NormalizedNode(java_optional_node.get())
+
+
+class YANGPool(modeled.object, metaclass=Meta):
     """Pythonizer for Java class ``com.adva.netemu.YangPool``."""
 
-    #: The Java ``YangPool`` instance.
+    __package__ = netemu
+
+    #: The Java ``com.adva.netemu.YangPool`` instance.
     _java_pool = modeled.member.strict[PyJObject]()
 
     def __init__(self, java_pool):
-        """Create from Java ``YangPool`` instance."""
+        """Create from Java ``com.adva.netemu.YangPool`` instance."""
         super().__init__(_java_pool=java_pool)
 
     @property
     def configuration_data(self):
-        return ConfigurationData(self._java_pool)
+        """Get :class:`netemu.YANGPool.CONFIGURATION` Data accessor."""
+        return type(self).CONFIGURATION(self._java_pool)
 
     @property
     def operational_data(self):
-        return OperationalData(self._java_pool)
-
-
-class Data(modeled.object):
-
-    #: The Java ``YangPool`` instance.
-    _java_pool = modeled.member.strict[PyJObject]()
-
-    def __init__(self, java_pool):
-        super().__init__(_java_pool=java_pool)
-
-    @abstractmethod
-    def __call__(self):
-        raise NotImplementedError(
-            "'__call__' of {} is abstract".format(type(self)))
-
-
-class ConfigurationData(Data):
-
-    def __call__(self):
-        """
-        Read CONFIGURATION Data from Java ``YangPool`` instance.
-
-        :return:
-            Pythonized :class:`netemu.yangtools.NormalizedNode` object.
-        """
-        java_future_node = self._java_pool.readConfigurationData()
-        java_optional_node = java_future_node.get()
-        if java_optional_node.isEmpty():
-            return None
-
-        return NormalizedNode(java_optional_node.get())
-
-
-class OperationalData(Data):
-
-    def __call__(self):
-        """
-        Read OPERATIONAL Data from Java ``YangPool`` instance.
-
-        :return:
-            Pythonized :class:`netemu.yangtools.NormalizedNode` object.
-        """
-        java_future_node = self._java_pool.readOperationalData()
-        java_optional_node = java_future_node.get()
-        if java_optional_node.isEmpty():
-            return None
-
-        return NormalizedNode(java_optional_node.get())
+        """Get :class:`netemu.YANGPool.OPERATIONAL` Data accessor."""
+        return type(self).OPERATIONAL(self._java_pool)

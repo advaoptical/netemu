@@ -1,4 +1,4 @@
-# ADVA :: NETEMU >>> NETCONF/YANG-driven Enhanced Management Unit
+# ADVA :: NETEMU >>> NETCONF/YANG-defined Enhanced Management Unit
 #
 # Copyright (C) 2020 ADVA Optical Networking
 #
@@ -14,4 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .pool import YangPool
+from .pool import YANGPool

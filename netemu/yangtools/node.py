@@ -1,4 +1,4 @@
-# ADVA :: NETEMU >>> NETCONF/YANG-driven Enhanced Management Unit
+# ADVA :: NETEMU >>> NETCONF/YANG-defined Enhanced Management Unit
 #
 # Copyright (C) 2020 ADVA Optical Networking
 #
