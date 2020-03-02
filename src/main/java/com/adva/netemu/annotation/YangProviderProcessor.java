@@ -98,11 +98,14 @@ public class YangProviderProcessor extends AbstractProcessor {
                 .mapToEntry(method -> method.getSimpleName().toString(), Function.identity())
                 .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
                 .mapKeyValue((name, method) -> new SimpleImmutableEntry<>(name, Map.of(
-                        "valueClass", ((TypeElement) this.processingEnv.getTypeUtils().asElement(method.getReturnType()))
+                        "valueClass", method.getReturnType().toString(), /*
+                        ((TypeElement) this.processingEnv.getTypeUtils().asElement(method.getReturnType()))
                                 .getQualifiedName().toString(),
+                        */
 
                         "reprefixedName", name.replaceFirst("^is", "get"),
                         "setterName", name.replaceFirst("^(get|is)", "set"),
+                        "updaterName", name.replaceFirst("^(get|is)", "update"),
 
                         "pythonName", name.replaceFirst("^(get|is)", "").replaceAll("[A-Z]", "_$0").toLowerCase()
                                 .substring(1)))));

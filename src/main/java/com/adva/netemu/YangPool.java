@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.annotation.Nonnull;
@@ -31,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import org.opendaylight.yangtools.concepts.Builder;
-
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 
@@ -40,7 +41,6 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
-
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
 import org.opendaylight.mdsal.binding.api.DataBroker;
@@ -52,7 +52,6 @@ import org.opendaylight.mdsal.binding.generator.util.BindingRuntimeContext;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
-
 import org.opendaylight.mdsal.dom.api.DOMDataBroker;
 import org.opendaylight.mdsal.dom.broker.SerializedDOMDataBroker;
 import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStore;
@@ -68,7 +67,10 @@ public class YangPool {
     private static final Logger LOG = LoggerFactory.getLogger(YangPool.class);
 
     @Nonnull
-    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(0);
+    private final ScheduledExecutorService transactionExecutor = new ScheduledThreadPoolExecutor(0); // 0 -> no idle threads
+
+    @Nonnull
+    private final Executor loggingCallbackExecutor = MoreExecutors.directExecutor();
 
     @Nonnull
     private final Set<YangModuleInfo> modules;
@@ -123,7 +125,13 @@ public class YangPool {
         @Nonnull final var configurationStore = new InMemoryDOMDataStore(
                 String.format("netemu-%s-configuration", id),
                 LogicalDatastoreType.CONFIGURATION,
-                this.executor,
+                MoreExecutors.newDirectExecutorService(), // -> writing data immediately executes change listeners
+
+                /* TODO: (?)
+                    Use this.transactionExecutor instead, and enhance YangBinding.DatastoreBinding to make its change listener
+                    awaitable and back-traceable to its originating write event
+                */
+
                 InMemoryDOMDataStoreConfigProperties.DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
                 false);
 
@@ -132,7 +140,13 @@ public class YangPool {
         @Nonnull final var operationalStore = new InMemoryDOMDataStore(
                 String.format("netemu-%s-operational", id),
                 LogicalDatastoreType.OPERATIONAL,
-                this.executor,
+                MoreExecutors.newDirectExecutorService(), // -> writing data immediately executes change listeners
+
+                /* TODO: (?)
+                    Use this.transactionExecutor instead, and enhance YangBinding.DatastoreBinding to make its change listener
+                    awaitable and back-traceable to its originating write event
+                */
+
                 InMemoryDOMDataStoreConfigProperties.DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
                 false);
 
@@ -144,7 +158,7 @@ public class YangPool {
                                 LogicalDatastoreType.CONFIGURATION, configurationStore,
                                 LogicalDatastoreType.OPERATIONAL, operationalStore),
 
-                        MoreExecutors.listeningDecorator(this.executor)),
+                        MoreExecutors.listeningDecorator(this.transactionExecutor)),
 
                 new BindingToNormalizedNodeCodec(this.context, new BindingNormalizedNodeCodecRegistry(
                         BindingRuntimeContext.create(this.context, this.getYangContext()))));
@@ -227,7 +241,7 @@ public class YangPool {
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var future = txn.read(storeType, YangInstanceIdentifier.empty());
 
         LOG.info("Reading from {} Datastore", storeType);
-        future.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.executor);
+        future.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.loggingCallbackExecutor);
         return future;
     }
 
@@ -289,7 +303,7 @@ public class YangPool {
         LOG.info("Writing to {} Datastore: {}", storeType, yangPath);
 
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var future = txn.commit();
-        future.addCallback(this.datastore.injectWriting().of(storeType, yangPath).futureCallback, this.executor);
+        future.addCallback(this.datastore.injectWriting().of(storeType, yangPath).futureCallback, this.loggingCallbackExecutor);
         return future;
     }
 
@@ -312,7 +326,7 @@ public class YangPool {
 
         @Nonnull final var writing = this.datastore.injectModeledWriting().of(storeType, object.getIidBuilder().build());
         @Nonnull final var future = writing.transactor.apply(this.broker, object);
-        future.addCallback(writing.futureCallback, this.executor);
+        future.addCallback(writing.futureCallback, this.loggingCallbackExecutor);
         return future;
     }
 
@@ -347,6 +361,6 @@ public class YangPool {
                 LOG.error("Failed deleting from {} Datastore: {}", storeType, iid);
             }
 
-        }, this.executor);
+        }, this.loggingCallbackExecutor);
     }
 }

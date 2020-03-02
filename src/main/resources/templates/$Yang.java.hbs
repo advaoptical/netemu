@@ -1,11 +1,12 @@
-package {{package}};
+package {{{package}}};
 
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import {{yangPackage}}.{{yangClass}};
+import {{{yangPackage}}}.{{{yangClass}}};
 
 {{#block "extended imports"}}
 {{/block}}
@@ -13,19 +14,19 @@ import {{yangPackage}}.{{yangClass}};
 import com.adva.netemu.YangData;
 
 
-public class {{class}}$Yang {
+public class {{{class}}}$Yang {
 
-    public static final class Data extends YangData<{{yangClass}}> {
+    public static final class Data extends YangData<{{{yangClass}}}> {
 
         @Nonnull
         private static final Data EMPTY = new Data(null);
 
-        private Data(@Nullable final {{yangClass}} object) {
+        private Data(@Nullable final {{{yangClass}}} object) {
             super(object);
         }
 
         @Nonnull
-        public static Data of(@Nonnull final {{yangClass}} object) {
+        public static Data of(@Nonnull final {{{yangClass}}} object) {
             return new Data(object);
         }
 
@@ -36,29 +37,45 @@ public class {{class}}$Yang {
 
 {{#each yangDataGetters}}
         @Nonnull
-        public Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
-            return super.map({{yangClass}}::{{@key}});
+        public Optional<{{{this.valueClass}}}> {{{this.reprefixedName}}}() {
+            return super.map({{{yangClass}}}::{{{@key}}});
         }
 {{/each}}
     }
 
     @Nonnull
-    public static Optional<{{class}}{{bindingClassSuffix}}> bindingOf(@Nonnull final {{class}} object) {
-        return object.{{bindingGetter}}().map({{class}}{{bindingClassSuffix}}.class::cast);
+    public static Optional<{{{class}}}{{{bindingClassSuffix}}}> bindingOf(@Nonnull final {{{class}}} object) {
+        return object.{{{bindingGetter}}}().map({{{class}}}{{{bindingClassSuffix}}}.class::cast);
     }
 
     /*
     @Nonnull
-    public static Data configurationDataFrom(@Nonnull final {{class}} object) {
-        @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideConfigurationData).orElse(null);
+    public static Data configurationDataFrom(@Nonnull final {{{class}}} object) {
+        @Nullable final var data = bindingOf(object).map({{{class}}}{{{bindingClassSuffix}}}::provideConfigurationData)
+                .orElse(null);
+
         return (data != null) ? Data.of(data) : Data.empty();
     }
     */
 
     @Nonnull
-    public static Data operationalDataFrom(@Nonnull final {{class}} object) {
-        @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideOperationalData).orElse(null);
-        return (data != null) ? Data.of(data) : Data.empty();
+    public static Data operationalDataFrom(@Nonnull final {{{class}}} object) {
+        @Nullable final var dataFuture = bindingOf(object).map({{{class}}}{{{bindingClassSuffix}}}::provideOperationalData);
+        if (dataFuture.isPresent()) {
+            @Nonnull final YangData<{{{yangClass}}}> data;
+            try {
+                data = dataFuture.get().get();
+
+            } catch (final InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e.getCause());
+            }
+
+            if (data.isPresent()) {
+                return Data.of(data.get());
+            }
+        }
+
+        return Data.empty();
     }
 
 {{#block "extended members"}}

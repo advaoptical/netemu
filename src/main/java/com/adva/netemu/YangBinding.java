@@ -7,6 +7,9 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -14,6 +17,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.reflect.TypeToken;
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +39,9 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
 
     @Nonnull
     protected static final Logger LOG = LoggerFactory.getLogger(YangBinding.class);
+
+    @Nonnull
+    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(0); // 0 -> no idle threads
 
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
@@ -174,34 +183,57 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         }
     }
 
-    public void applyOperationalData(@Nonnull final YangData<Y> data) {
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    private final AtomicReference<FluentFuture<Boolean>> dataApplyingFuture =
+            new AtomicReference<>(FluentFuture.from(Futures.immediateFuture(false)));
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public final synchronized FluentFuture<Boolean> applyOperationalData(@Nonnull final YangData<Y> data) {
         @Nullable final var applier = this.dataAppliers.get(LogicalDatastoreType.OPERATIONAL);
+
         if (applier != null) {
-            applier.accept(data);
+            @Nonnull final var future = this.dataApplyingFuture.get().transform(applied -> {
+                applier.accept(data);
+                return true;
+
+            }, this.executor);
+
+            this.dataApplyingFuture.set(future);
+            return future;
         }
+
+        return this.dataApplyingFuture.get();
     }
 
-    public void applyOperationalData(@Nullable final Y data) {
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public final synchronized FluentFuture<Boolean> applyOperationalData(@Nullable final Y data) {
         if (data != null) {
-            this.applyOperationalData(YangData.of(data));
+            return this.applyOperationalData(YangData.of(data));
         }
+
+        return this.dataApplyingFuture.get().transform(applied -> false, MoreExecutors.directExecutor());
     }
 
-    private void applyData(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangData<Y> data) {
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    private FluentFuture<Boolean> applyData(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangData<Y> data) {
         switch (storeType) {
+            case OPERATIONAL:
+                return this.applyOperationalData(data);
+
             case CONFIGURATION:
                 this.applyConfigurationData(data);
-                return;
-
-            case OPERATIONAL:
-                this.applyOperationalData(data);
         }
+
+        return FluentFuture.from(Futures.immediateFuture(false));
     }
 
-    private void applyData(@Nonnull final LogicalDatastoreType storeType, @Nullable final Y data) {
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    private FluentFuture<Boolean> applyData(@Nonnull final LogicalDatastoreType storeType, @Nullable final Y data) {
         if (data != null) {
-            this.applyData(storeType, YangData.of(data));
+            return this.applyData(storeType, YangData.of(data));
         }
+
+        return FluentFuture.from(Futures.immediateFuture(false));
     }
 
     @Nullable
@@ -211,21 +243,27 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         this.operationalDataProvider = provider;
     }
 
-    @Nullable
-    public Y provideOperationalData() {
-        if (this.operationalDataProvider == null) {
-            return null;
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public synchronized FluentFuture<YangData<Y>> provideOperationalData() {
+        @Nullable final var provider = this.operationalDataProvider;
+        if (provider == null) {
+            return this.dataApplyingFuture.get().transform(applied -> YangData.empty(), MoreExecutors.directExecutor());
         }
 
-        @Nonnull final B builder;
-        try {
-            builder = this.getBuilderClass().getDeclaredConstructor().newInstance();
+        return this.dataApplyingFuture.get().transform(applied -> {
+            @Nonnull final B builder;
+            try {
+                builder = this.getBuilderClass().getDeclaredConstructor().newInstance();
 
-        } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
-            throw new Error(e);
-        }
+            } catch (final
+                    NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
 
-        return this.operationalDataProvider.apply(builder).build();
+                throw new Error(e);
+            }
+
+            return YangData.of(provider.apply(builder).build());
+
+        }, this.executor);
     }
 
     public void writeDataTo(@Nonnull final YangPool pool, @Nonnull final LogicalDatastoreType storeType) {

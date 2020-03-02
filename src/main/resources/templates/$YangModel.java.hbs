@@ -1,35 +1,54 @@
-package {{package}};
+package {{{package}}};
 
+import java.util.List;
 import java.util.Optional;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import {{yangPackage}}.{{yangClass}};
-import {{yangPackage}}.{{yangClass}}Builder;
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import {{{yangPackage}}}.{{{yangClass}}};
+import {{{yangPackage}}}.{{{yangClass}}}Builder;
 
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangBinding;
 import com.adva.netemu.YangData;
 import com.adva.netemu.YangProvider;
+import com.adva.netemu.driver.EmuDriver;
 
 
-class {{class}}$YangModel implements YangBindable {
+public abstract class {{{class}}}$YangModel implements YangBindable {
+
+    @Nonnull
+    protected static final Logger LOG = LoggerFactory.getLogger({{{class}}}$YangModel.class);
 
     public static final class Yang {
 
-        public static final class Data extends YangData<{{yangClass}}> {
+        public static final class Data extends YangData<{{{yangClass}}}> {
 
             @Nonnull
             private static final Data EMPTY = new Data(null);
 
-            private Data(@Nullable final {{yangClass}} object) {
+            private Data(@Nullable final {{{yangClass}}} object) {
                 super(object);
             }
 
             @Nonnull
-            public static Data of(@Nonnull final {{yangClass}} object) {
+            public static Data of(@Nonnull final {{{yangClass}}} object) {
                 return new Data(object);
             }
 
@@ -40,21 +59,21 @@ class {{class}}$YangModel implements YangBindable {
 
 {{#each yangDataGetters}}
             @Nonnull
-            public Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
-                return super.map({{yangClass}}::{{@key}});
+            public Optional<{{{this.valueClass}}}> {{{this.reprefixedName}}}() {
+                return super.map({{{yangClass}}}::{{{@key}}});
             }
 {{/each}}
         }
 
         @Nonnull
-        public static Optional<{{class}}{{bindingClassSuffix}}> bindingOf(@Nonnull final {{class}} object) {
-            return object.{{bindingGetter}}().map({{class}}{{bindingClassSuffix}}.class::cast);
+        public static Optional<{{{class}}}{{{bindingClassSuffix}}}> bindingOf(@Nonnull final {{{class}}} object) {
+            return object.{{{bindingGetter}}}().map({{{class}}}{{{bindingClassSuffix}}}.class::cast);
         }
 
         /*
         @Nonnull
-        public static Data configurationDataFrom(@Nonnull final {{class}} object) {
-            @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideConfigurationData)
+        public static Data configurationDataFrom(@Nonnull final {{{class}}} object) {
+            @Nullable final var data = bindingOf(object).map({{{class}}}{{{bindingClassSuffix}}}::provideConfigurationData)
                     .orElse(null);
 
             return (data != null) ? Data.of(data) : Data.empty();
@@ -62,9 +81,23 @@ class {{class}}$YangModel implements YangBindable {
         */
 
         @Nonnull
-        public static Data operationalDataFrom(@Nonnull final {{class}} object) {
-        @Nullable final var data = bindingOf(object).map({{class}}{{bindingClassSuffix}}::provideOperationalData).orElse(null);
-            return (data != null) ? Data.of(data) : Data.empty();
+        public static Data operationalDataFrom(@Nonnull final {{{class}}} object) {
+            @Nullable final var dataFuture = bindingOf(object).map({{{class}}}{{{bindingClassSuffix}}}::provideOperationalData);
+            if (dataFuture.isPresent()) {
+                @Nonnull final YangData<{{{yangClass}}}> data;
+                try {
+                    data = dataFuture.get().get();
+
+                } catch (final InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e.getCause());
+                }
+
+                if (data.isPresent()) {
+                    return Data.of(data.get());
+                }
+            }
+
+            return Data.empty();
         }
     }
 
@@ -74,7 +107,7 @@ class {{class}}$YangModel implements YangBindable {
     }
 
     @Nonnull
-    private final {{class}}{{bindingClassSuffix}} yangBinding = new {{class}}{{bindingClassSuffix}}();
+    private final {{{class}}}{{{bindingClassSuffix}}} yangBinding = new {{{class}}}{{{bindingClassSuffix}}}();
 
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
@@ -89,20 +122,57 @@ class {{class}}$YangModel implements YangBindable {
         return this.data.get();
     }
 
-    public {{class}}$YangModel() {
+    public {{{class}}}$YangModel() {
         @Nonnull final var connector = new YangBindingConnector();
 
         this.yangBinding.appliesOperationalDataUsing(connector, this.data::set);
     }
 
-{{#each yangDataGetters}}
     @Nonnull
-    public Optional<{{this.valueClass}}> {{this.reprefixedName}}() {
-        return this.data.get().{{this.reprefixedName}}();
+    private final AtomicReference<EmuDriver> driverSession = new AtomicReference<>(null);
+
+    public void attachTo(@Nonnull final EmuDriver session) {
+        this.driverSession.set(session);
     }
 
-    public void {{this.setterName}}(@Nullable final {{this.valueClass}} value) {
-        this.data.set(Yang.Data.of(new {{yangClass}}Builder(this.data.get().get()).{{this.setterName}}(value).build()));
+    @Nonnull
+    private final ListeningExecutorService executor = MoreExecutors.listeningDecorator(new ScheduledThreadPoolExecutor(0));
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<Yang.Data> update() {
+        @Nullable final var session = this.driverSession.get();
+        if (session != null) {
+            return session.fetchOperationalData().transform(commitInfos -> {
+                try {
+                    this.yangBinding.provideOperationalData().get();
+
+                } catch (final InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e.getCause());
+                }
+
+                LOG.info("Exposing updated OPERATIONAL Data");
+                return this.data.get();
+
+            }, this.executor);
+        }
+
+        return FluentFuture.from(Futures.immediateFuture(this.data.get()));
     }
-{{/each}}
+
+{{~#each yangDataGetters}}
+
+    @Nonnull
+    public Optional<{{{this.valueClass}}}> {{{this.reprefixedName}}}() {
+        return this.data.get().{{{this.reprefixedName}}}();
+    }
+
+    protected void {{{this.setterName}}}(@Nullable final {{{this.valueClass}}} value) {
+        this.data.set(Yang.Data.of(new {{{yangClass}}}Builder(this.data.get().get()).{{{this.setterName}}}(value).build()));
+    }
+
+    @Nonnull
+    public FluentFuture<Optional<{{{this.valueClass}}}>> {{{this.updaterName}}}() {
+        return this.update().transform(Yang.Data::{{{this.reprefixedName}}}, this.executor);
+    }
+{{~/each}}
 }

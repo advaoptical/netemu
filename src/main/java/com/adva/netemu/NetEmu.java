@@ -21,12 +21,11 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import com.adva.netemu.service.EmuService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.adva.netemu.service.EmuPythonService;
+import com.adva.netemu.driver.EmuDriver;
+import com.adva.netemu.service.EmuService;
 
 
 public final class NetEmu {
@@ -45,6 +44,34 @@ public final class NetEmu {
         return this.pool;
     }
 
+    public static final class RegisteredDriver<D extends EmuDriver> {
+        @Nonnull
+        private final NetEmu netEmu;
+
+        @Nonnull
+        private final Class<D> driverClass;
+
+        private RegisteredDriver(@Nonnull final NetEmu emu, @Nonnull final Class<D> driverClass) {
+            this.netEmu = emu;
+            this.driverClass = driverClass;
+        }
+
+        public D newSessionFrom(@Nonnull final EmuDriver.Settings<D> settings) {
+            try {
+                return driverClass.getDeclaredConstructor(YangPool.class, EmuDriver.Settings.class)
+                        .newInstance(this.netEmu.getYangPool(), settings);
+
+            } catch (final
+                    NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Nonnull
+    private final List<Class<? extends EmuDriver>> driverRegistry = Collections.synchronizedList(new ArrayList<>());
+
     @Nonnull
     private final List<Class<? extends EmuService>> serviceRegistry = Collections.synchronizedList(new ArrayList<>());
 
@@ -53,6 +80,11 @@ public final class NetEmu {
 
     public NetEmu(@Nonnull final YangPool pool) {
         this.pool = pool;
+    }
+
+    public <D extends EmuDriver> RegisteredDriver<D> registerDriver(@Nonnull final Class<D> driverClass) {
+        this.driverRegistry.add(driverClass);
+        return new RegisteredDriver<>(this, driverClass);
     }
 
     public void registerService(@Nonnull final Class<? extends EmuService> serviceClass) {

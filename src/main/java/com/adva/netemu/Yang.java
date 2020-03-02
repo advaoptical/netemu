@@ -1,11 +1,12 @@
 package com.adva.netemu;
 
 import java.util.Collection;
-import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.util.concurrent.Futures;
 import one.util.streamex.StreamEx;
 
 import org.opendaylight.yangtools.concepts.Builder;
@@ -20,8 +21,13 @@ public final class Yang {
 
     @Nonnull
     public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
-    Optional<Y> operationalDataFrom(@Nonnull final T object) {
-        return Optional.ofNullable(object.provideOperationalData());
+    YangData<Y> operationalDataFrom(@Nonnull final T object) {
+        try {
+            return object.provideOperationalData().get();
+
+        } catch (final InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     @Nonnull
@@ -33,7 +39,13 @@ public final class Yang {
     @Nonnull
     public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
     StreamEx<Y> streamOperationalDataFrom(@Nonnull final Stream<T> objects) {
-        return StreamEx.of(objects).map(YangBinding::provideOperationalData).nonNull();
+        try {
+            return StreamEx.of(Futures.allAsList(StreamEx.of(objects).map(YangBinding::provideOperationalData)).get())
+                    .filter(YangData::isPresent).map(YangData::get);
+
+        } catch (final InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     /*
