@@ -1,5 +1,4 @@
 
-
 # NETEMU
 
 ## Library to generate Java and Python source code with utility functions from YANG models to build NETCONF APIs in an object-oriented manner
@@ -13,6 +12,8 @@ Used projects and libraries
     - org.opendaylight.yangtools.*
 -  Gradle
     - annotation processor
+    - YangToSources
+    - Pythonizer
 - Groovy
 
 Main Classes
@@ -24,10 +25,14 @@ Main Classes
 * YangProvider
 
 
+Features
+- Independent of yang revisions
+- 
+
 Limitations / Bugs / Workaround
 - AOS bugs
 - OpenConfig bugs
-
+- 
 - OpenDaylight bugs / fixes / workaround
 
 -
