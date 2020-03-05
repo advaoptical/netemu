@@ -22,7 +22,7 @@ group "com.adva.netemu"
 version "0.1.0-SNAPSHOT"
 
 application {
-    mainClassName = "com.adva.netemu.testemu.Main"
+    mainClassName = "com.adva.netemu.testemu.client.Main"
 }
 
 sourceCompatibility = 11
@@ -36,7 +36,11 @@ netEmu {
         // generateIn "build"
     }
 
-    definesContextInPackage "com.adva.netemu.testemu"
+    definesContextInPackage "com.adva.netemu.testemu.client"
+
+    pythonizer {
+        appendsYangModelsToFile "testemu_client/yang_models.py"
+    }
 }
 
 sourceSets {
@@ -52,12 +56,14 @@ dependencies {
     implementation "com.adva:netemu:0.1.0-SNAPSHOT"
     annotationProcessor "com.adva:netemu:0.1.0-SNAPSHOT"
 
+    implementation "com.adva.netemu:netemu-testemu:0.1.0-SNAPSHOT"
+
     // testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
 jar {
     manifest {
-        attributes 'Main-Class': "com.adva.netemu.testemu.Main"
+        attributes 'Main-Class': "com.adva.netemu.testemu.client.Main"
     }
 }
 
@@ -66,7 +72,7 @@ task('uberJar', type: Jar) {
     archiveClassifier.set 'uber'
 
     manifest {
-        attributes 'Main-Class': "com.adva.netemu.testemu.Main"
+        attributes 'Main-Class': "com.adva.netemu.testemu.client.Main"
     }
 
     /*  The following extended archive creation is adapted from

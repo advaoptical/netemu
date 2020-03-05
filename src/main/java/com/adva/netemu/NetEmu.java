@@ -15,14 +15,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nonnull;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import net.javacrumbs.futureconverter.java8guava.FutureConverter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.opendaylight.mdsal.common.api.CommitInfo;
 
 import com.adva.netemu.driver.EmuDriver;
 import com.adva.netemu.service.EmuService;
@@ -116,7 +121,8 @@ public final class NetEmu {
     }
     */
 
-    public void loadConfigurationFromXml(@Nonnull final Reader reader) {
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(@Nonnull final Reader reader) {
         @Nonnull final XMLStreamReader xmlReader;
         try {
             xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(reader);
@@ -124,13 +130,16 @@ public final class NetEmu {
         } catch (final XMLStreamException e) {
             LOG.error("While loading XML Configuration: ", e);
             LOG.error("Failed reading XML Configuration from: {}", reader);
-            return;
+            return CompletableFuture.completedFuture(List.of());
         }
 
-        this.pool.writeConfigurationDataFrom(xmlReader);
+        return FutureConverter.toCompletableFuture(this.pool.writeConfigurationDataFrom(xmlReader));
     }
 
-    public void loadConfigurationFromXml(@Nonnull final File file, @Nonnull final Charset encoding) {
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(
+            @Nonnull final File file, @Nonnull final Charset encoding) {
+
         @Nonnull final XMLStreamReader xmlReader;
         try {
             xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new FileReader(file, encoding));
@@ -138,21 +147,25 @@ public final class NetEmu {
         } catch (final IOException | XMLStreamException e) {
             LOG.error("While opening file for loading XML Configuration: ", e);
             LOG.error("Failed reading XML Configuration from: {}", file);
-            return;
+            return CompletableFuture.completedFuture(List.of());
         }
 
-        this.pool.writeConfigurationDataFrom(xmlReader);
+        return FutureConverter.toCompletableFuture(this.pool.writeConfigurationDataFrom(xmlReader));
     }
 
-    public void loadConfigurationFromXml(@Nonnull final File file) {
-        this.loadConfigurationFromXml(file, StandardCharsets.UTF_8);
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(@Nonnull final File file) {
+        return this.loadConfigurationFromXml(file, StandardCharsets.UTF_8);
     }
 
-    public void loadConfigurationFromXml() {
-        this.loadConfigurationFromXml(new File("configuration.xml").getAbsoluteFile());
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml() {
+        return this.loadConfigurationFromXml(new File("configuration.xml").getAbsoluteFile());
     }
 
-    public void applyOperationalDataFromXml(@Nonnull final File file, @Nonnull final Charset encoding) {
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> applyOperationalDataFromXml(
+            @Nonnull final File file, @Nonnull final Charset encoding) {
 
         @Nonnull final XMLStreamReader xmlReader;
         try {
@@ -161,17 +174,19 @@ public final class NetEmu {
         } catch (final IOException | XMLStreamException e) {
             LOG.error("While opening file for loading Operational XML Data: ", e);
             LOG.error("Failed reading Operational XML Data from: {}", file);
-            return;
+            return CompletableFuture.completedFuture(List.of());
         }
 
-        this.pool.writeOperationalDataFrom(xmlReader);
+        return FutureConverter.toCompletableFuture(this.pool.writeOperationalDataFrom(xmlReader));
     }
 
-    public void applyOperationalDataFromXml(@Nonnull final File file) {
-        this.applyOperationalDataFromXml(file, StandardCharsets.UTF_8);
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> applyOperationalDataFromXml(@Nonnull final File file) {
+        return this.applyOperationalDataFromXml(file, StandardCharsets.UTF_8);
     }
 
-    public void applyOperationalDataFromXml() {
-        this.applyOperationalDataFromXml(new File("operational.xml").getAbsoluteFile());
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> applyOperationalDataFromXml() {
+        return this.applyOperationalDataFromXml(new File("operational.xml").getAbsoluteFile());
     }
 }

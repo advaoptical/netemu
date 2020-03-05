@@ -3,12 +3,14 @@
 plugins {
     id 'groovy'
     id 'java'
+    id 'java-library'
     id 'java-gradle-plugin'
     id 'maven'
 }
 
 apply plugin: 'groovy'
 apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'java-gradle-plugin'
 apply plugin: 'maven'
 
@@ -55,6 +57,9 @@ dependencies {
     annotationProcessor(
             "com.squareup.inject:assisted-inject-processor-dagger2:0.5.2")
 
+    api "net.javacrumbs.future-converter:future-converter-java8-guava:1.2.0"
+    // api "com.ea.async:ea-async:1.2.3"
+
     // Needed by auto-generated MD-SAL Java code from YANG
     api "com.google.code.findbugs:findbugs-annotations:3.0.1"
     api "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
@@ -75,6 +80,7 @@ dependencies {
 
     api "org.opendaylight.yangtools:yang-maven-plugin:4.0.6"
 
+    api "org.opendaylight.netconf:netconf-client:1.7.1"
     api "org.opendaylight.netconf:netconf-testtool:1.7.1"
     // implementation ":netconf-testtool-1.7.0-executable"
 

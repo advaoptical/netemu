@@ -8,6 +8,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -20,6 +21,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
+import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,6 +188,11 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     private final AtomicReference<FluentFuture<Boolean>> dataApplyingFuture =
             new AtomicReference<>(FluentFuture.from(Futures.immediateFuture(false)));
+
+    @Nonnull
+    public CompletableFuture<Boolean> operationalDataApplying() {
+        return FutureConverter.toCompletableFuture(this.dataApplyingFuture.get());
+    }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public final synchronized FluentFuture<Boolean> applyOperationalData(@Nonnull final YangData<Y> data) {
