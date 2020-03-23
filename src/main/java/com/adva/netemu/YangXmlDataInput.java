@@ -3,7 +3,12 @@ package com.adva.netemu;
 import java.io.Reader;
 import java.net.URI;
 import java.net.URISyntaxException;
+
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Stack;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -15,12 +20,15 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.util.StreamReaderDelegate;
 
+import one.util.streamex.StreamEx;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
+import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
 
 public class YangXmlDataInput extends StreamReaderDelegate {
@@ -30,38 +38,34 @@ public class YangXmlDataInput extends StreamReaderDelegate {
 
     public static final class EndOfDocument extends Exception {}
 
-    public static class NamespaceMap implements NamespaceContext {
+    private static class XmlNamespaceContext implements NamespaceContext {
 
         @Nonnull
         private final NamespaceContext context;
 
-        private NamespaceMap(@Nonnull final NamespaceContext context) {
+        private XmlNamespaceContext(@Nonnull final NamespaceContext context) {
             this.context = context;
         }
 
         @Nonnull
-        public static NamespaceMap using(@Nonnull final NamespaceContext context) {
-            return new NamespaceMap(context);
+        public static XmlNamespaceContext using(@Nonnull final NamespaceContext context) {
+            return new XmlNamespaceContext(context);
         }
 
         @Nonnull @Override
-        public String getNamespaceURI(String prefix) {
-            @Nonnull final var uri = this.context.getNamespaceURI(prefix);
-            if (uri == null) {
-                throw new IllegalArgumentException(String.format("Undefined namespace prefix: %s", prefix));
-            }
-
-            return uri;
+        public String getNamespaceURI(@Nonnull final String prefix) {
+            return Optional.ofNullable(this.context.getNamespaceURI(prefix)).orElseThrow(() -> new IllegalArgumentException(
+                    String.format("Undefined namespace prefix: %s", prefix)));
         }
 
         @Nullable @Override
-        public String getPrefix(String namespaceURI) {
-            return this.context.getPrefix(namespaceURI);
+        public String getPrefix(@Nonnull final String namespace) {
+            return this.context.getPrefix(namespace);
         }
 
         @Nonnull @Override
-        public Iterator<String> getPrefixes(String namespaceURI) {
-            return this.context.getPrefixes(namespaceURI);
+        public Iterator<String> getPrefixes(@Nonnull final String namespace) {
+            return this.context.getPrefixes(namespace);
         }
     }
 
@@ -86,26 +90,57 @@ public class YangXmlDataInput extends StreamReaderDelegate {
         return this.yangTreeNode;
     }
 
-    private YangXmlDataInput(@Nonnull final XMLStreamReader xmlReader, @Nonnull final SchemaContext yangContext) {
+    @Nonnull
+    private final Stack<javax.xml.namespace.QName> tagStack = new Stack<>();
+
+    @Nonnull
+    private final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors;
+
+    private YangXmlDataInput(
+            @Nonnull final XMLStreamReader xmlReader,
+            @Nonnull final SchemaContext yangContext,
+            @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
+
         super(xmlReader);
         this.yangContext = yangContext;
+        this.elementTextProcessors = elementTextProcessors;
+    }
+
+    @Nonnull
+    public static YangXmlDataInput using(
+            @Nonnull final XMLStreamReader xmlReader,
+            @Nonnull final SchemaContext yangContext,
+            @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
+
+        return new YangXmlDataInput(xmlReader, yangContext, elementTextProcessors);
     }
 
     @Nonnull
     public static YangXmlDataInput using(@Nonnull final XMLStreamReader xmlReader, @Nonnull final SchemaContext yangContext) {
-        return new YangXmlDataInput(xmlReader, yangContext);
+        return using(xmlReader, yangContext, Map.of());
+    }
+
+    @Nonnull
+    public static YangXmlDataInput using(
+            @Nonnull final Reader reader,
+            @Nonnull final SchemaContext yangContext,
+            @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors)
+
+            throws XMLStreamException {
+
+        return using(XML_INPUT_FACTORY.createXMLStreamReader(reader), yangContext, elementTextProcessors);
     }
 
     @Nonnull
     public static YangXmlDataInput using(@Nonnull final Reader reader, @Nonnull final SchemaContext yangContext)
             throws XMLStreamException {
 
-        return using(XML_INPUT_FACTORY.createXMLStreamReader(reader), yangContext);
+        return using(reader, yangContext, Map.of());
     }
 
     @Nonnull @Override
     public NamespaceContext getNamespaceContext() {
-        return NamespaceMap.using(super.getNamespaceContext());
+        return XmlNamespaceContext.using(super.getNamespaceContext());
     }
 
     public boolean nextYangTree() throws XMLStreamException, EndOfDocument {
@@ -163,6 +198,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
             LOG.info("Found YANG Data tree: {}", node.get().getQName());
             this.yangTreeNode = node.get();
             this.treeTag = super.getName();
+            this.tagStack.push(this.treeTag);
             this.nextTagType = tagType;
 
             return true;
@@ -179,16 +215,37 @@ public class YangXmlDataInput extends StreamReaderDelegate {
 
         } else {
             tagType = super.nextTag();
-            if (tagType == XMLStreamConstants.END_ELEMENT) {
-                if (super.getName().equals(this.treeTag)) {
-                    this.finishedTree = true;
+            switch (tagType) {
+                case START_ELEMENT:
+                    this.tagStack.push(this.getName());
+                    break;
 
-                    LOG.info("Reached end of YANG Data tree: {}", this.yangTreeNode);
-                }
+                case END_ELEMENT:
+                    this.tagStack.pop();
+                    if (super.getName().equals(this.treeTag)) {
+                        this.finishedTree = true;
+
+                        LOG.info("Reached end of YANG Data tree: {}", this.yangTreeNode);
+                    }
             }
         }
 
         return tagType;
+    }
+
+    @Nullable @Override
+    public String getElementText() throws XMLStreamException {
+        @Nullable final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
+                .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
+                .toArray(new QName[0]));
+
+        this.tagStack.pop();
+        @Nullable final var elementTextProcessor = this.elementTextProcessors.get(yangPath);
+        if (elementTextProcessor != null) {
+            return elementTextProcessor.apply(yangPath, super.getElementText());
+        }
+
+        return super.getElementText();
     }
 
     @Override
