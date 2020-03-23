@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -35,6 +37,7 @@ import org.xml.sax.SAXException;
 import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
+import org.opendaylight.yangtools.yang.common.QName;
 
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
@@ -42,6 +45,7 @@ import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
+import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.dom.adapter.BindingDOMDataBrokerAdapter;
@@ -211,6 +215,38 @@ public class YangPool {
                         .orElse(null)));
     }
 
+    @Nonnull
+    private final Map<SchemaPath, BiFunction<SchemaPath, String, String>> xmlDataInputElementTextProcessorRegistry =
+            Collections.synchronizedMap(new HashMap<>());
+
+    public void registerXmlDataInputElementTextProcessor(
+            @Nonnull final String yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+
+        this.xmlDataInputElementTextProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
+    }
+
+    public void registerXmlDataInputElementTextProcessor(
+            @Nonnull final String[] yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+
+        this.xmlDataInputElementTextProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
+    }
+
+    public void registerXmlDataInputElementTextProcessor(
+            @Nonnull final QName[] yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+
+        this.xmlDataInputElementTextProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
+    }
+
+    public void registerXmlDataInputElementTextProcessor(
+            @Nonnull final SchemaPath yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+
+        this.xmlDataInputElementTextProcessorRegistry.put(yangPath, processor);
+    }
+
+    private YangXmlDataInput createYangXmlDataInputUsing(@Nonnull final XMLStreamReader reader) {
+        return YangXmlDataInput.using(reader, this.getYangContext(), Map.copyOf(this.xmlDataInputElementTextProcessorRegistry));
+    }
+
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<Optional<NormalizedNode<?, ?>>> readConfigurationData() {
         return this.readData(LogicalDatastoreType.CONFIGURATION);
@@ -259,7 +295,7 @@ public class YangPool {
     public FluentFuture<List<CommitInfo>> writeData(
             @Nonnull final LogicalDatastoreType storeType, @Nonnull final XMLStreamReader xmlReader) {
 
-        @Nonnull final var input = YangXmlDataInput.using(xmlReader, this.getYangContext());
+        @Nonnull final var input = this.createYangXmlDataInputUsing(xmlReader);
         @Nonnull final var dataNodes = new ArrayList<NormalizedNode<?, ?>>();
         try {
             while (input.nextYangTree()) {
