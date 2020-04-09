@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.xml.stream.XMLInputFactory;
@@ -78,7 +79,8 @@ public final class NetEmu {
     private final List<Class<? extends EmuDriver>> driverRegistry = Collections.synchronizedList(new ArrayList<>());
 
     @Nonnull
-    private final List<Class<? extends EmuService>> serviceRegistry = Collections.synchronizedList(new ArrayList<>());
+    private final List<Function<YangPool, ? extends EmuService>> serviceRegistry =
+            Collections.synchronizedList(new ArrayList<>());
 
     @Nonnull
     private final Map<Class<? extends EmuService>, Thread> serviceThreads = new HashMap<>();
@@ -92,25 +94,32 @@ public final class NetEmu {
         return new RegisteredDriver<>(this, driverClass);
     }
 
-    public void registerService(@Nonnull final Class<? extends EmuService> serviceClass) {
-        this.serviceRegistry.add(serviceClass);
-    }
-
-    public synchronized void start() {
-        for (@Nonnull final var serviceClass : this.serviceRegistry) {
-            @Nonnull final Thread serviceThread;
+    public <S extends EmuService> void registerService(@Nonnull final Class<S> serviceClass) {
+        this.registerService(yangPool -> {
             try {
-                serviceThread = new Thread(serviceClass.getDeclaredConstructor(YangPool.class).newInstance(this.pool));
+                return serviceClass.getDeclaredConstructor(YangPool.class).newInstance(yangPool);
 
             } catch (final
                     NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
 
                 throw new RuntimeException(e);
             }
+        });
+        // this.serviceRegistry.add(serviceClass);
+    }
 
+    public void registerService(@Nonnull final Function<YangPool, ? extends EmuService> supplier) {
+        this.serviceRegistry.add(supplier);
+    }
+
+    public synchronized void start() {
+        for (@Nonnull final var serviceCreator : this.serviceRegistry) {
+            @Nonnull final var service = serviceCreator.apply(this.pool);
+            @Nonnull final var serviceThread = new Thread(service);
             serviceThread.setDaemon(false);
             serviceThread.start();
-            this.serviceThreads.put(serviceClass, serviceThread);
+
+            this.serviceThreads.put(service.getClass(), serviceThread);
         }
     }
 
