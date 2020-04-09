@@ -1,9 +1,16 @@
 [submodule "opendaylight-netconf"]
 	path = opendaylight-netconf
-	url = https://github.com/opendaylight/netconf.git
+	url = https://github.com/purplezimmermann/opendaylight-netconf.git
+	branch = adva/master
 [submodule "opendaylight-mdsal"]
 	path = opendaylight-mdsal
-	url = https://github.com/opendaylight/mdsal.git
+	url = https://github.com/purplezimmermann/opendaylight-mdsal.git
+	branch = adva/master
 [submodule "opendaylight-yangtools"]
 	path = opendaylight-yangtools
-	url = https://github.com/opendaylight/yangtools.git
+	url = https://github.com/purplezimmermann/opendaylight-yangtools.git
+	branch = adva/master
+[submodule "jep"]
+	path = jep
+	url = https://github.com/purplezimmermann/jep.git
+	branch = adva/master

@@ -68,8 +68,8 @@ dependencies {
 
     api "org.opendaylight.yangtools:rfc7952-data-util:4.0.6"
 
-    api "org.opendaylight.yangtools:yang-data-util:4.0.6"
-    api "org.opendaylight.yangtools:yang-data-codec-xml:4.0.6"
+    api "org.opendaylight.yangtools:yang-data-util:4.0.6_1-ADVA"
+    api "org.opendaylight.yangtools:yang-data-codec-xml:4.0.6_1-ADVA"
 
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
@@ -79,6 +79,8 @@ dependencies {
     api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:5.0.6"
 
     api "org.opendaylight.yangtools:yang-maven-plugin:4.0.6"
+
+    api "org.opendaylight.netconf:netconf-netty-util:1.7.1_1-ADVA"
 
     api "org.opendaylight.netconf:netconf-client:1.7.1"
     api "org.opendaylight.netconf:netconf-testtool:1.7.1"
