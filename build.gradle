@@ -39,6 +39,10 @@ repositories {
         dirs "opendaylight-netconf/netconf/tools/netconf-testtool/target"
     }
     */
+
+    flatDir {
+        dirs "C:/Miniconda3/envs/netemu/Lib/site-packages/jep"
+    }
 }
 
 dependencies {
@@ -93,6 +97,8 @@ dependencies {
     api "org.opendaylight.netconf:netconf-client:1.7.1"
     api "org.opendaylight.netconf:netconf-testtool:1.7.1"
     // implementation ":netconf-testtool-1.7.0-executable"
+
+    api "black.ninia:jep:3.9.0"
 
     // implementation "commons-io:commons-io:2.6"
     // testImplementation "junit", "junit", "4.12"
