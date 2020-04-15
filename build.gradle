@@ -1,5 +1,6 @@
 // import com.sun.tools.sjavac.Util
 
+
 plugins {
     id 'groovy'
     id 'java'
@@ -63,6 +64,9 @@ dependencies {
 
     api "net.javacrumbs.future-converter:future-converter-java8-guava:1.2.0"
     // api "com.ea.async:ea-async:1.2.3"
+
+    api "io.jooby:jooby-netty:2.6.1"
+    annotationProcessor "io.jooby:jooby-apt:2.6.1"
 
     // Needed by auto-generated MD-SAL Java code from YANG
     api "com.google.code.findbugs:findbugs-annotations:3.0.1"
