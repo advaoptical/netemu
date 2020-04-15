@@ -13,6 +13,8 @@ plugins {
     id 'application'
     id 'java'
     id 'maven'
+
+    id "com.github.node-gradle.node" version "2.2.3"
 }
 
 apply plugin: 'java'
@@ -27,6 +29,14 @@ application {
 
 sourceCompatibility = 11
 targetCompatibility = 11
+
+node {
+    version "13.8.0"
+    npmVersion "6.13.7"
+    yarnVersion "1.22.0"
+
+    download true
+}
 
 apply plugin: "com.adva.netemu"
 
