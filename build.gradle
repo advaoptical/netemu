@@ -27,13 +27,17 @@ repositories {
 
     // jcenter()
 
+    /*
     flatDir {
         dirs "opendaylight-mdsal/binding/yang-binding/target"
     }
+    */
 
-    // flatDir {
-    //     dirs "opendaylight-netconf/netconf/tools/netconf-testtool/target"
-    // }
+    /*
+    flatDir {
+        dirs "opendaylight-netconf/netconf/tools/netconf-testtool/target"
+    }
+    */
 }
 
 dependencies {
