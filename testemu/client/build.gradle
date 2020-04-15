@@ -18,8 +18,8 @@ plugins {
 apply plugin: 'java'
 apply plugin: 'maven'
 
-group "com.adva.netemu"
-version "0.1.0-SNAPSHOT"
+group = "com.adva.netemu"
+version = "0.1.0-SNAPSHOT"
 
 application {
     mainClassName = "com.adva.netemu.testemu.client.Main"
@@ -47,9 +47,18 @@ sourceSets {
     main.java.srcDirs += "$buildDir/$netEmu.yangToSources.outputDir"
 }
 
+ext.jepDir = [
+        "python", "-c", "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
+
+].execute().text.trim()
+
 repositories {
     mavenCentral()
     mavenLocal()
+
+    flatDir {
+        dirs jepDir
+    }
 }
 
 dependencies {
@@ -59,6 +68,26 @@ dependencies {
     implementation "com.adva.netemu:netemu-testemu:0.1.0-SNAPSHOT"
 
     // testImplementation group: 'junit', name: 'junit', version: '4.12'
+}
+
+run {
+    environment "PATH", String.join(File.pathSeparator, [
+
+            /*
+            "C:\\Miniconda3\\envs\\netemu",
+            "C:\\Miniconda3\\envs\\netemu\\Library\\mingw-w64\\bin",
+            "C:\\Miniconda3\\envs\\netemu\\Library\\usr\\bin",
+            "C:\\Miniconda3\\envs\\netemu\\Library\\bin",
+            "C:\\Miniconda3\\envs\\netemu\\Scripts",
+            */
+
+            jepDir,
+            System.getenv('PATH')])
+
+    environment "PYTHONPATH", [
+            "python", "-c", "print(__import__('os').pathsep.join(__import__('sys').path).strip(__import__('os').pathsep))"
+
+    ].execute().text.trim()
 }
 
 jar {
