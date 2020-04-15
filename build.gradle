@@ -1,6 +1,5 @@
 // import com.sun.tools.sjavac.Util
 
-
 plugins {
     id 'groovy'
     id 'java'
@@ -20,6 +19,11 @@ version = "0.1.0-SNAPSHOT"
 
 sourceCompatibility = 11
 targetCompatibility = 11
+
+ext.jepDir = [
+        "python", "-c", "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
+
+].execute().text.trim()
 
 repositories {
     mavenCentral()
@@ -41,7 +45,7 @@ repositories {
     */
 
     flatDir {
-        dirs "C:/Miniconda3/envs/netemu/Lib/site-packages/jep"
+        dirs jepDir
     }
 }
 
