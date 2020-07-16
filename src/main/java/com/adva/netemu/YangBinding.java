@@ -190,7 +190,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
             new AtomicReference<>(FluentFuture.from(Futures.immediateFuture(false)));
 
     @Nonnull
-    public CompletableFuture<Boolean> operationalDataApplying() {
+    public CompletableFuture<Boolean> awaitOperationalDataApplying() {
         return FutureConverter.toCompletableFuture(this.dataApplyingFuture.get());
     }
 
