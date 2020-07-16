@@ -1,15 +1,12 @@
 package com.adva.netemu;
 
-import javax.annotation.Nonnull;
-
-import com.google.common.util.concurrent.FluentFuture;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
-import one.util.streamex.StreamEx;
-
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nonnull;
+
+import one.util.streamex.StreamEx;
 
 
 public abstract class YangFutures {
@@ -19,23 +16,23 @@ public abstract class YangFutures {
     }
 
     @Nonnull
-    public static <T extends YangBindable> CompletableFuture<T> resolveOperationalDataApplyingTo(@Nonnull final T object) {
-        return object.getYangBinding().map(binding -> binding.operationalDataApplying().thenApply(applied -> object))
+    public static <T extends YangBindable> CompletableFuture<T> awaitOperationalDataApplyingTo(@Nonnull final T object) {
+        return object.getYangBinding().map(binding -> binding.awaitOperationalDataApplying().thenApply(applied -> object))
                 .orElse(CompletableFuture.completedFuture(object));
     }
 
     @Nonnull
-    public static <T extends YangListBindable> CompletableFuture<T> resolveOperationalDataApplyingTo(@Nonnull final T object) {
-        return object.getYangListBinding().map(binding -> binding.operationalDataApplying().thenApply(applied -> object))
+    public static <T extends YangListBindable> CompletableFuture<T> awaitOperationalDataApplyingTo(@Nonnull final T object) {
+        return object.getYangListBinding().map(binding -> binding.awaitOperationalDataApplying().thenApply(applied -> object))
                 .orElse(CompletableFuture.completedFuture(object));
     }
 
     @Nonnull
     public static <T extends YangListBindable, C extends Collection<T>>
-    CompletableFuture<C> resolveOperationalDataApplyingTo(@Nonnull final C objects) {
+    CompletableFuture<C> awaitOperationalDataApplyingTo(@Nonnull final C objects) {
         return CompletableFuture
                 .allOf(StreamEx.of(objects).map(YangListBindable::getYangListBinding).flatMap(Optional::stream)
-                        .map(YangListBinding::operationalDataApplying).toArray(CompletableFuture.class))
+                        .map(YangListBinding::awaitOperationalDataApplying).toArray(CompletableFuture.class))
 
                 .thenApply(applied -> objects);
     }
