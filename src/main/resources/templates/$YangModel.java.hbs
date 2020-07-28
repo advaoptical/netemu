@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -124,8 +125,12 @@ public abstract class {{{class}}}$YangModel implements YangBindable {
 
     public {{{class}}}$YangModel() {
         @Nonnull final var connector = new YangBindingConnector();
-
         this.yangBinding.appliesOperationalDataUsing(connector, this.data::set);
+    }
+
+    @Nonnull
+    public CompletableFuture<Boolean> awaitOperationalDataApplying() {
+        return this.yangBinding.awaitOperationalDataApplying();
     }
 
     @Nonnull
