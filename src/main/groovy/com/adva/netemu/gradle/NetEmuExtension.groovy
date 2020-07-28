@@ -17,16 +17,29 @@ class NetEmuExtension {
         // String yangDir = "META-INF/yang"
 
         @Nonnull
-        private String outputDir = "generated/sources/mdsal"
+        private String mdSalOutputDir = "generated/sources/mdsal"
 
         @Nonnull
-        String getOutputDir() {
-            return this.outputDir
+        String getMdSalOutputDir() {
+            return this.mdSalOutputDir
         }
 
         @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
-        String generateIn(@Nonnull final String outputDir) {
-            this.outputDir = outputDir
+        String generateMdSalDataClassesIn(@Nonnull final String outputDir) {
+            this.mdSalOutputDir = outputDir
+            return outputDir
+        }
+
+        private String netEmuOutputDir = "generated/sources/netemu"
+
+        @Nonnull
+        String getNetEmuOutputDir() {
+            return this.netEmuOutputDir
+        }
+
+        @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
+        String generateNetEmuContextClassesIn(@Nonnull final String outputDir) {
+            this.netEmuOutputDir = outputDir
             return outputDir
         }
     }
