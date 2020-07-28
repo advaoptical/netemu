@@ -25,6 +25,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
@@ -75,6 +76,9 @@ public class YangPool {
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(YangPool.class);
+
+    @Nonnull
+    private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
     @Nonnull
     private final ScheduledExecutorService transactionExecutor = new ScheduledThreadPoolExecutor(0); // 0 -> no idle threads
@@ -359,6 +363,28 @@ public class YangPool {
         LOG.info("Reading from {} Datastore", storeType);
         future.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.loggingCallbackExecutor);
         return future;
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(
+            @Nonnull final File file, @Nonnull final Charset encoding) {
+
+        @Nonnull final XMLStreamReader xmlReader;
+        try {
+            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new FileReader(file, encoding));
+
+        } catch (final IOException | XMLStreamException e) {
+            LOG.error("While opening file for loading XML Configuration: ", e);
+            LOG.error("Failed reading XML Configuration from: {}", file);
+            return CompletableFuture.completedFuture(List.of());
+        }
+
+        return FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(xmlReader));
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(@Nonnull final File file) {
+        return this.loadConfigurationFromXml(file, StandardCharsets.UTF_8);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage", "UnusedReturnValue"})
