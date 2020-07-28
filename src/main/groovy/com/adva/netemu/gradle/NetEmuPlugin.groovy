@@ -1,9 +1,11 @@
 package com.adva.netemu.gradle
 
 import javax.annotation.Nonnull
+import javax.annotation.Nullable
 
 import com.google.common.io.Files
 import org.apache.maven.project.MavenProject
+import org.codehaus.plexus.util.FileUtils
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -15,8 +17,6 @@ import org.opendaylight.mdsal.binding.spec.naming.BindingMapping
 
 import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator
 
-import javax.annotation.Nullable
-
 
 @SuppressWarnings("GroovyUnusedDeclaration")
 class NetEmuPlugin implements Plugin<Project> {
@@ -25,7 +25,7 @@ class NetEmuPlugin implements Plugin<Project> {
     private final String CONTEXT_CLASS_NAME = "NetEmuDefined"
 
     @Override
-    void apply(final Project project) {
+    void apply(@Nonnull final Project project) {
         @Nonnull final extension = project.extensions.create 'netEmu', NetEmuExtension
 
         @Nonnull final mavenProject = new MavenProject()
@@ -33,15 +33,20 @@ class NetEmuPlugin implements Plugin<Project> {
 
         @Nonnull final yangToSourcesTask = project.tasks.create('yangToSources').doFirst {
             @Nonnull final buildRoot = project.buildDir.toPath()
+            @Nonnull final resourcesPath = buildRoot.resolve "resources/main"
+            @Nonnull final mdSalOutputPath = buildRoot.resolve extension.yangToSources.mdSalOutputDir
+            @Nonnull final netEmuOutputPath = buildRoot.resolve extension.yangToSources.netEmuOutputDir
 
-            @Nonnull final resources = buildRoot.resolve "resources/main"
-            @Nonnull final output = buildRoot.resolve extension.yangToSources.outputDir
+            @Nonnull final netEmuMdSalMergingPath = netEmuOutputPath.resolve "mdsal"
+            Files.createParentDirs(netEmuMdSalMergingPath.toFile())
 
-            @Nonnull final outputDir = output.toString()
-            new NetEmuYangToSourcesProcessor(resources, outputDir, mavenProject).execute()
+            @Nonnull final yangMetaPath = resourcesPath.resolve "META-INF/yang"
+            yangMetaPath.eachDir {
+                @Nonnull final yangFileNames = it.toFile().listFiles().collect { it.name }
+                @Nonnull final yangPackageName = it.fileName.toString()
 
-            @Nonnull final yang = resources.resolve "META-INF/yang"
-            @Nonnull final yangFiles = yang.toFile().listFiles().collect { it.name }
+                new NetEmuYangToSourcesProcessor(resourcesPath, mdSalOutputPath, yangPackageName, mavenProject).execute()
+                FileUtils.copyDirectoryStructure mdSalOutputPath.toFile(), netEmuMdSalMergingPath.toFile()
 
             @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile
             @Nullable pythonYangModelsFilePath = null
@@ -49,13 +54,13 @@ class NetEmuPlugin implements Plugin<Project> {
                 pythonYangModelsFilePath = project.rootDir.toPath().resolve pythonYangModelsFile.toPath()
             }
 
-            @Nonnull final packageName = extension.contextPackage ?: project.group.toString()
-            @Nonnull final packagePath = output.resolve packageName.replace('.', '/')
+            // @Nonnull final yangPackageName = extension.contextPackage ?: project.group.toString()
+            @Nonnull final yangPackagePath = netEmuOutputPath.resolve yangPackageName.replace('.', '/')
 
-            @Nonnull final classFile = packagePath.resolve "${CONTEXT_CLASS_NAME}.java"
+            @Nonnull final classFile = yangPackagePath.resolve "${CONTEXT_CLASS_NAME}.java"
             Files.createParentDirs classFile.toFile()
             classFile.write """
-            package ${packageName};
+            package ${yangPackageName};
 
             import java.util.Set;
 
@@ -72,7 +77,7 @@ class NetEmuPlugin implements Plugin<Project> {
 
                 @Nonnull
                 public static final Set<YangModuleInfo> YANG_MODULE_INFOS = Set.of(
-                        ${String.join",\n\n", NetEmuCodeGenerator.YANG_MODULES.get().stream().map() {
+                        ${String.join ",\n\n", NetEmuCodeGenerator.YANG_MODULES.get().stream().map() {
                             "${BindingMapping.getRootPackageName it.getQNameModule()}.\$YangModuleInfoImpl.getInstance()"
 
                         }.collect()});
@@ -90,7 +95,7 @@ class NetEmuPlugin implements Plugin<Project> {
                                 @Nonnull final yangNorevPackage = yangPackage.replaceAll(/\.[^.]+$/, '.norev')
 
                                 """
-                                public static class ${yangNorevPackage.replace'.', '$'} {
+                                public static class ${yangNorevPackage.replace '.', '$'} {
 
                                     @Nonnull
                                     public static final String NAME = "${it.getName()}";
@@ -105,9 +110,8 @@ class NetEmuPlugin implements Plugin<Project> {
                                     public static final String PACKAGE = "${yangPackage}";
 
                                     @Nonnull
-                                    public static final String RESOURCE = "/META-INF/yang/${ yangFiles.find {
+                                    public static final String RESOURCE = "/META-INF/yang/${yangPackageName}/${yangFileNames.find {
                                         it.matches "^${name}(@[0-9-]+)?\\.yang\$"
-
                                     } }";
                                 }
                                 """.trim()
@@ -126,8 +130,18 @@ class NetEmuPlugin implements Plugin<Project> {
             }
             """.stripIndent()
 
+                /*
+                @Nonnull final javaConvention = project.convention.plugins['java'] as JavaPluginConvention
+                javaConvention.sourceSets['main'].java.srcDirs += yangPackagePath.toString()
+                */
+            }
+
+            FileUtils.deleteDirectory mdSalOutputPath.toFile()
+            FileUtils.copyDirectoryStructure netEmuMdSalMergingPath.toFile(), mdSalOutputPath.toFile()
+            FileUtils.deleteDirectory netEmuMdSalMergingPath.toFile()
+
             @Nonnull final javaConvention = project.convention.plugins['java'] as JavaPluginConvention
-            javaConvention.sourceSets['main'].java.srcDirs += outputDir
+            javaConvention.sourceSets['main'].java.srcDirs += [mdSalOutputPath.toString(), netEmuOutputPath.toString()]
 
         }.dependsOn project.tasks['processResources']
 
