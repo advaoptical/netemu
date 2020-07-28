@@ -5,11 +5,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -20,6 +22,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.util.StreamReaderDelegate;
 
+import one.util.streamex.IntStreamEx;
 import one.util.streamex.StreamEx;
 
 import org.slf4j.Logger;
@@ -93,16 +96,37 @@ public class YangXmlDataInput extends StreamReaderDelegate {
     @Nonnull
     private final Stack<javax.xml.namespace.QName> tagStack = new Stack<>();
 
+    @Nullable
+    private List<Map.Entry<String, String>> namespaceEntries = null;
+
+    @Nonnull
+    private final
+    Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors;
+
+    @Nonnull
+    private final
+    Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
+    elementNamespaceProcessors;
+
     @Nonnull
     private final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors;
 
     private YangXmlDataInput(
             @Nonnull final XMLStreamReader xmlReader,
             @Nonnull final SchemaContext yangContext,
+            @Nonnull final
+            Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors,
+
+            @Nonnull final
+            Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
+            elementNamespaceProcessors,
+
             @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
 
         super(xmlReader);
         this.yangContext = yangContext;
+        this.elementTagProcessors = elementTagProcessors;
+        this.elementNamespaceProcessors = elementNamespaceProcessors;
         this.elementTextProcessors = elementTextProcessors;
     }
 
@@ -110,32 +134,49 @@ public class YangXmlDataInput extends StreamReaderDelegate {
     public static YangXmlDataInput using(
             @Nonnull final XMLStreamReader xmlReader,
             @Nonnull final SchemaContext yangContext,
+            @Nonnull final
+            Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors,
+
+            @Nonnull final
+            Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
+            elementNamespaceProcessors,
+
             @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
 
-        return new YangXmlDataInput(xmlReader, yangContext, elementTextProcessors);
+        return new YangXmlDataInput(
+                xmlReader, yangContext, elementTagProcessors, elementNamespaceProcessors, elementTextProcessors);
     }
 
     @Nonnull
     public static YangXmlDataInput using(@Nonnull final XMLStreamReader xmlReader, @Nonnull final SchemaContext yangContext) {
-        return using(xmlReader, yangContext, Map.of());
+        return using(xmlReader, yangContext, Map.of(), Map.of(), Map.of());
     }
 
     @Nonnull
     public static YangXmlDataInput using(
             @Nonnull final Reader reader,
             @Nonnull final SchemaContext yangContext,
+            @Nonnull final
+            Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors,
+
+            @Nonnull final
+            Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
+            elementNamespaceProcessors,
+
             @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors)
 
             throws XMLStreamException {
 
-        return using(XML_INPUT_FACTORY.createXMLStreamReader(reader), yangContext, elementTextProcessors);
+        return using(
+                XML_INPUT_FACTORY.createXMLStreamReader(reader), yangContext,
+                elementTagProcessors, elementNamespaceProcessors, elementTextProcessors);
     }
 
     @Nonnull
     public static YangXmlDataInput using(@Nonnull final Reader reader, @Nonnull final SchemaContext yangContext)
             throws XMLStreamException {
 
-        return using(reader, yangContext, Map.of());
+        return using(reader, yangContext, Map.of(), Map.of(), Map.of());
     }
 
     @Nonnull @Override
@@ -230,7 +271,98 @@ public class YangXmlDataInput extends StreamReaderDelegate {
             }
         }
 
+        if (tagType == XMLStreamReader.START_ELEMENT) {
+            this.updateNamespaceEntries();
+        }
+
         return tagType;
+    }
+
+    @Nonnull @Override
+    public javax.xml.namespace.QName getName() {
+        @Nullable final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
+                .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
+                .toArray(new QName[0]));
+
+        @Nullable final var elementTagProcessor = this.elementTagProcessors.get(yangPath);
+        if (elementTagProcessor != null) {
+            return elementTagProcessor.apply(yangPath, super.getName());
+        }
+
+        return super.getName();
+    }
+
+    @Nonnull @Override
+    public String getLocalName() {
+        return this.getName().getLocalPart();
+    }
+
+    @Nonnull @Override
+    public String getNamespaceURI() {
+        return this.getName().getNamespaceURI();
+    }
+
+    private void updateNamespaceEntries() {
+        @Nullable final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
+                .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
+                .toArray(new QName[0]));
+
+        @Nonnull final var namespaceEntries = IntStreamEx.range(super.getNamespaceCount())
+                .mapToEntry(super::getNamespacePrefix, super::getNamespaceURI)
+                .append(StreamEx.of(Optional.ofNullable(this.namespaceEntries).orElse(List.of())))
+                .toImmutableList();
+
+        this.namespaceEntries = Optional.ofNullable(this.elementNamespaceProcessors.get(yangPath))
+                .map(processor -> processor.apply(yangPath, namespaceEntries))
+                .orElse(namespaceEntries);
+    }
+
+    @Nonnegative @Override
+    public int getNamespaceCount() {
+        return Optional.ofNullable(this.namespaceEntries).map(List::size).orElseGet(super::getNamespaceCount);
+                // .orElseThrow(() -> new IllegalStateException("No XML Namespace definitions available."));
+}
+
+    @Nullable @Override
+    public String getNamespacePrefix(@Nonnegative int index) {
+        if (this.namespaceEntries != null) {
+            if (index < this.namespaceEntries.size()) {
+                return namespaceEntries.get(index).getKey();
+            }
+
+            throw new IndexOutOfBoundsException(index);
+        }
+
+        return super.getNamespacePrefix(index);
+                // .orElseThrow(() -> new IllegalStateException("No XML Namespace definitions available."));
+    }
+
+    @Nonnull @Override
+    public String getNamespaceURI(@Nonnegative int index) {
+        return Optional.ofNullable(this.namespaceEntries).map(entries -> {
+            if (index < entries.size()) {
+                return entries.get(index).getValue();
+            }
+
+            throw new IndexOutOfBoundsException(index);
+
+        }).orElseGet(() -> super.getNamespaceURI(index));
+                // .orElseThrow(() -> new IllegalStateException("No XML Namespace definitions available."));
+    }
+
+    @Nullable @Override
+    public String getNamespaceURI(@Nonnull final String prefix) {
+        if (this.namespaceEntries != null) {
+            @Nonnull final var uri = StreamEx.ofReversed(this.namespaceEntries)
+                    .findFirst(entry -> prefix.equals(entry.getKey()))
+                    .map(Map.Entry::getValue);
+
+            if (uri.isPresent()) {
+                return uri.get();
+            }
+        }
+
+        return super.getNamespaceURI(prefix);
     }
 
     @Nullable @Override
