@@ -3,6 +3,7 @@ package com.adva.netemu;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
@@ -81,7 +82,7 @@ public final class Yang {
         return streamOperationalDataFrom(objects.stream());
     }
 
-    @Nonnull
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
     StreamEx<Y> streamOperationalDataFrom(@Nonnull final Stream<T> objects) {
         try {
@@ -93,19 +94,15 @@ public final class Yang {
         }
     }
 
-    /*
     @Nonnull
-    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf>
+    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
     List<Y> listOperationalDataFrom(@Nonnull final Collection<T> objects) {
-        return streamOperationalDataFrom(objects).collect(Collectors.toList());
+        return streamOperationalDataFrom(objects).toImmutableList();
     }
-    */
 
-    /*
     @Nonnull
-    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf>
+    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
     List<Y> listOperationalDataFrom(@Nonnull final Stream<T> objects) {
-        return streamOperationalDataFrom(objects).collect(Collectors.toList());
+        return streamOperationalDataFrom(objects).toImmutableList();
     }
-    */
 }
