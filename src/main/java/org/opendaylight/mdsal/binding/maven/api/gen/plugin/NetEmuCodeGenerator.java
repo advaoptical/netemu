@@ -3,6 +3,7 @@ package org.opendaylight.mdsal.binding.maven.api.gen.plugin;
 import java.io.File;
 import java.io.IOException;
 
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -23,37 +24,39 @@ import org.opendaylight.yangtools.yang2sources.spi.BuildContextAware;
 import org.opendaylight.yangtools.yang2sources.spi.MavenProjectAware;
 
 
-public class NetEmuCodeGenerator
-        implements BasicCodeGenerator, BuildContextAware, MavenProjectAware {
+public class NetEmuCodeGenerator implements BasicCodeGenerator, BuildContextAware, MavenProjectAware {
 
     @Nonnull
-    public static final AtomicReference<Set<Module>> YANG_MODULES
-            = new AtomicReference<>(Set.of());
+    public static final AtomicReference<String> YANG_PACKAGE_NAME = new AtomicReference<>();
+
+    @Nonnull
+    public static final AtomicReference<Set<Module>> YANG_MODULES = new AtomicReference<>(Set.of());
 
     @Nonnull
     private final CodeGeneratorImpl _impl = new CodeGeneratorImpl();
 
-    @Override
+    @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
     public Collection<File> generateSources(
             @Nonnull final EffectiveModelContext yangContext,
             @Nonnull final File outputDir,
             @Nonnull final Set<Module> yangModules,
-            @Nonnull
-            final Function<Module, Optional<String>> resourcePathResolver)
+            @Nonnull final Function<Module, Optional<String>> resourcePathResolver)
 
             throws IOException {
 
-        final var result = this._impl.generateSources(
-                yangContext, outputDir, yangModules, resourcePathResolver);
+        @Nonnull final var result = this._impl.generateSources(yangContext, outputDir, yangModules, module ->
+                resourcePathResolver.apply(module).map(pathString -> {
+                    @Nonnull final var path = Paths.get(pathString);
+                    return path.getParent().resolve(YANG_PACKAGE_NAME.get()).resolve(path.getFileName()).toString()
+                            .replace('\\', '/');
+                }));
 
         YANG_MODULES.set(Set.copyOf(yangModules));
         return result;
     }
 
     @Override
-    public void setAdditionalConfig(
-            @Nonnull final Map<String, String> config) {
-
+    public void setAdditionalConfig(@Nonnull final Map<String, String> config) {
         this._impl.setAdditionalConfig(config);
     }
 
