@@ -32,7 +32,7 @@ public class YangListModelProviderProcessor extends YangListProviderProcessor {
 
     @Nonnull @Override
     protected String provideUtilityClassSuffix() {
-        return "$YangListModel";
+        return "_YangListModel";
     }
 
     @Nonnull @Override

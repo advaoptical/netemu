@@ -32,10 +32,10 @@ import com.adva.netemu.YangProvider;
 import com.adva.netemu.driver.EmuDriver;
 
 
-public abstract class {{{class}}}$YangModel implements YangBindable {
+public abstract class {{{class}}}_YangModel implements YangBindable {
 
     @Nonnull
-    protected static final Logger LOG = LoggerFactory.getLogger({{{class}}}$YangModel.class);
+    protected static final Logger LOG = LoggerFactory.getLogger({{{class}}}_YangModel.class);
 
     public static final class Yang {
 
@@ -123,7 +123,7 @@ public abstract class {{{class}}}$YangModel implements YangBindable {
         return this.data.get();
     }
 
-    public {{{class}}}$YangModel() {
+    public {{{class}}}_YangModel() {
         @Nonnull final var connector = new YangBindingConnector();
         this.yangBinding.appliesOperationalDataUsing(connector, this.data::set);
     }

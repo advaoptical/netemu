@@ -33,7 +33,7 @@ import com.adva.netemu.YangListProvider;
 import com.adva.netemu.driver.EmuDriver;
 
 
-public abstract class {{{class}}}$YangListModel implements YangListBindable {
+public abstract class {{{class}}}_YangListModel implements YangListBindable {
 
     public static class Yang {
 
@@ -162,7 +162,7 @@ public abstract class {{{class}}}$YangListModel implements YangListBindable {
         return this.data.get();
     }
 
-    public {{{class}}}$YangListModel(@Nonnull final Yang.ListKey key) {
+    public {{{class}}}_YangListModel(@Nonnull final Yang.ListKey key) {
         @Nonnull final var connector = new YangBindingConnector();
         this.yangBinding = {{{class}}}{{{bindingClassSuffix}}}.withKey(key)
                 .appliesOperationalDataUsing(connector, this.data::set);
