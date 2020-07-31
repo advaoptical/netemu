@@ -1,12 +1,15 @@
 package {{{package}}};
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import {{{yangPackage}}}.{{{yangClass}}};
+import {{{yangPackage}}}.{{{yangClass}}}Builder;
 
 {{#block "extended imports"}}
 {{/block}}
@@ -31,6 +34,11 @@ public class {{{class}}}$Yang {
         }
 
         @Nonnull
+        public static Data from(@Nonnull final org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> builder) {
+            return new Data(builder.build());
+        }
+
+        @Nonnull
         public static Data empty() {
             return EMPTY;
         }
@@ -41,6 +49,48 @@ public class {{{class}}}$Yang {
             return super.map({{{yangClass}}}::{{{@key}}});
         }
 {{/each}}
+    }
+
+    public static final class Builder implements org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> {
+
+{{#each yangDataGetters}}
+        @Nullable
+        private CompletableFuture<{{{this.valueClass}}}> {{{this.futureName}}} = null;
+
+        @Nonnull
+        public Builder {{{this.setterName}}}(@Nullable final {{{this.valueClass}}} value) {
+            this.{{{this.futureName}}} = (value != null) ? CompletableFuture.completedFuture(value) : null;
+            return this;
+        }
+
+        @Nonnull
+        public Builder {{{this.setterName}}}(@Nonnull final Optional<{{{this.valueClass}}}> value) {
+            this.{{{this.futureName}}} = value.map(CompletableFuture::completedFuture).orElse(null);
+            return this;
+        }
+
+        @Nonnull
+        public Builder {{{this.setterName}}}(@Nonnull final CompletableFuture<{{{this.valueClass}}}> futureValue) {
+            this.{{{this.futureName}}} = futureValue;
+            return this;
+        }
+{{/each}}
+
+        @Nonnull @Override
+        public {{{yangClass}}} build() {
+            try {
+                return new {{{yangClass}}}Builder()
+
+{{#each yangDataGetters}}
+                        .{{{this.setterName}}}((this.{{{this.futureName}}} != null) ? this.{{{this.futureName}}}.get() : null)
+{{/each}}
+
+                        .build();
+
+            } catch (final ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Nonnull
