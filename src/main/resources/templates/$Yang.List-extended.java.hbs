@@ -1,5 +1,6 @@
 {{~#partial "extended imports"~}}
     import java.util.Collection;
+    import java.util.List;
     import java.util.stream.Stream;
 
     import one.util.streamex.StreamEx;
@@ -46,6 +47,16 @@
     @Nonnull
     public static StreamEx<{{{yangClass}}}> streamOperationalDataFrom(@Nonnull final Stream<{{{class}}}> objects) {
         return StreamEx.of(objects).map({{{class}}}$Yang::operationalDataFrom).filter(Data::isPresent).map(Data::get);
+    }
+
+    @Nonnull
+    public static List<{{{yangClass}}}> listOperationalDataFrom(@Nonnull final Collection<{{{class}}}> objects) {
+        return streamOperationalDataFrom(objects).toImmutableList();
+    }
+
+    @Nonnull
+    public static List<{{{yangClass}}}> listOperationalDataFrom(@Nonnull final Stream<{{{class}}}> objects) {
+        return streamOperationalDataFrom(objects).toImmutableList();
     }
 {{~/partial~}}
 
