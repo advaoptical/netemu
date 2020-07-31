@@ -104,6 +104,9 @@ public class YangProviderProcessor extends AbstractProcessor {
                         */
 
                         "reprefixedName", name.replaceFirst("^is", "get"),
+                        "mapperName", name.replaceFirst("^(get|is)", "map"),
+
+                        "futureName", name.replaceFirst("^(get|is)", "future"),
                         "setterName", name.replaceFirst("^(get|is)", "set"),
                         "updaterName", name.replaceFirst("^(get|is)", "update"),
 
