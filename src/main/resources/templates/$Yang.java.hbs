@@ -142,7 +142,7 @@ public class {{{class}}}$Yang {
 
         @Nonnull
         public {{{../builderName}}} set{{{@key}}}(@Nonnull final Optional<{{{this.valueClass}}}> value) {
-            this.future{{{@key}}} = value.map(CompletableFuture::completedFuture).orElse(null);
+            this.future{{{@key}}} = value.isPresent() ? CompletableFuture.completedFuture(value.get()) : null;
             return this;
         }
 
