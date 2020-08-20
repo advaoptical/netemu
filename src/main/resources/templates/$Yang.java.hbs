@@ -1,12 +1,17 @@
 package {{{package}}};
 
-import java.util.Objects;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import one.util.streamex.StreamEx;
 
 import {{{yangPackage}}}.{{{yangClass}}};
 import {{{yangPackage}}}.{{{yangClass}}}Builder;
@@ -44,36 +49,111 @@ public class {{{class}}}$Yang {
         }
 
 {{#each yangDataGetters}}
+    {{#if this.valueIsList}}
         @Nonnull
-        public Optional<{{{this.valueClass}}}> {{{this.reprefixedName}}}() {
-            return super.map({{{yangClass}}}::{{{@key}}});
+        public Optional<List<{{{this.valueClass}}}>> get{{{@key}}}() {
+            return super.map({{{yangClass}}}::get{{{@key}}});
         }
+
+    {{else}}
+        @Nonnull
+        public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
+            return super.map({{{yangClass}}}::{{{this.getterName}}});
+        }
+
+    {{/if}}
 {{/each}}
     }
 
-    public static final class Builder implements org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> {
+{{#*inline "yangBuilder"}}
+    public static final class {{{builderName}}} implements org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> {
 
 {{#each yangDataGetters}}
+    {{#if this.valueIsList}}
         @Nullable
-        private CompletableFuture<{{{this.valueClass}}}> {{{this.futureName}}} = null;
+        private CompletableFuture<List<{{{this.valueClass}}}>> future{{{@key}}} = null;
 
         @Nonnull
-        public Builder {{{this.setterName}}}(@Nullable final {{{this.valueClass}}} value) {
-            this.{{{this.futureName}}} = (value != null) ? CompletableFuture.completedFuture(value) : null;
+        public {{{../builderName}}} set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> values) {
+            this.future{{{@key}}} = (values != null) ? CompletableFuture.completedFuture(List.copyOf(values)) : null;
             return this;
         }
 
         @Nonnull
-        public Builder {{{this.setterName}}}(@Nonnull final Optional<{{{this.valueClass}}}> value) {
-            this.{{{this.futureName}}} = value.map(CompletableFuture::completedFuture).orElse(null);
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final {{{this.valueClass}}} ...values) {
+            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(values).toImmutableList());
             return this;
         }
 
         @Nonnull
-        public Builder {{{this.setterName}}}(@Nonnull final CompletableFuture<{{{this.valueClass}}}> futureValue) {
-            this.{{{this.futureName}}} = futureValue;
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final Stream<{{{this.valueClass}}}> values) {
+            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(values).toImmutableList());
             return this;
         }
+
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final Optional<? extends Collection<{{{this.valueClass}}}>> values) {
+            this.future{{{@key}}} = values.map(List::copyOf).map(CompletableFuture::completedFuture).orElse(null);
+            return this;
+        }
+
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(
+                @Nonnull final CompletableFuture<? extends Collection<{{{this.valueClass}}}>> futureValues) {
+
+            this.future{{{@key}}} = futureValues.thenApply(List::copyOf);
+            return this;
+        }
+
+    {{else}}
+        @Nullable
+        private CompletableFuture<{{{this.valueClass}}}> future{{{@key}}} = null;
+
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(@Nullable final {{{this.valueClass}}} value) {
+            this.future{{{@key}}} = (value != null) ? CompletableFuture.completedFuture(value) : null;
+            return this;
+        }
+
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final Optional<{{{this.valueClass}}}> value) {
+            this.future{{{@key}}} = value.map(CompletableFuture::completedFuture).orElse(null);
+            return this;
+        }
+
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final CompletableFuture<{{{this.valueClass}}}> futureValue) {
+            this.future{{{@key}}} = futureValue;
+            return this;
+        }
+
+    {{/if}}
+
+    {{#if this.valueHasBuilder}}
+
+        {{> yangBuilder yangClass=this.valueClass builderName=this.builderName yangDataGetters=this.builderClassYangDataGetters}}
+
+        {{#if this.valueIsList}}
+        @Nonnull @SafeVarargs
+        public final {{{../builderName}}} set{{{@key}}}(
+                @Nonnull final Function<{{{builderName}}}, {{{builderName}}}> ...providers) {
+
+            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(providers)
+                    .map(provider -> provider.apply(new {{{builderName}}}()).build())
+                    .toImmutableList());
+
+            return this;
+        }
+
+        {{else}}
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final Function<{{{builderName}}}, {{{builderName}}}> provider) {
+            this.future{{{@key}}} = CompletableFuture.completedFuture(provider.apply(new {{{builderName}}}()).build());
+            return this;
+        }
+
+        {{/if}}
+    {{/if}}
 {{/each}}
 
         @Nonnull @Override
@@ -82,7 +162,7 @@ public class {{{class}}}$Yang {
                 return new {{{yangClass}}}Builder()
 
 {{#each yangDataGetters}}
-                        .{{{this.setterName}}}((this.{{{this.futureName}}} != null) ? this.{{{this.futureName}}}.get() : null)
+                        .set{{{@key}}}((this.future{{{@key}}} != null) ? this.future{{{@key}}}.get() : null)
 {{/each}}
 
                         .build();
@@ -92,6 +172,9 @@ public class {{{class}}}$Yang {
             }
         }
     }
+{{/inline}}
+
+{{> yangBuilder}}
 
     @Nonnull
     public static Optional<{{{class}}}{{{bindingClassSuffix}}}> bindingOf(@Nonnull final {{{class}}} object) {

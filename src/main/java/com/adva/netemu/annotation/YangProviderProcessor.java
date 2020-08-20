@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import java.lang.annotation.Annotation;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -23,6 +24,7 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic;
@@ -35,6 +37,8 @@ import one.util.streamex.StreamEx;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.helper.StringHelpers;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
+
+import org.opendaylight.yangtools.yang.binding.ChildOf;
 
 import com.adva.netemu.YangProvider;
 
@@ -91,27 +95,7 @@ public class YangProviderProcessor extends AbstractProcessor {
     protected Optional<Map<String, Object>> provideTemplateContextFrom(@Nonnull final Annotation annotation) {
         @Nonnull final var originClassName = ClassName.get(this.provideOriginClassFrom(annotation));
         @Nonnull final var yangClassName = ClassName.get(this.provideYangClassFrom(annotation));
-
         @Nonnull final var yangBuilderClass =  this.provideYangBuilderClassFrom(annotation);
-        @Nonnull final var yangDataGetters = EntryStream.of(StreamEx
-                .of(ElementFilter.methodsIn(yangBuilderClass.getEnclosedElements()))
-                .mapToEntry(method -> method.getSimpleName().toString(), Function.identity())
-                .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
-                .mapKeyValue((name, method) -> new SimpleImmutableEntry<>(name, Map.of(
-                        "valueClass", method.getReturnType().toString(), /*
-                        ((TypeElement) this.processingEnv.getTypeUtils().asElement(method.getReturnType()))
-                                .getQualifiedName().toString(),
-                        */
-
-                        "reprefixedName", name.replaceFirst("^is", "get"),
-                        "mapperName", name.replaceFirst("^(get|is)", "map"),
-
-                        "futureName", name.replaceFirst("^(get|is)", "future"),
-                        "setterName", name.replaceFirst("^(get|is)", "set"),
-                        "updaterName", name.replaceFirst("^(get|is)", "update"),
-
-                        "pythonName", name.replaceFirst("^(get|is)", "").replaceAll("[A-Z]", "_$0").toLowerCase()
-                                .substring(1)))));
 
         return Optional.of(Map.of(
                 "package", originClassName.packageName(),
@@ -119,10 +103,57 @@ public class YangProviderProcessor extends AbstractProcessor {
 
                 "bindingClassSuffix", this.provideBindingClassSuffix(),
                 "bindingGetter", this.provideBindingGetterName(),
+                "builderName", "Builder",
 
                 "yangPackage", yangClassName.packageName(),
                 "yangClass", yangClassName.simpleName(),
-                "yangDataGetters", yangDataGetters.toImmutableMap()));
+                "yangDataGetters", this.provideYangDataGettersFrom(yangBuilderClass).toImmutableMap()));
+    }
+
+    @Nonnull
+    protected EntryStream<String, Object> provideYangDataGettersFrom(@Nonnull final TypeElement yangClass) {
+        return EntryStream
+                .of(StreamEx.of(yangClass.getInterfaces()).flatMap(interfaceMirror -> this.provideYangDataGettersFrom(
+                        (TypeElement) this.processingEnv.getTypeUtils().asElement(interfaceMirror))))
+
+                .append(StreamEx
+                        .of(ElementFilter.methodsIn(yangClass.getEnclosedElements()))
+                        .mapToEntry(method -> method.getSimpleName().toString(), Function.identity())
+                        .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
+                        .mapKeyValue((name, method) -> {
+                            @Nonnull var valueType = (DeclaredType) method.getReturnType();
+                            @Nonnull final Boolean valueIsList = ((TypeElement) valueType.asElement()).getQualifiedName()
+                                    .toString().equals(List.class.getCanonicalName());
+
+                            if (valueIsList) {
+                                valueType = (DeclaredType) valueType.getTypeArguments().get(0);
+                            }
+
+                            @Nonnull final var valueClass = (TypeElement) valueType.asElement();
+                            @Nonnull final Boolean valueHasBuilder = StreamEx.of(valueClass.getInterfaces()).anyMatch(
+                                    interfaceMirror -> interfaceMirror.toString().startsWith(ChildOf.class.getCanonicalName()));
+
+                            @Nonnull final var valueTypeArguments = valueType.getTypeArguments();
+                            return new SimpleImmutableEntry<>(name.replaceFirst("^(get|is)", ""), Map.of(
+                                    "valueClass", String.format("%s%s", valueClass.getQualifiedName(),
+                                            valueTypeArguments.isEmpty() ? "" : String.format("<%s>", String.join(", ",
+                                                    StreamEx.of(valueTypeArguments).map(Object::toString)))),
+
+                                    "valueIsList", valueIsList,
+                                    "valueHasBuilder", valueHasBuilder,
+
+                                    "getterName", name,
+                                    "builderName", valueHasBuilder ? name.replaceFirst("^get", "") + "Builder" : "",
+                                    "builderClassYangDataGetters", valueHasBuilder
+                                            ? this.provideYangDataGettersFrom(valueClass).toImmutableMap() : Map.of(),
+
+                                    /*
+                                    "valueIsEnum", valueIsEnum,
+                                    */
+
+                                    "pythonName", name.replaceFirst("^(get|is)", "").replaceAll("[A-Z]", "_$0").toLowerCase()
+                                            .substring(1)));
+                        }));
     }
 
     @Nonnull
