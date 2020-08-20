@@ -24,7 +24,8 @@ import com.adva.netemu.{{providerAnnotation}};
         pythonizer = {{pythonizerClass}}.class
 {{~/if}})
 
-public class {{class}}{{bindingClassSuffix}} extends YangListBinding<{{yangClass}}, {{yangClass}}Key, {{yangClass}}Builder> {
+public class {{class}}{{bindingClassSuffix}}
+        extends YangListBinding<{{yangClass}}, {{yangClass}}Key, {{class}}{{utilityClassSuffix}}.Builder> {
 
     @Nonnull
     private final {{class}}{{utilityClassSuffix}}.ListKey key;
@@ -73,7 +74,7 @@ public class {{class}}{{bindingClassSuffix}} extends YangListBinding<{{yangClass
 
     public {{class}}{{bindingClassSuffix}} providesOperationalDataUsing(
             @Nonnull final {{class}}.YangBindingConnector connector,
-            @Nonnull final Function<{{yangClass}}Builder, {{yangClass}}Builder> provider) {
+            @Nonnull final Function<{{class}}{{utilityClassSuffix}}.Builder, {{class}}{{utilityClassSuffix}}.Builder> provider) {
 
         super.providesOperationalDataUsing(provider);
         return this;
