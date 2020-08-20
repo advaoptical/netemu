@@ -1,8 +1,11 @@
 package {{{package}}};
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -12,6 +15,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import one.util.streamex.StreamEx;
+
+import org.opendaylight.yangtools.yang.binding.Augmentation;
+import org.opendaylight.yangtools.yang.binding.DataObject;
 
 import {{{yangPackage}}}.{{{yangClass}}};
 import {{{yangPackage}}}.{{{yangClass}}}Builder;
@@ -67,6 +73,25 @@ public class {{{class}}}$Yang {
 
 {{#*inline "yangBuilder"}}
     public static final class {{{builderName}}} implements org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> {
+
+        @Nonnull
+        private final Map<Class<? extends Augmentation<{{{yangClass}}}>>, Augmentation<{{{yangClass}}}>> augmentations
+                = new HashMap<>();
+
+        @Nonnull
+        public <A extends Augmentation<{{{yangClass}}}> & DataObject>
+        {{{builderName}}} addAugmentation(@Nonnull final A augmentation) {
+            this.augmentations.put(
+                    (Class<? extends Augmentation<{{{yangClass}}}>>) augmentation.implementedInterface(), augmentation);
+
+            return this;
+        }
+
+        @Nonnull
+        public <A extends Augmentation<{{{yangClass}}}> & DataObject>
+        {{{builderName}}} addAugmentation(@Nonnull final org.opendaylight.yangtools.concepts.Builder<A> augmentationBuilder) {
+            return this.addAugmentation(augmentationBuilder.build());
+        }
 
 {{#each yangDataGetters}}
     {{#if this.valueIsList}}
@@ -175,18 +200,21 @@ public class {{{class}}}$Yang {
 
         @Nonnull @Override
         public {{{yangClass}}} build() {
+            @Nonnull final var builder = new {{{yangClass}}}Builder();
             try {
-                return new {{{yangClass}}}Builder()
-
 {{#each yangDataGetters}}
-                        .set{{{@key}}}((this.future{{{@key}}} != null) ? this.future{{{@key}}}.get() : null)
+                builder.set{{{@key}}}((this.future{{{@key}}} != null) ? this.future{{{@key}}}.get() : null);
 {{/each}}
-
-                        .build();
 
             } catch (final ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
+
+            for (@Nonnull final var augmentation : this.augmentations.entrySet()) {
+                builder.addAugmentation(augmentation.getKey(), augmentation.getValue());
+            }
+
+            return builder.build();
         }
     }
 {{/inline}}
