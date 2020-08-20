@@ -127,6 +127,23 @@ public class {{{class}}}$Yang {
             return this;
         }
 
+        {{#if this.valueIsEnum}}
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final String value) {
+            this.future{{{@key}}} = {{{this.valueClass}}}.forName(value).map(CompletableFuture::completedFuture).orElseThrow(() ->
+                    new IllegalArgumentException(value));
+
+            return this;
+        }
+
+            {{#each this.enumConstants}}
+        @Nonnull
+        public {{{../../builderName}}} set{{{../@key}}}_{{{this}}}() {
+            return this.set{{{../@key}}}({{{../this.valueClass}}}.{{{this}}});
+        }
+            {{/each}}
+
+        {{/if}}
     {{/if}}
 
     {{#if this.valueHasBuilder}}

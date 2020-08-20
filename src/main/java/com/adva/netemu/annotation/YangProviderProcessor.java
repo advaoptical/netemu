@@ -21,11 +21,13 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic;
 
@@ -49,7 +51,7 @@ import com.adva.netemu.YangProvider;
 public class YangProviderProcessor extends AbstractProcessor {
 
     @Nonnull
-    private static Handlebars HANDLEBARS = new Handlebars().with(new ClassPathTemplateLoader("/templates"))
+    private static final Handlebars HANDLEBARS = new Handlebars().with(new ClassPathTemplateLoader("/templates"))
             .registerHelpers(StringHelpers.class);
 
     @Nonnull
@@ -130,8 +132,10 @@ public class YangProviderProcessor extends AbstractProcessor {
                             }
 
                             @Nonnull final var valueClass = (TypeElement) valueType.asElement();
-                            @Nonnull final Boolean valueHasBuilder = StreamEx.of(valueClass.getInterfaces()).anyMatch(
-                                    interfaceMirror -> interfaceMirror.toString().startsWith(ChildOf.class.getCanonicalName()));
+                            @Nonnull final Boolean valueIsEnum = valueClass.getKind() == ElementKind.ENUM;
+                            @Nonnull final Boolean valueHasBuilder = !valueIsEnum && StreamEx.of(valueClass.getInterfaces())
+                                    .anyMatch(interfaceMirror -> interfaceMirror.toString().startsWith(
+                                            ChildOf.class.getCanonicalName()));
 
                             @Nonnull final var valueTypeArguments = valueType.getTypeArguments();
                             return new SimpleImmutableEntry<>(name.replaceFirst("^(get|is)", ""), Map.of(
@@ -139,17 +143,19 @@ public class YangProviderProcessor extends AbstractProcessor {
                                             valueTypeArguments.isEmpty() ? "" : String.format("<%s>", String.join(", ",
                                                     StreamEx.of(valueTypeArguments).map(Object::toString)))),
 
+                                    "valueIsEnum", valueIsEnum,
                                     "valueIsList", valueIsList,
                                     "valueHasBuilder", valueHasBuilder,
 
                                     "getterName", name,
+                                    "enumConstants", valueIsEnum ? StreamEx.of(valueClass.getEnclosedElements())
+                                            .filter(element -> element.getKind() == ElementKind.ENUM_CONSTANT)
+                                            .map(Element::getSimpleName)
+                                            .toImmutableList() : List.of(),
+
                                     "builderName", valueHasBuilder ? name.replaceFirst("^get", "") + "Builder" : "",
                                     "builderClassYangDataGetters", valueHasBuilder
                                             ? this.provideYangDataGettersFrom(valueClass).toImmutableMap() : Map.of(),
-
-                                    /*
-                                    "valueIsEnum", valueIsEnum,
-                                    */
 
                                     "pythonName", name.replaceFirst("^(get|is)", "").replaceAll("[A-Z]", "_$0").toLowerCase()
                                             .substring(1)));
