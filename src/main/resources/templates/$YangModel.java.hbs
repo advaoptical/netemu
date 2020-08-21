@@ -60,8 +60,8 @@ public abstract class {{{class}}}_YangModel implements YangBindable {
 
 {{#each yangDataGetters}}
             @Nonnull
-            public Optional<{{{this.valueClass}}}> {{{this.reprefixedName}}}() {
-                return super.map({{{yangClass}}}::{{{@key}}});
+            public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
+                return super.map({{{yangClass}}}::{{{this.getterName}}});
             }
 {{/each}}
         }
@@ -167,17 +167,17 @@ public abstract class {{{class}}}_YangModel implements YangBindable {
 {{~#each yangDataGetters}}
 
     @Nonnull
-    public Optional<{{{this.valueClass}}}> {{{this.reprefixedName}}}() {
-        return this.data.get().{{{this.reprefixedName}}}();
+    public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
+        return this.data.get().get{{{@key}}}();
     }
 
-    protected void {{{this.setterName}}}(@Nullable final {{{this.valueClass}}} value) {
-        this.data.set(Yang.Data.of(new {{{yangClass}}}Builder(this.data.get().get()).{{{this.setterName}}}(value).build()));
+    protected void set{{{@key}}}(@Nullable final {{{this.valueClass}}} value) {
+        this.data.set(Yang.Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(value).build()));
     }
 
     @Nonnull
-    public FluentFuture<Optional<{{{this.valueClass}}}>> {{{this.updaterName}}}() {
-        return this.update().transform(Yang.Data::{{{this.reprefixedName}}}, this.executor);
+    public FluentFuture<Optional<{{{this.valueClass}}}>> update{{{@key}}}() {
+        return this.update().transform(Yang.Data::get{{{@key}}}, this.executor);
     }
 {{~/each}}
 }
