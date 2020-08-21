@@ -61,6 +61,16 @@ public class {{{class}}}$Yang {
             return super.map({{{yangClass}}}::get{{{@key}}});
         }
 
+        @Nonnull
+        public List<{{{this.valueClass}}}> list{{{@key}}}() {
+            return this.get{{{@key}}}().orElse(List.of());
+        }
+
+        @Nonnull
+        public StreamEx<{{{this.valueClass}}}> stream{{{@key}}}() {
+            return StreamEx.of(this.list{{{@key}}}());
+        }
+
     {{else}}
         @Nonnull
         public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
