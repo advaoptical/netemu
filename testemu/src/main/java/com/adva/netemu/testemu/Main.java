@@ -12,9 +12,7 @@ import com.adva.netemu.northbound.WebService;
 public final class Main {
 
     public static void main(@Nonnull final String[] args) {
-
         @Nonnull final var pool = new YangPool("testemu", NetEmuDefined.YANG_MODULE_INFOS);
-
         @Nonnull final var device = pool.registerYangBindable(new TestDevice());
         // final var intf = device.getInterfaces().get(0);
         // intf._buildIid();

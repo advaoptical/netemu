@@ -50,7 +50,10 @@ netEmu {
 }
 
 sourceSets {
-    main.java.srcDirs += "$buildDir/$netEmu.yangToSources.outputDir"
+    main.java.srcDirs += [
+            "${buildDir}/${netEmu.yangToSources.mdSalOutputDir}",
+            "${buildDir}/${netEmu.yangToSources.netEmuOutputDir}",
+    ]
 }
 
 ext.jepDir = [

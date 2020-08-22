@@ -19,13 +19,8 @@ import com.adva.netemu.YangBound;
 @YangBound(context = NetEmuDefined.class, namespace = "urn:ietf:params:xml:ns:yang:ietf-interfaces", value = "interfaces")
 public class TestDevice implements YangBindable {
 
-    static class YangBindingConnector {
-
-        private YangBindingConnector() {}
-    }
-
     @Nonnull
-    private final TestDevice$YangBinding yangBinding = new TestDevice$YangBinding();
+    private final TestDevice_YangBinding yangBinding = new TestDevice_YangBinding();
 
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
@@ -36,7 +31,7 @@ public class TestDevice implements YangBindable {
     private final AtomicReference<List<TestInterface>> interfaces = new AtomicReference<>(List.of());
 
     @Nonnull
-    public List<TestInterface> getInterfaces() {
+    public List<TestInterface> interfaces() {
         return List.copyOf(this.interfaces.get());
     }
 
@@ -49,35 +44,30 @@ public class TestDevice implements YangBindable {
             throw new RuntimeException(e);
         }
 
-        @Nonnull final var connector = new YangBindingConnector();
-        this.yangBinding
-                .appliesConfigurationDataUsing(connector, data -> {
-                    this.interfaces.set(Owned.by(this, StreamEx.of(data.map(yang -> yang.nonnullInterface()).orElse(List.of()))
-                            .map(TestInterface$Yang.Data::of)
-                            .map(TestInterface::fromConfigurationData)
-                            .toImmutableList()));
-                })
+        this.yangBinding.appliesConfigurationDataUsing(data -> {
+            this.interfaces.set(Owned.by(this, data.streamInterface().map(TestInterface_Yang.Data::of)
+                    .map(TestInterface::fromConfigurationData)
+                    .toImmutableList()));
 
-                .appliesOperationalDataUsing(connector, data -> {
-                    synchronized (this.interfaces) {
-                        for (final var intfData : StreamEx.of(data.map(yang -> yang.nonnullInterface()).orElse(List.of()))
-                                .map(TestInterface$Yang.Data::of)) {
+        }).appliesOperationalDataUsing(data -> {
+            synchronized (this.interfaces) {
+                for (@Nonnull final var interfaceData : data.streamInterface().map(TestInterface_Yang.Data::of)) {
+                    TestInterface_Yang.bindingStreamOf(this.interfaces.get())
+                            .findFirst(binding -> interfaceData.getName().map(binding.getKey().getName()::equals)
+                                    .orElseThrow(() -> new IllegalArgumentException("No 'name' leaf value present in YANG Data")))
 
-                            TestInterface$Yang.bindingStreamOf(this.interfaces.get())
-                                    .findFirst(intf -> intfData.getName().map(intf.getKey().getName()::equals).orElse(false))
-                                    .ifPresent(intf -> intf.applyOperationalData(intfData));
-                        }
-                    }
-                })
+                            .ifPresent(binding -> binding.applyOperationalData(interfaceData));
+                }
+            }
 
-                .providesOperationalDataUsing(connector, builder -> builder
-                        .setInterface(TestInterface$Yang.streamOperationalDataFrom(this.interfaces.get()).toImmutableList()));
+        }).providesOperationalDataUsing(builder -> builder
+                .setInterface(TestInterface_Yang.listOperationalDataFrom(this.interfaces.get())));
     }
 
     @Nonnull
-    public static TestDevice fromConfigurationData(@Nonnull final TestDevice$Yang.Data data) {
-        final var device = new TestDevice();
-        device.yangBinding.applyConfigurationData(data);
-        return device;
+    public static TestDevice fromConfigurationData(@Nonnull final TestDevice_Yang.Data data) {
+        @Nonnull final var instance = new TestDevice();
+        instance.yangBinding.applyConfigurationData(data);
+        return instance;
     }
 }
