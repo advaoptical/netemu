@@ -58,7 +58,7 @@ public class YangProviderProcessor extends AbstractProcessor {
     private final Class<? extends Annotation> annotationClass;
 
     @Nonnull
-    protected final String UTILITY_CLASS_SUFFIX = "$Yang";
+    protected final String UTILITY_CLASS_SUFFIX = "_Yang";
 
     protected YangProviderProcessor(@Nonnull final Class<? extends Annotation> annotationClass) {
         this.annotationClass = annotationClass;
@@ -70,7 +70,7 @@ public class YangProviderProcessor extends AbstractProcessor {
 
     @Nonnull
     protected String provideBindingClassSuffix() {
-        return "$YangBinding";
+        return "_YangBinding";
     }
 
     @Nonnull
@@ -80,7 +80,12 @@ public class YangProviderProcessor extends AbstractProcessor {
 
     @Nonnull
     protected String provideUtilityClassSuffix() {
-        return "$Yang";
+        return "_Yang";
+    }
+
+    @Nonnull
+    protected String provideUtilityClassBase() {
+        return "";
     }
 
     @Nonnull
@@ -102,6 +107,9 @@ public class YangProviderProcessor extends AbstractProcessor {
         return Optional.of(Map.of(
                 "package", originClassName.packageName(),
                 "class", originClassName.simpleName(),
+
+                "utilityClassSuffix", this.provideUtilityClassSuffix(),
+                "utilityClassBase", this.provideUtilityClassBase(),
 
                 "bindingClassSuffix", this.provideBindingClassSuffix(),
                 "bindingGetter", this.provideBindingGetterName(),

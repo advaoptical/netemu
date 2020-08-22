@@ -27,12 +27,17 @@ public class YangListModelProviderProcessor extends YangListProviderProcessor {
 
     @Nonnull @Override
     protected String provideBindingClassSuffix() {
-        return "$YangListModelBinding";
+        return "_YangModelBinding";
     }
 
     @Nonnull @Override
     protected String provideUtilityClassSuffix() {
-        return "_YangListModel";
+        return "_YangModel";
+    }
+
+    @Nonnull @Override
+    protected String provideUtilityClassBase() {
+        return "implements YangListBindable";
     }
 
     @Nonnull @Override

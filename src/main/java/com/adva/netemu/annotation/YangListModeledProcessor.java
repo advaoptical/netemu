@@ -30,7 +30,7 @@ public class YangListModeledProcessor extends YangListBoundProcessor {
 
     @Nonnull @Override
     protected String provideBindingClassSuffix() {
-        return "$YangListModelBinding";
+        return "_YangModelBinding";
     }
 
     @Nonnull @Override
@@ -40,7 +40,7 @@ public class YangListModeledProcessor extends YangListBoundProcessor {
 
     @Nonnull @Override
     protected String provideUtilityClassSuffix() {
-        return "_YangListModel.Yang";
+        return "_YangModel";
     }
 
     @Nonnull @Override

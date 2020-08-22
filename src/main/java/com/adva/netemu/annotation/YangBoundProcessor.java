@@ -92,11 +92,11 @@ public class YangBoundProcessor extends AbstractProcessor {
     }
 
     @Nonnull
-    private static Handlebars HANDLEBARS = new Handlebars().with(new ClassPathTemplateLoader("/templates"))
+    private static final Handlebars HANDLEBARS = new Handlebars().with(new ClassPathTemplateLoader("/templates"))
             .registerHelpers(StringHelpers.class);
 
     @Nonnull @SuppressWarnings({"unused"})
-    private static Map<TypeElement, SchemaContext> YANG_CONTEXT_CACHE = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<TypeElement, SchemaContext> YANG_CONTEXT_CACHE = Collections.synchronizedMap(new HashMap<>());
 
     @Nonnull
     private final Class<? extends Annotation> annotationClass;
@@ -111,7 +111,7 @@ public class YangBoundProcessor extends AbstractProcessor {
 
     @Nonnull
     protected String provideBindingClassSuffix() {
-        return "$YangBinding";
+        return "_YangBinding";
     }
 
     @Nonnull
@@ -121,7 +121,7 @@ public class YangBoundProcessor extends AbstractProcessor {
 
     @Nonnull
     protected String provideUtilityClassSuffix() {
-        return "$Yang";
+        return "_Yang";
     }
 
     @Nonnull

@@ -29,20 +29,24 @@ public class YangListBoundProcessor extends YangBoundProcessor {
         super(YangListBound.class);
     }
 
+    /*
     @Nonnull @Override
     protected String provideBindingClassSuffix() {
-        return "$YangListBinding";
+        return "_YangListBinding";
     }
+    */
 
     @Nonnull @Override
     protected String provideBindingClassAnnotationName() {
         return "YangListProvider";
     }
 
-    @Nonnull
+    /*
+    @Nonnull @Override
     protected String provideUtilityClassSuffix() {
-        return "$Yang";
+        return "_YangList";
     }
+    */
 
     @Nonnull @Override
     protected String provideBindingClassTemplateName() {

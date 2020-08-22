@@ -34,12 +34,17 @@ public class YangModelProviderProcessor extends YangProviderProcessor {
 
     @Nonnull @Override
     protected String provideBindingClassSuffix() {
-        return "$YangModelBinding";
+        return "_YangModelBinding";
     }
 
     @Nonnull @Override
     protected String provideUtilityClassSuffix() {
         return "_YangModel";
+    }
+
+    @Nonnull @Override
+    protected String provideUtilityClassBase() {
+        return "implements YangBindable";
     }
 
     @Nonnull @Override

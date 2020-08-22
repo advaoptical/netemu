@@ -24,11 +24,11 @@ import com.adva.netemu.{{providerAnnotation}};
 
 public class {{class}}{{bindingClassSuffix}} extends YangBinding<{{yangClass}}, {{class}}{{utilityClassSuffix}}.Builder> {
 
+    @Nonnull
     public {{class}}{{bindingClassSuffix}} appliesConfigurationDataUsing(
-            @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final Consumer<{{class}}{{utilityClassSuffix}}.Data> applier) {
 
-        super.appliesConfigurationDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
+        super.setConfigurationDataApplier((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
             if (data.isPresent()) {
                 applier.accept({{class}}{{utilityClassSuffix}}.Data.of(data.get()));
             }
@@ -38,11 +38,11 @@ public class {{class}}{{bindingClassSuffix}} extends YangBinding<{{yangClass}}, 
         return this;
     }
 
+    @Nonnull
     public {{class}}{{bindingClassSuffix}} appliesOperationalDataUsing(
-            @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final Consumer<{{class}}{{utilityClassSuffix}}.Data> applier) {
 
-        super.appliesOperationalDataUsing((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
+        super.setOperationalDataApplier((applier != null) ? (@Nonnull final YangData<{{yangClass}}> data) -> {
             if (data.isPresent()) {
                 applier.accept({{class}}{{utilityClassSuffix}}.Data.of(data.get()));
             }
@@ -52,11 +52,11 @@ public class {{class}}{{bindingClassSuffix}} extends YangBinding<{{yangClass}}, 
         return this;
     }
 
+    @Nonnull
     public {{class}}{{bindingClassSuffix}} providesOperationalDataUsing(
-            @Nonnull final {{class}}.YangBindingConnector connector,
             @Nonnull final Function<{{class}}{{utilityClassSuffix}}.Builder, {{class}}{{utilityClassSuffix}}.Builder> provider) {
 
-        super.providesOperationalDataUsing(provider);
+        super.setOperationalDataProvider(provider);
         return this;
     }
 }

@@ -164,11 +164,11 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     private final Map<LogicalDatastoreType, Consumer<YangData<Y>>> dataAppliers = Collections.synchronizedMap(
                     new EnumMap<>(LogicalDatastoreType.class));
 
-    protected void appliesConfigurationDataUsing(@Nullable final Consumer<YangData<Y>> applier) {
+    protected void setConfigurationDataApplier(@Nullable final Consumer<YangData<Y>> applier) {
         this.dataAppliers.put(LogicalDatastoreType.CONFIGURATION, applier);
     }
 
-    protected void appliesOperationalDataUsing(@Nullable final Consumer<YangData<Y>> applier) {
+    protected void setOperationalDataApplier(@Nullable final Consumer<YangData<Y>> applier) {
         this.dataAppliers.put(LogicalDatastoreType.OPERATIONAL, applier);
     }
 
@@ -246,7 +246,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     @Nullable
     private Function<B, B> operationalDataProvider = null;
 
-    protected void providesOperationalDataUsing(@Nullable final Function<B, B> provider) {
+    protected void setOperationalDataProvider(@Nullable final Function<B, B> provider) {
         this.operationalDataProvider = provider;
     }
 
