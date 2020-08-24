@@ -11,11 +11,6 @@ import com.adva.netemu.YangListProvider;
 {{~#partial "extended members"~}}
     {{> $Yang.List-members.java.partial}}
 
-    static class YangBindingConnector {
-
-        private YangBindingConnector() {}
-    }
-
     @Nonnull
     private final {{{class}}}{{{bindingClassSuffix}}} yangBinding;
 
@@ -25,9 +20,8 @@ import com.adva.netemu.YangListProvider;
     }
 
     public {{{class}}}_YangModel(@Nonnull final ListKey key) {
-        @Nonnull final var connector = new YangBindingConnector();
         this.yangBinding = {{{class}}}{{{bindingClassSuffix}}}.withKey(key)
-                .appliesOperationalDataUsing(connector, this.data::set);
+                .appliesOperationalDataUsing(this.data::set);
     }
 
     {{> $YangModel.members.java.partial}}
