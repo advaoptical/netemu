@@ -1,5 +1,7 @@
 package {{package}};
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -78,5 +80,22 @@ public class {{class}}{{bindingClassSuffix}}
 
         super.setOperationalDataProvider(provider);
         return this;
+    }
+
+    @Nonnull
+    public {{class}}{{bindingClassSuffix}} providesOperationalDataUsingFuture(
+            @Nonnull final Function<
+                    {{class}}{{utilityClassSuffix}}.Builder, CompletableFuture<{{class}}{{utilityClassSuffix}}.Builder>>
+
+            provider) {
+
+        return this.providesOperationalDataUsing(builder -> {
+            try {
+                return provider.apply(builder).get();
+
+            } catch (final ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }
