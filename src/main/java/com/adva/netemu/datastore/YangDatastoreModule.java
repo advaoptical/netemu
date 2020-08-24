@@ -41,7 +41,7 @@ class YangDatastoreModule {
 
             @Override
             public void onSuccess(@Nullable final Optional<NormalizedNode<?, ?>> result) {
-                LOG.info("TODO: {}", result);
+                LOG.info("TODO: "); // {}", result);
             }
 
             @Override
