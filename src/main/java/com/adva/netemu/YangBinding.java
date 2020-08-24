@@ -195,25 +195,50 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public final synchronized FluentFuture<Boolean> applyOperationalData(@Nonnull final YangData<Y> data) {
-        @Nullable final var applier = this.dataAppliers.get(LogicalDatastoreType.OPERATIONAL);
-
-        if (applier != null) {
-            @Nonnull final var future = this.dataApplyingFuture.get().transform(applied -> {
-                applier.accept(data);
-                return true;
-
-            }, this.executor);
-
-            this.dataApplyingFuture.set(future);
-            return future;
-        }
-
-        return this.dataApplyingFuture.get();
+    public FluentFuture<Boolean> applyOperationalData(@Nonnull final YangData<Y> data) {
+        return this.applyOperationalData(data, this.dataAppliers.get(LogicalDatastoreType.OPERATIONAL));
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public final synchronized FluentFuture<Boolean> applyOperationalData(@Nullable final Y data) {
+    public FluentFuture<Boolean> applyOperationalData(
+            @Nonnull final YangData<Y> data, @Nullable final Consumer<YangData<Y>> applier) {
+
+        synchronized (this.dataApplyingFuture) {
+            if (applier != null) {
+                this.dataApplyingFuture.set(this.dataApplyingFuture.get().transform(applied -> {
+                    applier.accept(data);
+                    return true;
+
+                }, this.executor));
+            }
+
+            return this.dataApplyingFuture.get();
+        }
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<Boolean> applyOperationalData(@Nonnull final YangData<Y> data, @Nonnull final Runnable finalizer) {
+        @Nullable final var applier = this.dataAppliers.get(LogicalDatastoreType.OPERATIONAL);
+
+        synchronized (this.dataApplyingFuture) {
+            if (applier != null) {
+                this.dataApplyingFuture.set(this.dataApplyingFuture.get().transform(applied -> {
+                    applier.accept(data);
+                    return true;
+
+                }, this.executor));
+            }
+
+            return this.dataApplyingFuture.get().transform(applied -> {
+                finalizer.run();
+                return applied;
+
+            }, this.executor);
+        }
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<Boolean> applyOperationalData(@Nullable final Y data) {
         if (data != null) {
             return this.applyOperationalData(YangData.of(data));
         }
