@@ -41,6 +41,7 @@ import com.github.jknack.handlebars.helper.StringHelpers;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 
 import org.opendaylight.yangtools.yang.binding.ChildOf;
+import org.opendaylight.yangtools.yang.binding.OpaqueObject;
 
 import com.adva.netemu.YangProvider;
 
@@ -141,9 +142,12 @@ public class YangProviderProcessor extends AbstractProcessor {
 
                             @Nonnull final var valueClass = (TypeElement) valueType.asElement();
                             @Nonnull final Boolean valueIsEnum = valueClass.getKind() == ElementKind.ENUM;
-                            @Nonnull final Boolean valueHasBuilder = !valueIsEnum && StreamEx.of(valueClass.getInterfaces())
-                                    .anyMatch(interfaceMirror -> interfaceMirror.toString().startsWith(
-                                            ChildOf.class.getCanonicalName()));
+                            @Nonnull final Boolean valueHasBuilder = !valueIsEnum
+                                    && StreamEx.of(valueClass.getInterfaces()).anyMatch(interfaceMirror ->
+                                            interfaceMirror.toString().startsWith(ChildOf.class.getCanonicalName()))
+
+                                    && StreamEx.of(valueClass.getInterfaces()).noneMatch(interfaceMirror ->
+                                            interfaceMirror.toString().startsWith(OpaqueObject.class.getCanonicalName()));
 
                             @Nonnull final var valueTypeArguments = valueType.getTypeArguments();
                             return new SimpleImmutableEntry<>(name.replaceFirst("^(get|is)", ""), Map.of(
