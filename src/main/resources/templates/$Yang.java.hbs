@@ -216,14 +216,17 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         @Nonnull @Override
         public {{{yangClass}}} build() {
             @Nonnull final var builder = new {{{yangClass}}}Builder();
+
+{{#unless yangDataGetters.empty}}
             try {
-{{#each yangDataGetters}}
+    {{#each yangDataGetters}}
                 builder.set{{{@key}}}((this.future{{{@key}}} != null) ? this.future{{{@key}}}.get() : null);
-{{/each}}
+    {{/each}}
 
             } catch (final ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
+{{/unless}}
 
             for (@Nonnull final var augmentation : this.augmentations.entrySet()) {
                 builder.addAugmentation(augmentation.getKey(), augmentation.getValue());
