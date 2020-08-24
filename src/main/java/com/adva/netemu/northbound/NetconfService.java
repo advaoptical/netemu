@@ -62,7 +62,7 @@ import com.adva.netemu.service.EmuService;
 public class NetconfService extends EmuService implements RpcHandler {
 
     @Nonnull
-    private static Logger LOG = LoggerFactory.getLogger(NetconfService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NetconfService.class);
 
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
