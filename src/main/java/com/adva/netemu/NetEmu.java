@@ -34,7 +34,7 @@ import com.adva.netemu.driver.EmuDriver;
 import com.adva.netemu.service.EmuService;
 
 
-public final class NetEmu {
+public class NetEmu {
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(NetEmu.class);
@@ -94,17 +94,24 @@ public final class NetEmu {
         return new RegisteredDriver<>(this, driverClass);
     }
 
-    public <S extends EmuService> void registerService(@Nonnull final Class<S> serviceClass) {
-        this.registerService(yangPool -> {
-            try {
-                return serviceClass.getDeclaredConstructor(YangPool.class).newInstance(yangPool);
+    @SafeVarargs
+    public final <S extends EmuService> void registerService(
+            @Nonnull final Class<S> serviceClass, @Nonnull final EmuService.Settings<S>... constructionSettings) {
 
-            } catch (final
-                    NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+        for (@Nonnull final var settings : constructionSettings) {
+            this.registerService(yangPool -> {
+                try {
+                    return serviceClass.getDeclaredConstructor(YangPool.class, settings.getClass())
+                            .newInstance(yangPool, settings.getClass().cast(settings));
 
-                throw new RuntimeException(e);
-            }
-        });
+                } catch (final
+                        NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
         // this.serviceRegistry.add(serviceClass);
     }
 
