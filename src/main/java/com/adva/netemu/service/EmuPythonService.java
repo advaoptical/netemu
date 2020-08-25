@@ -80,8 +80,10 @@ public abstract class EmuPythonService extends EmuService {
         }
     }
 
-    public EmuPythonService(@Nonnull final YangPool pool) {
-        super(pool);
+    public interface Settings<S extends EmuPythonService> extends EmuService.Settings<S> {}
+
+    public EmuPythonService(@Nonnull final YangPool pool, @Nonnull final Settings<? extends EmuPythonService> settings) {
+        super(pool, settings);
     }
 
     @Override

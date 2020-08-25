@@ -32,9 +32,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import com.google.common.collect.ImmutableSet;
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -60,6 +58,8 @@ import com.adva.netemu.service.EmuService;
 
 
 public class NetconfService extends EmuService implements RpcHandler {
+
+    public static class Settings extends ConfigurationBuilder implements EmuService.Settings<NetconfService> {}
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(NetconfService.class);
@@ -99,8 +99,8 @@ public class NetconfService extends EmuService implements RpcHandler {
         return this.netconf.get();
     }
 
-    public NetconfService(@Nonnull final YangPool pool) {
-        super(pool);
+    public NetconfService(@Nonnull final YangPool pool, @Nonnull final Settings settings) {
+        super(pool, settings);
     }
 
     @Override
@@ -109,10 +109,11 @@ public class NetconfService extends EmuService implements RpcHandler {
             return;
         }
 
-        @Nonnull final var netconf = new NetconfDeviceSimulator(new ConfigurationBuilder()
-                .setCapabilities(ImmutableSet.of("urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"))
+        @Nonnull final var netconf = new NetconfDeviceSimulator(((ConfigurationBuilder) super.settings())
+                .setCapabilities(Set.of("urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"))
                 .setModels(Set.copyOf(super.yangPool().getModules()))
                 .setRpcMapping(this)
+                .setDeviceCount(1)
                 .build());
 
         this.netconf.set(netconf);

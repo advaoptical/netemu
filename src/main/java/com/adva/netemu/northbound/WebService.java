@@ -23,6 +23,8 @@ public class WebService extends EmuService {
     }
     */
 
+    public static class Settings implements EmuService.Settings<WebService> {}
+
     private static class App extends Jooby implements Supplier<Jooby> {
 
         @Nonnull
@@ -41,8 +43,8 @@ public class WebService extends EmuService {
         }
     }
 
-    public WebService(@Nonnull final YangPool pool) {
-        super(pool);
+    public WebService(@Nonnull final YangPool pool, @Nonnull final Settings settings) {
+        super(pool, settings);
     }
 
     @Override

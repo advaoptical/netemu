@@ -10,8 +10,10 @@ import com.adva.netemu.service.EmuPythonService;
 
 public class PythonKernelService extends EmuPythonService {
 
-    public PythonKernelService(@Nonnull final YangPool pool) {
-        super(pool);
+    public static class Settings implements EmuPythonService.Settings<PythonKernelService> {}
+
+    public PythonKernelService(@Nonnull final YangPool pool, @Nonnull final Settings settings) {
+        super(pool, settings);
     }
 
     @Override
