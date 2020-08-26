@@ -1,8 +1,10 @@
 package com.adva.netemu;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
@@ -34,6 +36,18 @@ public abstract class YangFutures {
                 .allOf(StreamEx.of(objects).map(YangListBindable::getYangListBinding).flatMap(Optional::stream)
                         .map(YangListBinding::awaitOperationalDataApplying).toArray(CompletableFuture.class))
 
-                .thenApply(applied -> objects);
+                .thenApply($ -> objects);
+    }
+
+    @Nonnull
+    public static <T extends YangListBindable>
+    CompletableFuture<List<T>> awaitOperationalDataApplyingTo(@Nonnull final T[] objects) {
+        return awaitOperationalDataApplyingTo(List.of(objects));
+    }
+
+    @Nonnull
+    public static <T extends YangListBindable>
+    CompletableFuture<List<T>> awaitOperationalDataApplyingTo(@Nonnull final Stream<T> objects) {
+        return awaitOperationalDataApplyingTo(StreamEx.of(objects).toImmutableList());
     }
 }
