@@ -3,6 +3,7 @@ package com.adva.netemu;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -49,6 +50,16 @@ public class YangData<Y extends DataObject> {
 
     public boolean isPresent() {
         return this.object != null;
+    }
+
+    @Nullable
+    public Y orElse(@Nullable final Y object) {
+        return (this.object != null) ? this.object : object;
+    }
+
+    @Nullable
+    public Y orElseGet(@Nonnull final Supplier<Y> supplier) {
+        return supplier.get();
     }
 
     public void ifPresent(@Nonnull final Consumer<Y> action) {
