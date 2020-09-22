@@ -12,40 +12,47 @@
 
     @Nonnull
     public static
-    StreamEx<{{{class}}}{{{bindingClassSuffix}}}> bindingStreamOf(@Nonnull final Collection<{{{class}}}> objects) {
+    StreamEx<{{{class}}}{{{bindingClassSuffix}}}> bindingStreamOf(@Nonnull final Collection<? extends {{{class}}}> objects) {
         return StreamEx.of(objects).map({{{class}}}{{{utilityClassSuffix}}}::bindingOf).filter(Optional::isPresent)
                 .map(Optional::get);
     }
 
     /*
     @Nonnull
-    public static StreamEx<{{{yangClass}}}> streamConfigurationDataFrom(@Nonnull final Collection<{{{class}}}> objects) {
+    public static StreamEx<{{{yangClass}}}> streamConfigurationDataFrom(
+            @Nonnull final Collection<? extends {{{class}}}> objects) {
+
         return streamConfigurationDataFrom(objects.stream());
     }
 
     @Nonnull
-    public static StreamEx<{{{yangClass}}}> streamConfigurationDataFrom(@Nonnull final Stream<{{{class}}}> objects) {
+    public static StreamEx<{{{yangClass}}}> streamConfigurationDataFrom(@Nonnull final Stream<? extends {{{class}}}> objects) {
+
         return StreamEx.of(objects).map({{{class}}}$Yang::configurationDataFrom).filter(Data::isPresent).map(Data::get);
     }
     */
 
     @Nonnull
-    public static StreamEx<{{{yangClass}}}> streamOperationalDataFrom(@Nonnull final Collection<{{{class}}}> objects) {
+    public static StreamEx<{{{yangClass}}}> streamOperationalDataFrom(@Nonnull final Collection<? extends {{{class}}}> objects) {
+
         return streamOperationalDataFrom(objects.stream());
     }
 
     @Nonnull
-    public static StreamEx<{{{yangClass}}}> streamOperationalDataFrom(@Nonnull final Stream<{{{class}}}> objects) {
+    public static StreamEx<{{{yangClass}}}> streamOperationalDataFrom(@Nonnull final Stream<? extends {{{class}}}> objects) {
+
         return StreamEx.of(objects).map({{{class}}}{{{utilityClassSuffix}}}::operationalDataFrom).filter(Data::isPresent)
                 .map(Data::get);
     }
 
     @Nonnull
-    public static List<{{{yangClass}}}> listOperationalDataFrom(@Nonnull final Collection<{{{class}}}> objects) {
+    public static List<{{{yangClass}}}> listOperationalDataFrom(@Nonnull final Collection<? extends {{{class}}}> objects) {
+
         return streamOperationalDataFrom(objects).toImmutableList();
     }
 
     @Nonnull
-    public static List<{{{yangClass}}}> listOperationalDataFrom(@Nonnull final Stream<{{{class}}}> objects) {
+    public static List<{{{yangClass}}}> listOperationalDataFrom(@Nonnull final Stream<? extends {{{class}}}> objects) {
+
         return streamOperationalDataFrom(objects).toImmutableList();
     }
