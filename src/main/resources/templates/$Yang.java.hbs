@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -180,6 +181,15 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         @Nonnull
         public {{{../../builderName}}} set{{{../@key}}}_{{{this}}}() {
             return this.set{{{../@key}}}({{{../this.valueClass}}}.{{{this}}});
+        }
+
+        @Nonnull
+        public {{{../../builderName}}} set{{{../@key}}}_{{{this}}}_if(@Nonnull final BooleanSupplier condition) {
+            if (condition.getAsBoolean()) {
+                this.set{{{../@key}}}({{{../this.valueClass}}}.{{{this}}});
+            }
+
+            return this;
         }
             {{/each}}
 
