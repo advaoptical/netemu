@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -207,6 +208,26 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 
             this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(providers)
                     .map(provider -> provider.apply(new {{{builderName}}}()).build())
+                    .toImmutableList());
+
+            return this;
+        }
+
+        @Nonnull
+        public final <T> {{{../builderName}}} set{{{@key}}}(
+                @Nonnull final Collection<T> arguments,
+                @Nonnull final BiFunction<T, {{{builderName}}}, {{{builderName}}}> provider) {
+
+            return this.set{{{@key}}}(arguments.stream(), provider);
+        }
+
+        @Nonnull
+        public final <T> {{{../builderName}}} set{{{@key}}}(
+                @Nonnull final Stream<T> arguments,
+                @Nonnull final BiFunction<T, {{{builderName}}}, {{{builderName}}}> provider) {
+
+            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(arguments)
+                    .map(argument -> provider.apply(argument, new {{{builderName}}}()).build())
                     .toImmutableList());
 
             return this;
