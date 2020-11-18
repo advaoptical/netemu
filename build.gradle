@@ -26,8 +26,8 @@ ext.jepDir = [
 ].execute().text.trim()
 
 repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
     // maven("https://repo.spring.io/plugins-release")
 
     // jcenter()
@@ -55,23 +55,25 @@ dependencies {
 
     implementation "javax.activation:activation:1.1.1"
     implementation "javax.xml.bind:jaxb-api:2.3.1"
+
     implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
+    implementation "org.glassfish.jersey.containers:jersey-container-grizzly2-http:2.32"
+    implementation "org.glassfish.jersey.inject:jersey-hk2:2.32"
 
     implementation "com.github.jknack:handlebars:4.1.2"
-
     implementation "com.google.auto.service:auto-service:1.0-rc6"
     implementation "com.google.dagger:dagger:2.25.4"
     implementation "com.squareup:javapoet:1.12.1"
-    implementation(
-            "com.squareup.inject:assisted-inject-annotations-dagger2:0.5.2")
+    implementation "com.squareup.inject:assisted-inject-annotations-dagger2:0.5.2"
 
     annotationProcessor "com.google.auto.service:auto-service:1.0-rc6"
     annotationProcessor "com.google.dagger:dagger-compiler:2.25.4"
-    annotationProcessor(
-            "com.squareup.inject:assisted-inject-processor-dagger2:0.5.2")
+    annotationProcessor "com.squareup.inject:assisted-inject-processor-dagger2:0.5.2"
 
-    api "net.javacrumbs.future-converter:future-converter-java8-guava:1.2.0"
+    api "com.bea.xml:jsr173-ri:1.0"
     // api "com.ea.async:ea-async:1.2.3"
+    api "net.javacrumbs.future-converter:future-converter-java8-guava:1.2.0"
+    api "one.util:streamex:0.7.2"
 
     api "io.jooby:jooby-netty:2.6.1"
     annotationProcessor "io.jooby:jooby-apt:2.6.1"
@@ -80,26 +82,24 @@ dependencies {
     api "com.google.code.findbugs:findbugs-annotations:3.0.1"
     api "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
 
-    api "one.util:streamex:0.7.2"
-
     api "org.opendaylight.yangtools:rfc7952-data-util:4.0.6"
-
-    api "org.opendaylight.yangtools:yang-data-util:4.0.6_1-ADVA"
+    api "org.opendaylight.yangtools:yang-data-codec-gson:4.0.6"
     api "org.opendaylight.yangtools:yang-data-codec-xml:4.0.6_1-ADVA"
+    api "org.opendaylight.yangtools:yang-data-util:4.0.6_1-ADVA"
+    api "org.opendaylight.yangtools:yang-maven-plugin:4.0.6"
+
+    api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:5.0.6"
+    api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:3.0.6"
+    api "org.opendaylight.mdsal:yang-binding:3.0.6"
 
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
-    api "org.opendaylight.mdsal:yang-binding:3.0.6"
-    api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:3.0.6"
-
-    api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:5.0.6"
-
-    api "org.opendaylight.yangtools:yang-maven-plugin:4.0.6"
-
-    api "org.opendaylight.netconf:netconf-netty-util:1.7.1_1-ADVA"
 
     api "org.opendaylight.netconf:netconf-client:1.7.1"
+    api "org.opendaylight.netconf:netconf-netty-util:1.7.1_1-ADVA"
     api "org.opendaylight.netconf:netconf-testtool:1.7.1"
+    api "org.opendaylight.netconf:restconf-nb-rfc8040:1.10.1"
+
     // implementation ":netconf-testtool-1.7.0-executable"
 
     api "black.ninia:jep:3.9.0"
