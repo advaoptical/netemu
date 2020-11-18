@@ -9,7 +9,6 @@ import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.squareup.inject.assisted.Assisted;
 import com.squareup.inject.assisted.AssistedInject;
-
 import dagger.Component;
 
 import org.opendaylight.yangtools.concepts.Builder;

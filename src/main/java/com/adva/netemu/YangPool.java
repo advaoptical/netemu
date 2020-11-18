@@ -35,8 +35,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
-import one.util.streamex.StreamEx;
 
+import one.util.streamex.StreamEx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -51,6 +51,9 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
+
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContextProvider;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
@@ -63,7 +66,9 @@ import org.opendaylight.mdsal.binding.generator.util.BindingRuntimeContext;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
-import org.opendaylight.mdsal.dom.api.DOMDataBroker;
+
+import org.opendaylight.mdsal.dom.api.DOMTransactionChain;
+import org.opendaylight.mdsal.dom.api.DOMTransactionChainListener;
 import org.opendaylight.mdsal.dom.broker.SerializedDOMDataBroker;
 import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStore;
 import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStoreConfigProperties;
@@ -72,7 +77,7 @@ import com.adva.netemu.datastore.DaggerYangDatastore;
 import com.adva.netemu.datastore.YangDatastore;
 
 
-public class YangPool {
+public class YangPool implements EffectiveModelContextProvider {
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(YangPool.class);
@@ -102,8 +107,20 @@ public class YangPool {
         return this.context.getSchemaContext();
     }
 
+    @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
+    public EffectiveModelContext getEffectiveModelContext() {
+        return this.context.tryToCreateModelContext().orElseThrow(() -> new RuntimeException(String.format(
+                "Failed to create instance of %s from %s", EffectiveModelContext.class, this.context)));
+    }
+
     @Nonnull
     private final YangDatastore datastore = DaggerYangDatastore.create();
+
+    @Nonnull
+    private final InMemoryDOMDataStore configurationStore;
+
+    @Nonnull
+    private final InMemoryDOMDataStore operationalStore;
 
     @Nonnull
     private final BindingDOMDataBrokerAdapter broker;
@@ -113,9 +130,44 @@ public class YangPool {
         return this.broker;
     }
 
+    public static class NormalizedNodeBroker extends SerializedDOMDataBroker {
+
+        @Nonnull
+        private final YangPool yangPool;
+
+        private NormalizedNodeBroker(@Nonnull final YangPool yangPool) {
+            super(
+                    Map.of(
+                            LogicalDatastoreType.CONFIGURATION, yangPool.configurationStore,
+                            LogicalDatastoreType.OPERATIONAL, yangPool.operationalStore),
+
+                    MoreExecutors.listeningDecorator(yangPool.transactionExecutor));
+
+            this.yangPool = yangPool;
+        }
+
+        @Nonnull @Override
+        public DOMTransactionChain createTransactionChain(@Nonnull final DOMTransactionChainListener listener) {
+            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
+            synchronized (this.yangPool.yangBindingRegistry) {
+                updatingFuture = Futures.allAsList(StreamEx.of(this.yangPool.yangBindingRegistry).map(this.yangPool::writeOperationalDataFrom));
+            }
+
+            try {
+                updatingFuture.get();
+
+            } catch (final InterruptedException | ExecutionException ignored) {}
+
+            return super.createTransactionChain(listener);
+        }
+    }
+
     @Nonnull
-    public DOMDataBroker getNormalizedNodeBroker() {
-        return this.broker.getDelegate();
+    private final NormalizedNodeBroker normalizedNodeBroker;
+
+    @Nonnull
+    public NormalizedNodeBroker getNormalizedNodeBroker() {
+        return this.normalizedNodeBroker;
     }
 
     @Nonnull
@@ -136,7 +188,7 @@ public class YangPool {
         this.context = ModuleInfoBackedContext.create();
         this.context.addModuleInfos(this.modules);
 
-        @Nonnull final var configurationStore = new InMemoryDOMDataStore(
+        this.configurationStore = new InMemoryDOMDataStore(
                 String.format("netemu-%s-configuration", id),
                 LogicalDatastoreType.CONFIGURATION,
                 MoreExecutors.newDirectExecutorService(), // -> writing data immediately executes change listeners
@@ -149,9 +201,9 @@ public class YangPool {
                 InMemoryDOMDataStoreConfigProperties.DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
                 false);
 
-        configurationStore.onGlobalContextUpdated(this.getYangContext());
+        this.configurationStore.onGlobalContextUpdated(this.getYangContext());
 
-        @Nonnull final var operationalStore = new InMemoryDOMDataStore(
+        this.operationalStore = new InMemoryDOMDataStore(
                 String.format("netemu-%s-operational", id),
                 LogicalDatastoreType.OPERATIONAL,
                 MoreExecutors.newDirectExecutorService(), // -> writing data immediately executes change listeners
@@ -164,16 +216,10 @@ public class YangPool {
                 InMemoryDOMDataStoreConfigProperties.DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
                 false);
 
-        operationalStore.onGlobalContextUpdated(this.getYangContext());
+        this.operationalStore.onGlobalContextUpdated(this.getYangContext());
 
-        this.broker = new BindingDOMDataBrokerAdapter(
-                new SerializedDOMDataBroker(
-                        Map.of(
-                                LogicalDatastoreType.CONFIGURATION, configurationStore,
-                                LogicalDatastoreType.OPERATIONAL, operationalStore),
-
-                        MoreExecutors.listeningDecorator(this.transactionExecutor)),
-
+        this.normalizedNodeBroker = new NormalizedNodeBroker(this);
+        this.broker = new BindingDOMDataBrokerAdapter(this.normalizedNodeBroker,
                 new BindingToNormalizedNodeCodec(this.context, new BindingNormalizedNodeCodecRegistry(
                         BindingRuntimeContext.create(this.context, this.getYangContext()))));
     }
@@ -208,21 +254,20 @@ public class YangPool {
 
     @Nonnull
     public <T> Optional<T> findRegisteredInstanceOf(@Nonnull final Class<T> registreeClass) {
-        return Optional.ofNullable(
-                StreamEx.of(this.yangBindableRegistry).findFirst(registreeClass::isInstance).map(registreeClass::cast).orElse(
-                        StreamEx.of(this.yangListBindableRegistry).findFirst(registreeClass::isInstance).map(registreeClass::cast)
-                                .orElse(null)));
+        return StreamEx.of(this.yangBindableRegistry).findFirst(registreeClass::isInstance)
+                .map(registreeClass::cast)
+                .or(() -> StreamEx.of(this.yangListBindableRegistry).findFirst(registreeClass::isInstance)
+                        .map(registreeClass::cast));
     }
 
     @Nonnull
     public Optional<Object> findRegisteredInstanceOf(@Nonnull final String registreeClassName) {
-        return Optional.ofNullable(StreamEx.of(this.yangBindableRegistry)
+        return StreamEx.of(this.yangBindableRegistry)
                 .findFirst(object -> object.getClass().getCanonicalName().equals(registreeClassName))
                 .map(Object.class::cast)
-                .orElse(StreamEx.of(this.yangListBindableRegistry)
+                .or(() -> StreamEx.of(this.yangListBindableRegistry)
                         .findFirst(object -> object.getClass().getCanonicalName().equals(registreeClassName))
-                        .map(Object.class::cast)
-                        .orElse(null)));
+                        .map(Object.class::cast));
     }
 
     @Nonnull
