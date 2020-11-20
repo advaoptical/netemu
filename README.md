@@ -1,4 +1,3 @@
-
 # NETEMU
 
 ## Library to generate Java and Python source code with utility functions from YANG models to build NETCONF APIs in an object-oriented manner
@@ -23,6 +22,19 @@ Main Classes
 * Owned
 * YangPool
 * YangProvider
+
+**Installation and usage**
+
+- [ ] install submodules:
+        `.\netemu> git submodule update --init --recursive`
+        
+- [ ] run groovy install scripts
+        `groovy mvn-yang-data-util.groovy install`
+        `groovy mvn-yang-data-codec-xml.groovy install`
+        `groovy mvn-netconf-netty-util.groovy install`
+
+ 
+
 
 
 Features
