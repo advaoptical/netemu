@@ -27,8 +27,8 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
+
 import javax.tools.Diagnostic;
 
 import com.google.auto.service.AutoService;
@@ -133,11 +133,20 @@ public class YangProviderProcessor extends AbstractProcessor {
                         .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
                         .mapKeyValue((name, method) -> {
                             @Nonnull var valueType = (DeclaredType) method.getReturnType();
-                            @Nonnull final Boolean valueIsList = ((TypeElement) valueType.asElement()).getQualifiedName()
-                                    .toString().equals(List.class.getCanonicalName());
+                            @Nonnull final var valueTypeName = ((TypeElement) valueType.asElement()).getQualifiedName();
 
-                            if (valueIsList) {
+                            @Nonnull final Boolean valueIsMap = valueTypeName.toString().equals(Map.class.getCanonicalName());
+                            @Nonnull final Boolean valueIsList;
+                            if (valueIsMap) {
+                                valueType = (DeclaredType) valueType.getTypeArguments().get(1);
+                                valueIsList = true;
+
+                            } else if (valueTypeName.toString().equals(List.class.getCanonicalName())) {
                                 valueType = (DeclaredType) valueType.getTypeArguments().get(0);
+                                valueIsList = true;
+
+                            } else {
+                                valueIsList = false;
                             }
 
                             @Nonnull final var valueClass = (TypeElement) valueType.asElement();
@@ -157,6 +166,7 @@ public class YangProviderProcessor extends AbstractProcessor {
 
                                     "valueIsEnum", valueIsEnum,
                                     "valueIsList", valueIsList,
+                                    "valueIsMap", valueIsMap,
                                     "valueHasBuilder", valueHasBuilder,
 
                                     "getterName", name,

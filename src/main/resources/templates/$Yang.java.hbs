@@ -65,12 +65,17 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
     {{#if this.valueIsList}}
         @Nonnull
         public Optional<List<{{{this.valueClass}}}>> get{{{@key}}}() {
-            return super.map({{{yangClass}}}::get{{{@key}}});
+        return super.map(
+        {{#if this.valueIsMap}}
+            data -> List.copyOf(data.get{{{@key}}}().values())
+        {{else}}
+            {{{yangClass}}}::get{{{@key}}}
+        {{/if}});
         }
 
         @Nonnull
         public List<{{{this.valueClass}}}> list{{{@key}}}() {
-            return this.get{{{@key}}}().orElse(List.of());
+            return this.get{{{@key}}}().orElseGet(() -> List.of());
         }
 
         @Nonnull
@@ -96,7 +101,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                 = new HashMap<>();
 
         @Nonnull
-        public <A extends Augmentation<{{{yangClass}}}> & DataObject>
+        public <A extends Augmentation<{{{yangClass}}}>> // & DataObject>
         {{{builderName}}} addAugmentation(@Nonnull final A augmentation) {
             this.augmentations.put(
                     (Class<? extends Augmentation<{{{yangClass}}}>>) augmentation.implementedInterface(), augmentation);
@@ -105,7 +110,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         }
 
         @Nonnull
-        public <A extends Augmentation<{{{yangClass}}}> & DataObject>
+        public <A extends Augmentation<{{{yangClass}}}>> // & DataObject>
         {{{builderName}}} addAugmentation(@Nonnull final org.opendaylight.yangtools.concepts.Builder<A> augmentationBuilder) {
             return this.addAugmentation(augmentationBuilder.build());
         }

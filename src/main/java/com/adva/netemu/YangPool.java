@@ -37,6 +37,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 import one.util.streamex.StreamEx;
+import org.eclipse.jdt.annotation.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -57,16 +58,23 @@ import org.opendaylight.yangtools.yang.model.api.EffectiveModelContextProvider;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
+import org.opendaylight.binding.runtime.api.BindingRuntimeContext;
+import org.opendaylight.binding.runtime.spi.BindingRuntimeHelpers;
 import org.opendaylight.mdsal.binding.api.DataBroker;
+import org.opendaylight.mdsal.binding.dom.adapter.AdapterContext;
 import org.opendaylight.mdsal.binding.dom.adapter.BindingDOMDataBrokerAdapter;
+import org.opendaylight.mdsal.binding.dom.adapter.CurrentAdapterSerializer;
+import org.opendaylight.mdsal.binding.dom.codec.impl.BindingCodecContext;
+
+/*
 import org.opendaylight.mdsal.binding.dom.adapter.BindingToNormalizedNodeCodec;
 import org.opendaylight.mdsal.binding.dom.codec.impl.BindingNormalizedNodeCodecRegistry;
 import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 import org.opendaylight.mdsal.binding.generator.util.BindingRuntimeContext;
+*/
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
-
 import org.opendaylight.mdsal.dom.api.DOMTransactionChain;
 import org.opendaylight.mdsal.dom.api.DOMTransactionChainListener;
 import org.opendaylight.mdsal.dom.broker.SerializedDOMDataBroker;
@@ -100,17 +108,21 @@ public class YangPool implements EffectiveModelContextProvider {
     }
 
     @Nonnull
-    private final ModuleInfoBackedContext context;
+    private final EffectiveModelContext context;
 
     @Nonnull
     public SchemaContext getYangContext() {
-        return this.context.getSchemaContext();
+        return this.context; // .getSchemaContext();
     }
 
     @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
     public EffectiveModelContext getEffectiveModelContext() {
+        return this.context;
+
+        /*
         return this.context.tryToCreateModelContext().orElseThrow(() -> new RuntimeException(String.format(
                 "Failed to create instance of %s from %s", EffectiveModelContext.class, this.context)));
+        */
     }
 
     @Nonnull
@@ -185,8 +197,8 @@ public class YangPool implements EffectiveModelContextProvider {
 
     public YangPool(@Nonnull final String id, @Nonnull final Collection<YangModuleInfo> modules) {
         this.modules = Set.copyOf(modules);
-        this.context = ModuleInfoBackedContext.create();
-        this.context.addModuleInfos(this.modules);
+        this.context = BindingRuntimeHelpers.createEffectiveModel(this.modules);
+        // this.context.addModuleInfos(this.modules);
 
         this.configurationStore = new InMemoryDOMDataStore(
                 String.format("netemu-%s-configuration", id),
@@ -201,7 +213,7 @@ public class YangPool implements EffectiveModelContextProvider {
                 InMemoryDOMDataStoreConfigProperties.DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
                 false);
 
-        this.configurationStore.onGlobalContextUpdated(this.getYangContext());
+        this.configurationStore.onModelContextUpdated(this.context);
 
         this.operationalStore = new InMemoryDOMDataStore(
                 String.format("netemu-%s-operational", id),
@@ -216,12 +228,25 @@ public class YangPool implements EffectiveModelContextProvider {
                 InMemoryDOMDataStoreConfigProperties.DEFAULT_MAX_DATA_CHANGE_LISTENER_QUEUE_SIZE,
                 false);
 
-        this.operationalStore.onGlobalContextUpdated(this.getYangContext());
+        this.operationalStore.onModelContextUpdated(this.context);
+
+        @Nonnull final var runtimeContext = BindingRuntimeHelpers.createRuntimeContext(
+                StreamEx.of(this.modules).map(YangModuleInfo::getClass).toArray(Class[]::new));
 
         this.normalizedNodeBroker = new NormalizedNodeBroker(this);
-        this.broker = new BindingDOMDataBrokerAdapter(this.normalizedNodeBroker,
+        this.broker = new BindingDOMDataBrokerAdapter(new AdapterContext() {
+
+            @Nonnull @Override
+            public CurrentAdapterSerializer currentSerializer() {
+                return new CurrentAdapterSerializer(new BindingCodecContext(runtimeContext));
+            }
+
+        }, this.normalizedNodeBroker);
+
+        /*
                 new BindingToNormalizedNodeCodec(this.context, new BindingNormalizedNodeCodecRegistry(
                         BindingRuntimeContext.create(this.context, this.getYangContext()))));
+        */
     }
 
     @Nonnull @SuppressWarnings({"UnusedReturnValue"})
@@ -454,7 +479,7 @@ public class YangPool implements EffectiveModelContextProvider {
                 @Nonnull final var nodeWriter = ImmutableNormalizedNodeStreamWriter.from(nodeResult);
 
                 @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var parser = XmlParserStream.create(
-                        nodeWriter, this.getYangContext(), input.getYangTreeNode(), true);
+                        nodeWriter, this.context, input.getYangTreeNode(), true);
 
                 parser.parse(input);
                 dataNodes.add(nodeResult.getResult());

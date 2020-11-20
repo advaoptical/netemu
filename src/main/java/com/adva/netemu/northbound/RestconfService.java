@@ -27,7 +27,7 @@ import org.opendaylight.restconf.nb.rfc8040.handlers.SchemaContextHandler;
 import org.opendaylight.restconf.nb.rfc8040.handlers.TransactionChainHandler;
 
 import org.opendaylight.restconf.nb.rfc8040.services.wrapper.ServicesWrapper;
-// import org.opendaylight.restconf.nb.rfc8040.streams.Configuration;
+import org.opendaylight.restconf.nb.rfc8040.streams.Configuration;
 
 import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
@@ -79,10 +79,10 @@ public class RestconfService extends EmuService {
         @Nonnull final var domMountPointServiceHandler = new DOMMountPointServiceHandler(new DOMMountPointServiceImpl());
         @Nonnull final var transactionChainHandler = new TransactionChainHandler(super.yangPool().getNormalizedNodeBroker());
         @Nonnull final var schemaContextHandler = new SchemaContextHandler(transactionChainHandler, domSchemaService);
-        schemaContextHandler.onGlobalContextUpdated(schemaContext);
+        schemaContextHandler.onModelContextUpdated(schemaContext);
 
         @Nonnull final var domRpcRouter = DOMRpcRouter.newInstance(domSchemaService);
-        domRpcRouter.onGlobalContextUpdated(schemaContext);
+        domRpcRouter.onModelContextUpdated(schemaContext);
 
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var restconf = new RestconfApplication(
                 schemaContextHandler, domMountPointServiceHandler, ServicesWrapper.newInstance(
@@ -94,9 +94,8 @@ public class RestconfService extends EmuService {
                         new RpcServiceHandler(domRpcRouter.getRpcService()),
                         new ActionServiceHandler(domRpcRouter.getActionService()),
                         new NotificationServiceHandler(DOMNotificationRouter.create(1024)),
-                        domSchemaService));
-
-                        // new Configuration(0, 1, 0, true)));
+                        domSchemaService,
+                        new Configuration(0, 1, 0, true)));
 
         @Nonnull final var settings = (Settings) this.settings();
         @Nonnull final var http = GrizzlyHttpServerFactory.createHttpServer(

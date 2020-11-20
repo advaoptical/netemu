@@ -12,17 +12,17 @@ import javax.xml.stream.XMLStreamException;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
-
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.concurrent.GlobalEventExecutor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.rcf8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
+import org.opendaylight.yangtools.yang.model.parser.api.YangParserFactory;
+import org.opendaylight.yangtools.yang.parser.impl.YangParserFactoryImpl;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
@@ -36,6 +36,7 @@ import org.opendaylight.netconf.client.conf.NetconfClientConfigurationBuilder;
 import org.opendaylight.netconf.nettyutil.ReconnectImmediatelyStrategy;
 import org.opendaylight.netconf.nettyutil.handler.ssh.authentication.AuthenticationHandler;
 import org.opendaylight.netconf.nettyutil.handler.ssh.authentication.LoginPasswordHandler;
+import org.opendaylight.netconf.sal.connect.netconf.schema.mapping.DefaultBaseNetconfSchemas;
 import org.opendaylight.netconf.sal.connect.netconf.schema.mapping.NetconfMessageTransformer;
 import org.opendaylight.netconf.sal.connect.netconf.util.NetconfMessageTransformUtil;
 
@@ -119,6 +120,9 @@ public class NetconfDriver extends EmuDriver {
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
     @Nonnull
+    private static final YangParserFactory YANG_PARSER_FACTORY = new YangParserFactoryImpl();
+
+    @Nonnull
     private final InetSocketAddress address;
 
     @Nonnull
@@ -157,7 +161,8 @@ public class NetconfDriver extends EmuDriver {
         }
 
         this.transformer = new NetconfMessageTransformer(
-                new EmptyMountPointContext(pool.getYangContext()), true); // true -> strict message parsing
+                new EmptyMountPointContext(pool.getEffectiveModelContext()), true, // true -> strict message parsing
+                new DefaultBaseNetconfSchemas(YANG_PARSER_FACTORY).getBaseSchemaWithNotifications());
     }
 
     @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
