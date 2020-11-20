@@ -33,7 +33,8 @@ Main Classes
         `groovy mvn-yang-data-codec-xml.groovy install`
         `groovy mvn-netconf-netty-util.groovy install`
 
- 
+ - [ ] Settings>Build, Execution, Deployment>Build Tools>Gradle noch die Gradle JVM auf 13 stellen
+ - [ ]  in Intellij den Gradle-Task "install" ausfuehren
 
 
 
