@@ -4,7 +4,7 @@
 
 The library can be use to validate yang models and yang datastores (e.g. for AOS F8 or OpenConfig), build mediators for new APIs (e.g. OpenROADM Agent), or SDN applications (e.g. FlexProbe)
 
-Used projects and libraries
+**Used projects and libraries**
 - OpenDaylight
     - org.opendaylight.netconf.*
     - org.opendaylight.mdsal.*
@@ -43,14 +43,15 @@ Used projects and libraries
         -----------     ----                                               -------    ------
         Application     mvn.cmd                                            0.0.0.0    C:\DEV\MAVEN\apache-maven-3.6.2\bin\mv...
 
+    ```
     --> replace mvn with mvn.cmd in all three groovy scripts:
         `groovy mvn-yang-data-util.groovy install`
         `groovy mvn-yang-data-codec-xml.groovy install`
         `groovy mvn-netconf-netty-util.groovy install`   
-    ```
 
-- 
-- jepDir: if no python is installed, deactivate jebDir from build.Gradle   
+ 
+- **deactiviate jepDir if no Python installed**
+    jepDir: if no python is installed, deactivate jebDir from build.Gradle   
     - ~ line 23: comment /* ext.jepDir = [ ... ].execute().text.trim() */ 
     - ~ line 50: comment: /* flatDir {  dirs jepDir } */
 
