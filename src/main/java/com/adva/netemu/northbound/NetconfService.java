@@ -32,7 +32,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import com.google.common.util.concurrent.Futures;
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -92,6 +94,9 @@ public class NetconfService extends EmuService implements RpcHandler {
     }
 
     @Nonnull
+    private final NetconfState netconfState;
+
+    @Nonnull
     private final AtomicReference<NetconfDeviceSimulator> netconf = new AtomicReference<>(null);
 
     @Nonnull
@@ -101,6 +106,7 @@ public class NetconfService extends EmuService implements RpcHandler {
 
     public NetconfService(@Nonnull final YangPool pool, @Nonnull final Settings settings) {
         super(pool, settings);
+        this.netconfState = NetconfState.from(pool.getEffectiveModelContext());
     }
 
     @Override
@@ -220,7 +226,9 @@ public class NetconfService extends EmuService implements RpcHandler {
             return Optional.empty();
         }
 
-        return Optional.of(data.getDocumentElement());
+        @Nonnull final var dataElement = data.getDocumentElement();
+        dataElement.appendChild(data.importNode(this.netconfState.toXmlElement(), true));
+        return Optional.of(dataElement);
     }
 
     @Nonnull
