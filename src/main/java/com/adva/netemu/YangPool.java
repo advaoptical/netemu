@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -37,7 +38,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 import one.util.streamex.StreamEx;
-import org.eclipse.jdt.annotation.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -57,6 +57,9 @@ import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContextProvider;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
+import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
+import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceProvider;
 
 import org.opendaylight.binding.runtime.api.BindingRuntimeContext;
 import org.opendaylight.binding.runtime.spi.BindingRuntimeHelpers;
@@ -84,8 +87,7 @@ import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStoreConfigPrope
 import com.adva.netemu.datastore.DaggerYangDatastore;
 import com.adva.netemu.datastore.YangDatastore;
 
-
-public class YangPool implements EffectiveModelContextProvider {
+public class YangPool implements EffectiveModelContextProvider, SchemaSourceProvider<YangTextSchemaSource> {
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(YangPool.class);
@@ -107,7 +109,17 @@ public class YangPool implements EffectiveModelContextProvider {
         return this.modules;
     }
 
-    @Nonnull
+    @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
+    public ListenableFuture<? extends YangTextSchemaSource> getSource(@Nonnull final SourceIdentifier identifier) {
+        return Futures.immediateFuture(StreamEx.of(this.modules).findFirst(module -> {
+            @Nonnull final var qName = module.getName();
+            return qName.getLocalName().equals(identifier.getName()) && qName.getRevision().equals(identifier.getRevision());
+
+        }).map(module -> YangTextSchemaSource.delegateForByteSource(identifier, module.getYangTextByteSource())).orElseThrow(() ->
+                new NoSuchElementException(identifier.toString())));
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     private final EffectiveModelContext context;
 
     @Nonnull
