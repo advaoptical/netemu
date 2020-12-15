@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -32,8 +33,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import com.google.common.util.concurrent.Futures;
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
+import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,6 @@ import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.codec.xml.XMLStreamNormalizedNodeStreamWriter;
 
@@ -112,7 +112,7 @@ public class NetconfService extends EmuService implements RpcHandler {
     @Override
     public synchronized void run() {
         if (this.netconf.get() != null) {
-            return;
+            throw new IllegalStateException(String.format("%s is already running", this));
         }
 
         @Nonnull final var netconf = new NetconfDeviceSimulator(((ConfigurationBuilder) super.settings())
@@ -157,128 +157,122 @@ public class NetconfService extends EmuService implements RpcHandler {
             return Optional.empty();
         }
 
-        @Nonnull final Optional<Element> data;
+        @Nonnull final CompletableFuture<Optional<Element>> futureData;
         switch (request.getName()) {
             case "get":
-                data = this.applyGetRequest(Objects.requireNonNull(request));
+                futureData = this.applyGetRequest(Objects.requireNonNull(request));
                 break;
 
             case "edit-config":
-                data = this.applyEditConfigRequest(request);
+                futureData = this.applyEditConfigRequest(request);
                 break;
 
             default:
                 return Optional.empty();
         }
 
-        data.ifPresent(element -> root.appendChild(response.importNode(element, true)));
-        return Optional.of(response);
-    }
-
-    @Nonnull
-    Optional<Element> applyGetRequest(@SuppressWarnings({"unused"}) final XmlElement request) {
-        @Nonnull final var futureData = super.yangPool().readOperationalData();
-        @Nonnull final Optional<NormalizedNode<?, ?>> node;
         try {
-                node = futureData.get();
+            futureData.get().ifPresent(element -> root.appendChild(response.importNode(element, true)));
 
         } catch (final InterruptedException | ExecutionException e) {
             e.printStackTrace();
             return Optional.empty();
         }
 
-        if (node.isEmpty()) {
-            return Optional.empty();
-        }
-
-        @Nonnull final var stream = new ByteArrayOutputStream();
-        @Nonnull final XMLStreamWriter xmlWriter;
-        try {
-            xmlWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(stream, "UTF-8");
-
-        } catch (XMLStreamException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
-
-        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var nodeWriter = NormalizedNodeWriter.forStreamWriter(
-                XMLStreamNormalizedNodeStreamWriter.createSchemaless(new IndentingXMLStreamWriter(xmlWriter)));
-                // this._pool.getYangContext()));
-
-        try {
-            nodeWriter.write(node.get()).flush(); // TODO: @SuppressWarnings({"UnstableApiUsage"})
-
-        } catch (final IOException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
-
-        /*  Adding <data> element to response adapted from
-            https://stackoverflow.com/questions/729621/convert-string-xml-fragment-to-document-node-in-java
-        */
-
-        @Nonnull final Document data;
-        try {
-            data = RESPONSE_BUILDER.parse(new InputSource(new StringReader(stream.toString(StandardCharsets.UTF_8))));
-
-        } catch (final SAXException | IOException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
-
-        @Nonnull final var dataElement = data.getDocumentElement();
-        dataElement.appendChild(data.importNode(this.netconfState.toXmlElement(), true));
-        return Optional.of(dataElement);
+        return Optional.of(response);
     }
 
     @Nonnull
-    Optional<Element> applyEditConfigRequest(@Nonnull final XmlElement request) {
-        // @Nonnull final XmlElement target;
-        try {
-            request.getOnlyChildElement("target").getOnlyChildElement();
+    CompletableFuture<Optional<Element>> applyGetRequest(@Nonnull @SuppressWarnings({"unused"}) final XmlElement request) {
+        return FutureConverter.toCompletableFuture(super.yangPool().readOperationalData()).thenApplyAsync(data ->
+                data.map(yangNode -> {
+                    @Nonnull final var xmlByteStream = new ByteArrayOutputStream();
 
-        } catch (final DocumentedException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
+                    @Nonnull final XMLStreamWriter xmlWriter;
+                    try {
+                        xmlWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(xmlByteStream, "UTF-8");
 
-        @Nonnull final XmlElement data;
-        try {
-            data = request.getOnlyChildElement("config");
+                    } catch (final XMLStreamException e) {
+                        throw new RuntimeException(e);
+                    }
 
-        } catch (final DocumentedException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
+                    @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNodeWriter = NormalizedNodeWriter
+                            .forStreamWriter(XMLStreamNormalizedNodeStreamWriter.createSchemaless(
+                                    new IndentingXMLStreamWriter(xmlWriter)));
+                                    // this._pool.getYangContext()));
 
-        @Nonnull final Transformer xmlTransformer;
-        try {
-            xmlTransformer = XML_TRANSFORMER_FACTORY.newTransformer();
+                    try {
+                        yangNodeWriter.write(yangNode).flush(); // TODO: @SuppressWarnings({"UnstableApiUsage"})
 
-        } catch (final TransformerConfigurationException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
+                    } catch (final IOException e) {
+                        throw new RuntimeException(e);
+                    }
 
-        @Nonnull final StringWriter dataWriter = new StringWriter();
-        try {
-            xmlTransformer.transform(new DOMSource(data.getDomElement()), new StreamResult(dataWriter));
+                    /*  Adding <data> element to response adapted from
+                        https://stackoverflow.com/questions/729621/convert-string-xml-fragment-to-document-node-in-java
+                    */
 
-        } catch (final TransformerException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
+                    @Nonnull final Document xmlData;
+                    try {
+                        xmlData = RESPONSE_BUILDER.parse(new InputSource(new StringReader(xmlByteStream.toString(
+                                StandardCharsets.UTF_8))));
 
-        @Nonnull final XMLStreamReader xmlReader;
-        try {
-            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(dataWriter.toString()));
+                    } catch (final SAXException | IOException e) {
+                        throw new RuntimeException(e);
+                    }
 
-        } catch (final XMLStreamException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
+                    @Nonnull final var xmlDataElement = xmlData.getDocumentElement();
+                    xmlDataElement.appendChild(xmlData.importNode(this.netconfState.toXmlElement(), true));
+                    return xmlDataElement;
+                }));
+    }
 
-        super.yangPool().writeOperationalDataFrom(xmlReader);
-        return Optional.empty();
+    @Nonnull
+    CompletableFuture<Optional<Element>> applyEditConfigRequest(@Nonnull final XmlElement request) {
+        return CompletableFuture.supplyAsync(() -> {
+            // @Nonnull final XmlElement target;
+            try {
+                request.getOnlyChildElement("target").getOnlyChildElement();
+
+            } catch (final DocumentedException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final XmlElement data;
+            try {
+                data = request.getOnlyChildElement("config");
+
+            } catch (final DocumentedException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final Transformer xmlTransformer;
+            try {
+                xmlTransformer = XML_TRANSFORMER_FACTORY.newTransformer();
+
+            } catch (final TransformerConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final StringWriter dataWriter = new StringWriter();
+            try {
+                xmlTransformer.transform(new DOMSource(data.getDomElement()), new StreamResult(dataWriter));
+
+            } catch (final TransformerException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final XMLStreamReader xmlReader;
+            try {
+                xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(dataWriter.toString()));
+
+            } catch (final XMLStreamException e) {
+                throw new RuntimeException(e);
+            }
+
+            return xmlReader;
+
+        }).thenCompose(xmlReader -> FutureConverter.toCompletableFuture(super.yangPool().writeOperationalDataFrom(xmlReader))
+                .thenApply(ignoredCommitInfos -> Optional.empty()));
     }
 }
