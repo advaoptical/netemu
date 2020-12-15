@@ -6,7 +6,6 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -35,6 +34,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
+import one.util.streamex.StreamEx;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +43,10 @@ import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.codec.xml.XMLStreamNormalizedNodeStreamWriter;
+import org.opendaylight.yangtools.yang.model.repo.api.RevisionSourceIdentifier;
 
 import org.opendaylight.netconf.api.DocumentedException;
 import org.opendaylight.netconf.api.xml.MissingNameSpaceException;
@@ -160,7 +162,11 @@ public class NetconfService extends EmuService implements RpcHandler {
         @Nonnull final CompletableFuture<Optional<Element>> futureData;
         switch (request.getName()) {
             case "get":
-                futureData = this.applyGetRequest(Objects.requireNonNull(request));
+                futureData = this.applyGetRequest(request);
+                break;
+
+            case "get-schema":
+                futureData = this.applyGetSchemaRequest(request);
                 break;
 
             case "edit-config":
@@ -224,6 +230,47 @@ public class NetconfService extends EmuService implements RpcHandler {
                     @Nonnull final var xmlDataElement = xmlData.getDocumentElement();
                     xmlDataElement.appendChild(xmlData.importNode(this.netconfState.toXmlElement(), true));
                     return xmlDataElement;
+                }));
+    }
+
+    @Nonnull
+    private CompletableFuture<Optional<Element>> applyGetSchemaRequest(@Nonnull final XmlElement request) {
+        return CompletableFuture.supplyAsync(() -> {
+
+            @Nonnull final String identifier;
+            @Nonnull final String version;
+            @Nonnull final String format;
+            try {
+                identifier = request.getOnlyChildElement("identifier").getTextContent();
+                version = request.getOnlyChildElement("version").getTextContent();
+                format = request.getOnlyChildElement("format").getTextContent();
+
+            } catch (final DocumentedException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (!format.equals("yang")) {
+                throw new IllegalArgumentException(String.format("Unsupported schema format: %s", format));
+            }
+
+            return RevisionSourceIdentifier.create(identifier, Revision.of(version));
+
+        }).thenCompose(sourceIdentifier -> FutureConverter.toCompletableFuture(super.yangPool().getSource(sourceIdentifier))
+                .thenApplyAsync(yangByteSource -> {
+                    @Nonnull final var xmlData = RESPONSE_BUILDER.newDocument();
+                    @Nonnull final var xmlDataElement = xmlData.createElementNS(
+                            XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_YANG_IETF_NETCONF_MONITORING, "data");
+
+                    try {
+                        xmlDataElement.setTextContent(String.join("\n", StreamEx
+                                .of(yangByteSource.asCharSource(StandardCharsets.UTF_8).readLines())
+                                .map(String::stripTrailing)));
+
+                    } catch (final IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    return Optional.of(xmlDataElement);
                 }));
     }
 
