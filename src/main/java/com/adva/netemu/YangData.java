@@ -1,5 +1,6 @@
 package com.adva.netemu;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -22,8 +23,7 @@ public class YangData<Y extends DataObject> {
     @Nonnull
     public Y get() {
         if (this.object == null) {
-            throw new NullPointerException("Empty YangData<>!"
-                    + " Check YangData::isPresent before YangData::get");
+            throw new NullPointerException("Empty YangData<>! Check YangData::isPresent before YangData::get");
         }
 
         return this.object;
@@ -35,6 +35,11 @@ public class YangData<Y extends DataObject> {
 
     @Nonnull
     public static <Y extends DataObject> YangData<Y> of(@Nonnull final Y object) {
+        return new YangData<>(Objects.requireNonNull(object));
+    }
+
+    @Nonnull
+    public static <Y extends DataObject> YangData<Y> ofNullable(@Nullable final Y object) {
         return new YangData<>(object);
     }
 
@@ -59,7 +64,7 @@ public class YangData<Y extends DataObject> {
 
     @Nullable
     public Y orElseGet(@Nonnull final Supplier<Y> supplier) {
-        return supplier.get();
+        return (this.object != null) ? this.object : supplier.get();
     }
 
     public void ifPresent(@Nonnull final Consumer<Y> action) {
