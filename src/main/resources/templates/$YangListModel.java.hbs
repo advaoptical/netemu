@@ -21,6 +21,7 @@ import com.adva.netemu.YangListProvider;
 
     public {{{class}}}_YangModel(@Nonnull final ListKey key) {
         this.yangBinding = {{{class}}}{{{bindingClassSuffix}}}.withKey(key)
+                .appliesConfigurationDataUsing(this.config::set)
                 .appliesOperationalDataUsing(this.data::set);
     }
 

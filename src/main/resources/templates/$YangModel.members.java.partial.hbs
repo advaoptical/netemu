@@ -1,4 +1,12 @@
     @Nonnull
+    private final AtomicReference<Data> config = new AtomicReference<>(Data.empty());
+
+    @Nonnull
+    public Data config() {
+        return this.config.get();
+    }
+
+    @Nonnull
     private final AtomicReference<Data> data = new AtomicReference<>(Data.empty());
 
     @Nonnull
@@ -79,7 +87,7 @@
 
     @Nonnull
     public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
-        return this.data.get().get{{{@key}}}();
+        return this.data.get().get{{{@key}}}().or(() -> this.config.get().get{{{@key}}}());
     }
 
     protected void set{{{@key}}}(@Nullable final {{{this.valueClass}}} value) {

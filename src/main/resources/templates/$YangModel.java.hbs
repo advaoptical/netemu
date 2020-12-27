@@ -12,11 +12,11 @@ import com.adva.netemu.YangProvider;
 
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
-    return Optional.of(this.yangBinding);
+        return Optional.of(this.yangBinding);
     }
 
     public {{{class}}}_YangModel() {
-        this.yangBinding.appliesOperationalDataUsing(this.data::set);
+        this.yangBinding.appliesConfigurationDataUsing(this.config::set).appliesOperationalDataUsing(this.data::set);
     }
 
     {{> $YangModel.members.java.partial}}
