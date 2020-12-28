@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -100,6 +101,14 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
     @Nonnull
     private final Executor loggingCallbackExecutor = MoreExecutors.directExecutor();
+
+    @Nonnull
+    private final String id;
+
+    @Nonnull
+    public String id() {
+        return this.id;
+    }
 
     @Nonnull
     private final Set<YangModuleInfo> modules;
@@ -203,12 +212,13 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     @Nonnull
     private final List<YangListBindable> yangListBindableRegistry = Collections.synchronizedList(new ArrayList<>());
 
-    public YangPool(@Nonnull final String id, final YangModuleInfo... modules) {
+    public YangPool(@Nonnull final String id, @Nonnull final YangModuleInfo... modules) {
         this(id, List.of(modules));
     }
 
     public YangPool(@Nonnull final String id, @Nonnull final Collection<YangModuleInfo> modules) {
-        this.modules = Set.copyOf(modules);
+        this.id = Objects.requireNonNull(id);
+        this.modules = Set.copyOf(Objects.requireNonNull(modules));
         this.context = BindingRuntimeHelpers.createEffectiveModel(this.modules);
         // this.context.addModuleInfos(this.modules);
 
