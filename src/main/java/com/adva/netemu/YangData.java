@@ -18,7 +18,7 @@ public class YangData<Y extends DataObject> {
     private final static YangData<? extends DataObject> EMPTY = new YangData<>(null);
 
     @Nullable
-    private final Y object;
+    protected final Y object;
 
     @Nonnull
     public Y get() {
