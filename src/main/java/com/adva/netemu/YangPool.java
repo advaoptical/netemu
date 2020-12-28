@@ -3,6 +3,7 @@ package com.adva.netemu;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -477,6 +478,28 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(@Nonnull final File file) {
         return this.loadConfigurationFromXml(file, StandardCharsets.UTF_8);
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(
+            @Nonnull final InputStream stream, @Nonnull final Charset encoding) {
+
+        @Nonnull final XMLStreamReader xmlReader;
+        try {
+            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(stream, encoding.name());
+
+        } catch (final XMLStreamException e) {
+            LOG.error("While using stream for loading XML Configuration: ", e);
+            LOG.error("Failed reading XML Configuration from: {}", stream);
+            return CompletableFuture.completedFuture(List.of());
+        }
+
+        return FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(xmlReader));
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(@Nonnull final InputStream stream) {
+        return this.loadConfigurationFromXml(stream, StandardCharsets.UTF_8);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage", "UnusedReturnValue"})
