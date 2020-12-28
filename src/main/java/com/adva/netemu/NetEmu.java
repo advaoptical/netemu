@@ -15,8 +15,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.xml.stream.XMLInputFactory;
@@ -24,7 +27,9 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
-
+import one.util.streamex.StreamEx;
+import org.reflections.Reflections;
+import org.reflections.scanners.ResourcesScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,6 +125,7 @@ public class NetEmu {
     }
 
     public synchronized void start() {
+
         for (@Nonnull final var serviceCreator : this.serviceRegistry) {
             @Nonnull final var service = serviceCreator.apply(this.pool);
             @Nonnull final var serviceThread = new Thread(service);
@@ -136,6 +142,33 @@ public class NetEmu {
         }
     }
     */
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromResources() {
+        @Nonnull final var reflections = new Reflections(
+                String.format("EMU-INF/config/%s", this.pool.id()),
+                new ResourcesScanner());
+
+        @Nonnull final var configResources = reflections.getResources(Pattern.compile(".*\\.xml$"));
+        if (configResources.isEmpty()) {
+            LOG.info("Found no EMU-INF/config resources for YangPool {}", this.pool.id());
+
+        } else {
+            LOG.info("Found EMU-INF/config resources for YangPool {}: {}", this.pool.id(), configResources);
+        }
+
+        @Nonnull final var futures = StreamEx.of(configResources)
+                .map(configResource -> this.pool.loadConfigurationFromXml(Optional
+                        .ofNullable(Thread.currentThread().getContextClassLoader().getResourceAsStream(configResource))
+                        .orElseThrow(() -> new IllegalStateException(String.format(
+                                "Cannot access resource %s although found by %s", configResource, reflections)))))
+
+                .toImmutableList();
+
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenApply(ignoredVoid -> StreamEx.of(futures)
+                .flatMap(futureCommitInfos -> StreamEx.of(futureCommitInfos.join()))
+                .toImmutableList());
+    }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public CompletableFuture<List<CommitInfo>> loadConfigurationFromXml(@Nonnull final Reader reader) {
