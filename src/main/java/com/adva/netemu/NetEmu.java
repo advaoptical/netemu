@@ -10,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,12 +23,16 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import com.google.common.io.PatternFilenameFilter;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 import one.util.streamex.StreamEx;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
 import org.slf4j.Logger;
@@ -151,11 +156,11 @@ public class NetEmu {
 
         @Nonnull final var configResources = reflections.getResources(Pattern.compile(".*\\.xml$"));
         if (configResources.isEmpty()) {
-            LOG.info("Found no EMU-INF/config resources for YangPool {}", this.pool.id());
-
-        } else {
-            LOG.info("Found EMU-INF/config resources for YangPool {}: {}", this.pool.id(), configResources);
+            LOG.info("Found no config resources for YangPool {}", this.pool.id());
+            return CompletableFuture.completedFuture(List.of());
         }
+
+        LOG.info("Found config resources for YangPool {}: {}", this.pool.id(), configResources);
 
         @Nonnull final var futures = StreamEx.of(configResources)
                 .map(configResource -> this.pool.loadConfigurationFromXml(Optional
@@ -165,6 +170,24 @@ public class NetEmu {
 
                 .toImmutableList();
 
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenApply(ignoredVoid -> StreamEx.of(futures)
+                .flatMap(futureCommitInfos -> StreamEx.of(futureCommitInfos.join()))
+                .toImmutableList());
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfigurationFromCurrentDirectory() {
+        @Nullable final var configFiles = Paths.get("EMU-CONF", this.pool.id()).toAbsolutePath().toFile()
+                .listFiles(new PatternFilenameFilter(".*\\.xml$"));
+
+        if (ArrayUtils.isEmpty(configFiles)) {
+            LOG.info("Found no config files for YangPool {} in current directory", this.pool.id());
+            return CompletableFuture.completedFuture(List.of());
+        }
+
+        LOG.info("Found config files for YangPool {} in current directory: {}", this.pool.id(), configFiles);
+
+        @Nonnull final var futures = StreamEx.of(configFiles).map(this.pool::loadConfigurationFromXml).toImmutableList();
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenApply(ignoredVoid -> StreamEx.of(futures)
                 .flatMap(futureCommitInfos -> StreamEx.of(futureCommitInfos.join()))
                 .toImmutableList());
