@@ -149,6 +149,13 @@ public class NetEmu {
     */
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<List<CommitInfo>> loadConfiguration() {
+        return this.loadConfigurationFromResources().thenCompose(resourceCommitInfos ->
+                this.loadConfigurationFromCurrentDirectory().thenApply(fileCommitInfos ->
+                        StreamEx.of(resourceCommitInfos).append(fileCommitInfos).toImmutableList()));
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public CompletableFuture<List<CommitInfo>> loadConfigurationFromResources() {
         @Nonnull final var reflections = new Reflections(
                 String.format("EMU-INF/config/%s", this.pool.id()),
