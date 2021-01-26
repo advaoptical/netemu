@@ -73,7 +73,8 @@ dependencies {
     annotationProcessor "com.google.dagger:dagger-compiler:2.25.4"
     annotationProcessor "com.squareup.inject:assisted-inject-processor-dagger2:0.5.2"
 
-    api "com.bea.xml:jsr173-ri:1.0"
+    api "javax.xml:jsr173:1.0"
+    // api "com.bea.xml:jsr173-ri:1.0"
     // api "com.ea.async:ea-async:1.2.3"
     api "net.javacrumbs.future-converter:future-converter-java8-guava:1.2.0"
     api "one.util:streamex:0.7.2"
