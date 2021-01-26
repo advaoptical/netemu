@@ -1,19 +1,46 @@
 package com.adva.netemu.driver;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
+import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.FluentFuture;
+
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 
+import com.adva.netemu.YangBinding;
 import com.adva.netemu.YangPool;
-
-import java.util.List;
 
 
 public abstract class EmuDriver {
 
     public interface Settings<D extends EmuDriver> {}
+
+    public static abstract class Binding<D extends EmuDriver> {
+
+        @Nonnull @SuppressWarnings({"UnstableApiUsage", "unchecked"})
+        public Class<D> getDriverClass() {
+            return (Class<D>) (new TypeToken<D>(this.getClass()) {}).getRawType();
+        }
+
+        @Nonnull
+        private final D driver;
+
+        @Nonnull
+        public D driver() {
+            return this.driver;
+        }
+
+        @Nonnull
+        private final YangBinding<?, ?> yangBinding;
+
+        protected Binding(@Nonnull final D driver, @Nonnull final YangBinding<?, ?> yangBinding) {
+            this.yangBinding = yangBinding;
+            this.driver = driver;
+        }
+    }
 
     @Nonnull
     private final YangPool yangPool;

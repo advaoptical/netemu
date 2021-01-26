@@ -2,9 +2,11 @@ package com.adva.netemu;
 
 import java.lang.reflect.InvocationTargetException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,6 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
+import one.util.streamex.StreamEx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +37,8 @@ import org.opendaylight.mdsal.binding.api.DataTreeChangeListener;
 import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
 import org.opendaylight.mdsal.binding.api.DataTreeModification;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+
+import com.adva.netemu.driver.EmuDriver;
 
 
 public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TODO: ChildOf<?>
@@ -158,6 +163,30 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
             @Nonnull @SuppressWarnings({"unused"}) final Owned.Maker maker, @Nullable final YangBinding<?, ?> owner) {
 
         this.owner = owner;
+    }
+
+    @Nonnull
+    private final List<EmuDriver.Binding<?>> driverBindings = Collections.synchronizedList(new ArrayList<>());
+
+    @Nonnull @SuppressWarnings({"unchecked"})
+    public <D extends EmuDriver.Binding<?>>
+    Optional<D> findDriverBindingOf(@Nonnull final Class<? extends EmuDriver.Binding<?>> driverBindingClass) {
+        synchronized (this.driverBindings) {
+            return StreamEx.of(this.driverBindings).findFirst(driverBindingClass::isInstance)
+                    .map(driverBinding -> (D) driverBinding);
+        }
+    }
+
+    @Nonnull @SuppressWarnings({"unchecked"})
+    public <D extends EmuDriver> Optional<EmuDriver.Binding<D>> findDriverBindingFor(@Nonnull final Class<D> driverClass) {
+        synchronized (this.driverBindings) {
+            return StreamEx.of(this.driverBindings).findFirst(driverBinding -> driverBinding.getDriverClass().equals(driverClass))
+                    .map(driverBinding -> (EmuDriver.Binding<D>) driverBinding);
+        }
+    }
+
+    public void addDriverBinding(@Nonnull final EmuDriver.Binding<?> driverBinding) {
+        this.driverBindings.add(driverBinding);
     }
 
     @Nonnull
