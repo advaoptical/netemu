@@ -72,6 +72,7 @@ public class NetEmu {
             this.driverClass = driverClass;
         }
 
+        @Nonnull
         public D newSessionFrom(@Nonnull final EmuDriver.Settings<D> settings) {
             try {
                 return driverClass.getDeclaredConstructor(YangPool.class, EmuDriver.Settings.class)
