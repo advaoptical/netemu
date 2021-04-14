@@ -17,7 +17,7 @@ public class NetconfState extends DummyMonitoringService {
 
     @SuppressWarnings({"UnstableApiUsage"})
     private NetconfState(@Nonnull final EffectiveModelContext yangContext) {
-        super(StreamEx.of(yangContext.getModules()).map(module -> (Capability) new YangModuleCapability(module, /* TODO: */ ""))
+        super(StreamEx.of(yangContext.getModules()).map(module -> (Capability) new YangModuleCapability(module, /* TODO? */ ""))
                 .toImmutableSet());
     }
 
