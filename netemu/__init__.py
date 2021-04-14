@@ -14,4 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from IPython import InteractiveShell
+
 from .pool import YANGPool
+
+
+def load_ipython_extension(shell: InteractiveShell):
+    from . import magic
+
+    shell.magics_manager.magics['line'].update({
+        'emuconnect': magic.connect,
+        'emuget': magic.get,
+        'emusave': magic.save,
+    })
