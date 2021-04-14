@@ -17,10 +17,14 @@
 from abc import abstractmethod
 
 import modeled
-from jep import PyJObject
+# from jep import PyJObject
+from java.lang import Object
 
 import netemu
 from .yangtools import NormalizedNode
+
+
+PyJObject = type(Object())
 
 
 class Meta(modeled.object.meta):
