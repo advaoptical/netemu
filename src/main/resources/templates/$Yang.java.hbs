@@ -84,6 +84,20 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
             return StreamEx.of(this.list{{{@key}}}());
         }
 
+        /*
+        @Nonnull
+        public Optional<{{{this.valueClass}}}> find{{{@key}}}(@Nonnull final Object key) {
+            return this.stream{{{@key}}}().findFirst(value -> (value != null) && value.key().equals(key));
+        }
+
+        @Nonnull
+        public {{{this.valueClass}}} require{{{@key}}}(@Nonnull final Object key) {
+            return this.stream{{{@key}}}().findFirst(value -> (value != null) && value.key().equals(key)).orElseThrow(() ->
+                    new NoSuchElementException(String.format("Missing YANG {{{@key}}} leaf list item with key %s in %s",
+                            key, this.object)));
+        }
+        */
+
     {{else}}
         @Nonnull
         public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
