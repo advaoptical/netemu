@@ -21,7 +21,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.
         context = NetEmuDefined.class, namespace = "urn:ietf:params:xml:ns:yang:ietf-interfaces", value = "interfaces/interface")
 
 public class TestInterface implements YangListBindable {
-e
+
     @Nonnull
     private static final Class<? extends InterfaceType> IETF_INTERFACE_TYPE = EthernetCsmacd.class;
 
