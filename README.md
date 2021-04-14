@@ -1,130 +1,129 @@
-# NETEMU
+NETEMU
+======
 
-## Library to generate Java and Python source code with utility functions from YANG models to build NETCONF APIs in an object-oriented manner
+![](https://www.adva.com/-/media/adva-main-site/logo)
+> **NE**tworking **T**echnologies' **E**nhanced **M**anagement **U**tilities
 
-The library can be use to validate yang models and yang datastores (e.g. for AOS F8 or OpenConfig), build mediators for new APIs (e.g. OpenROADM Agent), or SDN applications (e.g. FlexProbe)
+[ADVAnced](https://adva.com) Java/YANG **Rapid Development Framework for Elegant SDN Applications**, featuring:
 
-**Used projects and libraries**
-- OpenDaylight
-    - org.opendaylight.netconf.*
-    - org.opendaylight.mdsal.*
-    - org.opendaylight.yangtools.*
--  Gradle
-    - annotation processor
-    - YangToSources
-    - Pythonizer
-- Groovy
+  * [OpenDaylight](https://www.opendaylight.org) libraries at its core
+  * MD-SAL/ADVAnced code generation from YANG models using Java annotations
+  * Clean, declarative, event-based, functional, asynchronous APIs for YANG-bound data flow
+  * [CPython](https://www.python.org)-integration via [Jep](https://pypi.org/project/jep) for interactive data analysis and automation scripting, including support for [Jupyter](https://jupyter.org) notebooks
+  * [React/Native](https://reactnative.dev)-integration with focus on [Expo](https://expo.io) for Android/iOS/Web cross-platform frontend development
+  * Completely [Gradle](https://gradle.org)-managed application life-cycles
 
-**Pre-requisites, installation and usage**
-- **Java 13, Maven 3.6.x, Groovy 3.0 **
-    - netemu (specifically spotbugs) requires Java 13
-    - install Openjdk13 (via chocolate / package manager)
-    - JAVA_HOME should be set to java13 and path should include %JAVA_HOME%\bin
-    - Settings>Build, Execution, Deployment>Build Tools>Gradle --> set Gradle JVM to java 13 
+### Prepare your development environment for NETEMU
 
-    ```
-    C:\Users\developer>java --version
-        openjdk 13.0.2 2020-01-14
-        OpenJDK Runtime Environment (build 13.0.2+8)
-        OpenJDK 64-Bit Server VM (build 13.0.2+8, mixed mode, sharing)
+Make sure to have OpenJDK 11 or 13, Gradle 6.0+, [Groovy](https://groovy-lang.org) 3.0+, and [Maven](https://maven.apache.org) 3.6+ installed. Recommended installation sources are:
 
-    C:\Users\developer>mvn -version
-        Apache Maven 3.6.2 (40f52333136460af0dc0d7232c0dc0bcf0d9e117; 2019-08-27T17:06:16+02:00)
-        Maven home: C:\DEV\MAVEN\apache-maven-3.6.2\bin\..
-        Java version: 13.0.2, vendor: Oracle Corporation, runtime: C:\Program Files\OpenJDK\jdk-13.0.2
-        Default locale: de_DE, platform encoding: Cp1252
-        OS name: "windows 10", version: "10.0", arch: "amd64", family: "windows"
+  * **GNU/Linux**: Your GNU/Linux distribution's package manager or [SDKMAN!](https://sdkman.io)
+  * **Mac OSX**: [Homebrew](https://brew.sh) or [SDKMAN!](https://sdkman.io)
+  * **Windows**: [Chocolatey](https://chocolatey.org)
 
-    C:\Users\developer>groovy --version
-        Groovy Version: 3.0.6 JVM: 13.0.2 Vendor: Oracle Corporation OS: Windows 10
+> NETEMU _does not!_ fully work with Java 15 yet
 
-    PS C:\Users\achima> Get-Command mvn
-        CommandType     Name                                               Version    Source
-        -----------     ----                                               -------    ------
-        Application     mvn.cmd                                            0.0.0.0    C:\DEV\MAVEN\apache-maven-3.6.2\bin\mv...
+[Intellij IDEA](https://www.jetbrains.com/idea) is NETEMU's preferred IDE. It has great Gradle integration, and its auto-completion works fast and smoothly with dynamic MD-SAL/ADVAnced code generation. If you prefer a terminal shell for managing your project, you should open a new terminal now and check your compiler and build tool versions again:
 
-    ```
-    --> replace mvn with mvn.cmd in all three groovy scripts:
-        `groovy mvn-yang-data-util.groovy install`
-        `groovy mvn-yang-data-codec-xml.groovy install`
-        `groovy mvn-netconf-netty-util.groovy install`   
+```shell
+> java -version
+openjdk 13.0.2 2020-01-14
+...
+```
 
- 
-- **deactiviate jepDir if no Python installed**
-    jepDir: if no python is installed, deactivate jebDir from build.Gradle   
-    - ~ line 23: comment /* ext.jepDir = [ ... ].execute().text.trim() */ 
-    - ~ line 50: comment: /* flatDir {  dirs jepDir } */
+```shell
+> gradle -version
+------------------------------------------------------------
+Gradle 6.2.1
+------------------------------------------------------------
+...
+```
 
+```shell
+> groovy -version
+Groovy Version: 3.0.6 JVM: 13.0.2 Vendor: Oracle Corporation OS: Windows 10
+```
 
+```shell
+> mvn -version
+Apache Maven 3.6.2 (40f52333136460af0dc0d7232c0dc0bcf0d9e117; 2019-08-27T17:06:16+02:00)
+...
+```
 
-- **install jsr173-ri-1.0.jar to local maven repository**
-    - follow this guide: https://stackoverflow.com/a/14101884 
-        - download file=jsr173-ri-1.0.jar file to a local folder:
-            ` http://svn.apache.org/repos/asf/servicemix/m2-repo/com/bea/xml/jsr173-ri/1.0/`
-        - create a file jsr173.pom in the same directory:
-            `<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-                    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-                <groupId>com.bea.xml</groupId>
-                <artifactId>jsr173-ri</artifactId>
-                <version>1.0</version>
-                <modelVersion>4.0.0</modelVersion> 
-            </project> `
-        - and install it to your local repo like this:
-            `mvn install:install-file -Dfile=jsr173-ri-1.0.jar -DpomFile=jsr173.pom`
+If any `-version` output differs from what you expect, if it shows older, previously installed versions of a tool or of the Java installation it uses, the reason is usually one or more of the following:
 
-        - ATTENTION: use '' in Windows Powershell: 
-            `mvn install:install-file -Dfile='jsr173-ri-1.0.jar' -DpomFile='jsr173.pom'`
-- [ ] install submodules:
-        `.\netemu> git submodule update --init --recursive`
-        
-- [ ] run groovy install scripts
-        `groovy mvn-yang-data-util.groovy install`
-        `groovy mvn-yang-data-codec-xml.groovy install`
-        `groovy mvn-netconf-netty-util.groovy install`
+  * The shell environment of a package manager was not properly activated
+  * The `PATH` environment variable was not properly updated by an installer
+  * The `JAVA_HOME` environment variable points to another Java installation
 
- - [ ] Settings>Build, Execution, Deployment>Build Tools>Gradle noch die Gradle JVM auf 13 stellen
- - [ ]  in Intellij den Gradle-Task "install" ausfuehren
+### Setup your local NETEMU
 
+`git clone` the `netemu` repository using the `--recurse-submodules` flag. This will automatically clone along ADVAnced forks of OpenDaylight Git repositories to respective `opendaylight-*/` sub-folders and checkout their `adva/master` branches:
 
-- --> emuports
-    - create enc-sdn-driver-connection.xml in emuports-root folder 
-        `
-            <?xml version="1.0" encoding="UTF-8"?>
-            <config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
-                <connection xmlns="http://yang.adva.com/enc-sdn-driver">
-                    <name>main</name>
+```shell
+> git clone git@gitlab.rd.advaoptical.com:AT/anden/netemu.git --recurse-submodules
+Cloning into 'netemu'...
+...
+Cloning into '.../netemu/opendaylight-mdsal'...
+Cloning into '.../netemu/opendaylight-netconf'...
+Cloning into '.../netemu/opendaylight-yangtools'...
+Submodule path 'opendaylight-mdsal': checked out '...'
+Submodule path 'opendaylight-netconf': checked out '...'
+Submodule path 'opendaylight-yangtools': checked out '...'
+```
 
-                    <protocol>http</protocol>
-                    <!-- <host>192.168.127.110</host> -->
-                    <host>10.20.6.49</host>
-                    <port>8080</port>
-                    <root-path>/advabase/sdn</root-path>
+_If you forgot!_ the `--recurse-submodules` flag, then you run the following from inside your cloned `netemu` repository's root directory:
 
-                </connection>
-            </config> 
-        `
-    - generate Python-Codegen-Datei 
+```shell
+> git submodule update --init --recursive
+...
+Cloning into '.../opendaylight-mdsal'...
+Cloning into '.../opendaylight-netconf'...
+Cloning into '.../opendaylight-yangtools'...
+Submodule path 'opendaylight-mdsal': checked out '...'
+Submodule path 'opendaylight-netconf': checked out '...'
+Submodule path 'opendaylight-yangtools': checked out '...'
+```
 
+NETEMU requires slight ADVAncements in some method implementations of a few OpenDaylight modules. Hence the forked repositories. These modules must be installed first, using a convenient Gradle task, again from the `netemu` root directory:
 
-Main Classes
+```shell
+> gradle mvnInstallOpenDaylightModules
+...
+Task :mvnInstallYangDataUtil
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building yang-data-util 5.0.7_1-ADVA
+[INFO] ------------------------------------------------------------------------
+...
+Task :mvnInstallYangDataCodecXml
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building yang-data-codec-xml 5.0.7_1-ADVA
+[INFO] ------------------------------------------------------------------------
+...
+Task :mvnInstallNetconfNettyUtil
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] Building netconf-netty-util 1.9.1_1-ADVA
+[INFO] ------------------------------------------------------------------------
+...
+```
 
-* NetEmu
-    - main class
-* Owned
-* YangPool
-* YangProvider
+Then, the NETEMU Java package itself can be installed using Gradle task `:publishToMavenLocal` (_shortcut_ `pTML`) from integrated [Maven Publish Plugin](https://docs.gradle.org/current/userguide/publishing_maven.html):
 
+```shell
+> gradle publishToMavenLocal
+...
+Task :compileJava
+...
+BUILD SUCCESSFUL in ...
+10 actionable tasks: 10 executed
+```
 
+Everything is ready for starting your first EMU-Project or building and contributing to existing EMU-Projects!
 
-Features
-- Independent of yang revisions
-- 
-
-Limitations / Bugs / Workaround
-- AOS bugs
-- OpenConfig bugs
-- 
-- OpenDaylight bugs / fixes / workaround
-
--
-
+### Start your first EMU-Project
