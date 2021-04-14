@@ -1,4 +1,5 @@
-// import com.sun.tools.sjavac.Util
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
 
 plugins {
     id 'groovy'
@@ -19,10 +20,14 @@ version = "0.1.0-SNAPSHOT"
 sourceCompatibility = 11
 targetCompatibility = 11
 
+
+final def operatingSystem = DefaultNativePlatform.currentOperatingSystem
+
 ext.jepDir = [
         "python", "-c", "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
 
 ].execute().text.trim()
+
 
 repositories {
     mavenLocal()
@@ -114,6 +119,37 @@ dependencies {
     // implementation "commons-io:commons-io:2.6"
     // testImplementation "junit", "junit", "4.12"
 }
+
+
+task installYangDataUtil(type: Exec) {
+    workingDir rootDir
+    commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
+            ["groovy", "mvn-yang-data-util.groovy", "install"]
+}
+
+task installYangDataCodecXml(type: Exec) {
+    dependsOn installYangDataUtil
+
+    workingDir rootDir
+    commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
+            ["groovy", "mvn-yang-data-codec-xml.groovy", "install"]
+}
+
+task installNetconfNettyUtil(type: Exec) {
+    dependsOn installYangDataUtil
+    dependsOn installYangDataCodecXml
+
+    workingDir rootDir
+    commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
+            ["groovy", "mvn-netconf-netty-util.groovy", "install"]
+}
+
+task installMavenModules {
+    dependsOn installYangDataUtil
+    dependsOn installYangDataCodecXml
+    dependsOn installNetconfNettyUtil
+}
+
 
 compileJava {
     // options.deprecation = true
