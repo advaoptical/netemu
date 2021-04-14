@@ -29,7 +29,7 @@ class YangPoolSpec extends Specification {
             this.testYangPool.getModules() == NetEmuDefined.YANG_MODULE_INFOS
     }
 
-    def "Test YANG module content from .getSource(identifier)"() {
+    def "Test YANG module content from .getSource(#moduleName@#revisionString)"() {
         given:
             @Nonnull final identifier = RevisionSourceIdentifier.create(moduleName, Revision.of(revisionString))
             @Nonnull final charset = StandardCharsets.US_ASCII
