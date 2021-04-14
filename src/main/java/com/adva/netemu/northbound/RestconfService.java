@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+// import jakarta.ws.rs.core.Application;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -100,6 +101,25 @@ public class RestconfService extends EmuService {
         @Nonnull final var settings = (Settings) this.settings();
         @Nonnull final var http = GrizzlyHttpServerFactory.createHttpServer(
                 URI.create(String.format("http://0.0.0.0:%d", settings.port())), ResourceConfig.forApplication(restconf));
+                /*
+                new Application() {
+
+                    @Override
+                    public Set<Class<?>> getClasses() {
+                        return restconf.getClasses();
+                    }
+
+                    @Override
+                    public Set<Object> getSingletons() {
+                        return restconf.getSingletons();
+                    }
+
+                    @Override
+                    public Map<String, Object> getProperties() {
+                        return restconf.getProperties();
+                    }
+                }));
+                */
 
         this.restconf.set(restconf);
         this.http.set(http);
