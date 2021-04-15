@@ -123,33 +123,33 @@ dependencies {
 }
 
 
-task installYangDataUtil(type: Exec) {
+task mvnInstallYangDataUtil(type: Exec) {
     workingDir rootDir
     commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
             ["groovy", "mvn-yang-data-util.groovy", "install"]
 }
 
-task installYangDataCodecXml(type: Exec) {
-    dependsOn installYangDataUtil
+task mvnInstallYangDataCodecXml(type: Exec) {
+    dependsOn mvnInstallYangDataUtil
 
     workingDir rootDir
     commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
             ["groovy", "mvn-yang-data-codec-xml.groovy", "install"]
 }
 
-task installNetconfNettyUtil(type: Exec) {
-    dependsOn installYangDataUtil
-    dependsOn installYangDataCodecXml
+task mvnInstallNetconfNettyUtil(type: Exec) {
+    dependsOn mvnInstallYangDataUtil
+    dependsOn mvnInstallYangDataCodecXml
 
     workingDir rootDir
     commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
             ["groovy", "mvn-netconf-netty-util.groovy", "install"]
 }
 
-task installMavenModules {
-    dependsOn installYangDataUtil
-    dependsOn installYangDataCodecXml
-    dependsOn installNetconfNettyUtil
+task mvnInstallOpenDaylightModules {
+    dependsOn mvnInstallYangDataUtil
+    dependsOn mvnInstallYangDataCodecXml
+    dependsOn mvnInstallNetconfNettyUtil
 }
 
 
