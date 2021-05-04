@@ -4,7 +4,7 @@ NETEMU
 ![](https://www.adva.com/-/media/adva-main-site/logo)
 > **NE**tworking **T**echnologies' **E**nhanced **M**anagement **U**tilities
 
-[ADVAnced](https://adva.com) Java/YANG **Rapid Development Framework for Elegant SDN Applications**, featuring:
+[ADVAnced](https://adva.com) Java/YANG **Rapid Development Framework for Lightweight SDN Applications**, featuring:
 
   * [OpenDaylight](https://www.opendaylight.org) libraries at its core
   * MD-SAL/ADVAnced code generation from YANG models using Java annotations
@@ -21,7 +21,7 @@ Make sure to have OpenJDK 11 or 13, Gradle 6.0+, [Groovy](https://groovy-lang.or
   * **Mac OSX**: [Homebrew](https://brew.sh) or [SDKMAN!](https://sdkman.io)
   * **Windows**: [Chocolatey](https://chocolatey.org)
 
-> NETEMU _does not!_ fully work with Java 15 yet
+> NETEMU DOES NOT fully work with Java 15 yet
 
 [Intellij IDEA](https://www.jetbrains.com/idea) is NETEMU's preferred IDE. It has great Gradle integration, and its auto-completion works fast and smoothly with dynamic MD-SAL/ADVAnced code generation. If you prefer a terminal shell for managing your project, you should open a new terminal now and check your compiler and build tool versions again:
 
@@ -72,7 +72,7 @@ Submodule path 'opendaylight-netconf': checked out '...'
 Submodule path 'opendaylight-yangtools': checked out '...'
 ```
 
-_If you forgot!_ the `--recurse-submodules` flag, then you run the following from inside your cloned `netemu` repository's root directory:
+> IF YOU FORGOT the `--recurse-submodules` flag, then you run the following from inside your cloned `netemu` repository's root directory:
 
 ```shell
 > git submodule update --init --recursive
@@ -124,6 +124,60 @@ BUILD SUCCESSFUL in ...
 10 actionable tasks: 10 executed
 ```
 
-Everything is ready for starting your first EMU-Project or building and contributing to existing EMU-Projects!
+Everything is ready for starting your first EMU-Project or building, running, and contributing to existing EMU-Projects!
+
+### Before you start coding... a quick NETMEU API overview
+
+```mermaid
+flowchart TB
+  netemu-app[User application] <-- YANG data-bindings --> YangPool([com.adva.netemu.YangPool])
+  netemu-app <-- Service/Driver control --> NetEmu([com.adva.netemu.NetEmu])
+  netemu-app -- registers --> NetconfService([- Services/Drivers -])
+  NetEmu -- connects ... --> YangPool
+  NetEmu -- ... with --> NetconfService
+```
+
+**Services** are derived from abstract `com.adva.netemu.service.EmuService`. Predefined are:
+
+* `com.adva.netemu.northbound.NetconfService` - Based on [OpenDaylight-netconf](https://github.com/opendaylight/netconf/tree/master/netconf)
+* `com.adva.netemu.northbound.RestconfService` - Based on [OpenDaylight-restconf](https://github.com/opendaylight/netconf/tree/master/restconf) and [Grizzly](https://javaee.github.io/grizzly)
+
+**Python** services are derived from abstract `com.adva.netemu.service.EmuPythonService` - Based on [Jep](https://pypi.org/project/jep); derived from `.EmuService`. Predefined is:
+
+* `com.adva.netemu.northbound.PythonKernelService` - Using [IPython Kernel for Jupyter](https://github.com/ipython/ipykernel)
+
+**Drivers** are derived from abstract `com.adva.netemu.driver.EmuDriver`. Predefined is:
+
+* `com.adva.netemu.southbound.NetconfDriver` - Based on OpenDaylight-netconf
+
+### If you come from Netopeer2/sysrepo... or don't
+
+NETEMU's API design draws heavily from the modular structure of [CESNET's C libraries and tools](https://github.com/cesnet) for NETCONF/YANG application development, whose main components are:
+
+* [sysrepo](https://github.com/sysrepo) - A central YANG datastore and module repository service
+* sysrepo-client - A library for developing applications that communicate over sockets with the sysrepo service for reading and writing data and reacting to data request and change events
+* [Netopeer2](https://github.com/CESNET/netopeer2) - A standalone sysrepo-client application that implements a northbound NETCONF service
+
+Although NETEMU follows a monolithic application approach without any inter-process communication, its essential classes can be directly feature-mapped to CESNET components:
+
+```mermaid
+flowchart TB
+  subgraph netemu [com.adva.netemu]
+  netemu-app[User application] <-- YANG data-bindings --> YangPool([.YangPool])
+  netemu-app <-- Service/Driver control --> NetEmu([.NetEmu])
+  netemu-app -- registers --> NetconfService([.northbound.NetconfService])
+  NetEmu -- connects ... --> YangPool
+  NetEmu -- ... with --> NetconfService
+  end
+
+  subgraph cesnet [CESNET]
+  sysrepo <-. IPC .-> sysrepo-client([sysrepo-client])
+  netopeer[Netopeer2] <-- YANG data and events --> sysrepo-client
+  sysrepo-client <-- YANG data and events --> cesnet-app[User application]
+  end
+
+  YangPool -.- sysrepo & sysrepo-client
+  NetconfService -.- netopeer
+```
 
 ### Start your first EMU-Project
