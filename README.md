@@ -155,7 +155,7 @@ flowchart TB
 NETEMU's API design draws heavily from the modular structure of [CESNET's C libraries and tools](https://github.com/cesnet) for NETCONF/YANG application development, whose main components are:
 
 * [sysrepo](https://github.com/sysrepo) - A central YANG datastore and module repository service
-* sysrepo-client - A library for developing applications that communicate over sockets with the sysrepo service for reading and writing data and reacting to data request and change events
+* sysrepo-client - A library for developing applications that communicate over sockets with sysrepo service, enabling them to read from and write to YANG datastores, and to react to data request and change events triggered by other client applications
 * [Netopeer2](https://github.com/CESNET/netopeer2) - A standalone sysrepo-client application that implements a northbound NETCONF service
 
 Although NETEMU follows a monolithic application approach without any inter-process communication, its essential classes can be directly feature-mapped to CESNET components:
