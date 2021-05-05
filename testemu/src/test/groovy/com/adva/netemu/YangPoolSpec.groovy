@@ -60,13 +60,13 @@ class YangPoolSpec extends Specification {
 
     def "Test YANG modules from .getEffectiveModelContext()"() {
         given:
-            @Nonnull final qNameModules = NetEmuDefined.YANG_MODULE_INFOS.collect { it.getName().getModule() }.toSet()
+            @Nonnull final qNameModules = NetEmuDefined.YANG_MODULE_INFOS.collect { it.getName().getModule() } as Set
 
         when:
             @Nonnull final modules = this.testYangPool.getEffectiveModelContext().getModules()
 
         then:
-            modules.collect { it.getQNameModule() }.toSet() == qNameModules
+            modules.collect { it.getQNameModule() } as Set == qNameModules
     }
 
     def "Test .readConfigurationData() from empty datastore"() {
@@ -79,7 +79,7 @@ class YangPoolSpec extends Specification {
             qName.getLocalName() == "data"
 
             @Nonnull final children = data.getValue() as Collection
-            children.size() == 0
+            children.isEmpty()
     }
 
     def "Test .readOperationalData() from empty datastore"() {
@@ -92,6 +92,6 @@ class YangPoolSpec extends Specification {
             qName.getLocalName() == "data"
 
             @Nonnull final children = data.getValue() as Collection
-            children.size() == 0
+            children.isEmpty()
     }
 }
