@@ -24,7 +24,7 @@ class YangPoolSpec extends Specification {
             this.testYangPool.id() == "netemu-test"
     }
 
-    def "Test set of YANG .modules()"() {
+    def "Test elements of YANG .modules() set"() {
         expect:
             this.testYangPool.getModules() == NetEmuDefined.YANG_MODULE_INFOS
     }
