@@ -121,12 +121,13 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
     @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
     public ListenableFuture<? extends YangTextSchemaSource> getSource(@Nonnull final SourceIdentifier identifier) {
-        return Futures.immediateFuture(StreamEx.of(this.modules).findFirst(module -> {
+
+        return Futures.submit(() -> StreamEx.of(this.modules).findFirst(module -> {
             @Nonnull final var qName = module.getName();
             return qName.getLocalName().equals(identifier.getName()) && qName.getRevision().equals(identifier.getRevision());
 
         }).map(module -> YangTextSchemaSource.delegateForByteSource(identifier, module.getYangTextByteSource())).orElseThrow(() ->
-                new NoSuchElementException(identifier.toString())));
+                new NoSuchElementException(identifier.toString())), this.executor);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
