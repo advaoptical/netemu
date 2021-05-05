@@ -29,6 +29,17 @@ class YangPoolSpec extends Specification {
             this.testYangPool.getModules() == NetEmuDefined.YANG_MODULE_INFOS
     }
 
+    def "Test immutability of YANG .modules() set by trying to add #module"() {
+        when:
+            this.testYangPool.getModules().add module
+
+        then:
+            thrown UnsupportedOperationException
+
+        where:
+            module << [NetEmuDefined.YANG_MODULE_INFOS.first(), null]
+    }
+
     def "Test YANG module content from .getSource(#moduleName@#revisionString)"() {
         given:
             @Nonnull final identifier = RevisionSourceIdentifier.create(moduleName, Revision.of(revisionString))
