@@ -171,12 +171,11 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         private final YangPool yangPool;
 
         private NormalizedNodeBroker(@Nonnull final YangPool yangPool) {
-            super(
-                    Map.of(
-                            LogicalDatastoreType.CONFIGURATION, yangPool.configurationStore,
-                            LogicalDatastoreType.OPERATIONAL, yangPool.operationalStore),
+            super(Map.of(
+                    LogicalDatastoreType.CONFIGURATION, yangPool.configurationStore,
+                    LogicalDatastoreType.OPERATIONAL, yangPool.operationalStore
 
-                    MoreExecutors.listeningDecorator(yangPool.transactionExecutor));
+            ), MoreExecutors.listeningDecorator(yangPool.transactionExecutor));
 
             this.yangPool = yangPool;
         }
@@ -185,7 +184,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         public DOMTransactionChain createTransactionChain(@Nonnull final DOMTransactionChainListener listener) {
             @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
             synchronized (this.yangPool.yangBindingRegistry) {
-                updatingFuture = Futures.allAsList(StreamEx.of(this.yangPool.yangBindingRegistry).map(this.yangPool::writeOperationalDataFrom));
+                updatingFuture = Futures.allAsList(StreamEx.of(this.yangPool.yangBindingRegistry)
+                        .map(this.yangPool::writeOperationalDataFrom));
             }
 
             try {
