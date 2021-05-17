@@ -107,7 +107,10 @@ public interface YangDatastore {
         @Nonnull
         @SuppressWarnings({"UnstableApiUsage"})
         <Y extends ChildOf<?>, B extends Builder<Y>>
-        FluentFuture<? extends CommitInfo> apply(@Nonnull final DataBroker broker, @Nonnull final YangBinding<Y, B> object);
+        FluentFuture<? extends CommitInfo> apply(
+                @Nonnull final DataBroker broker,
+                @Nonnull final LogicalDatastoreType storeType,
+                @Nonnull final YangBinding<Y, B> object);
     }
 
     abstract class ModeledWritingTransactor implements ModeledWritingFunction {

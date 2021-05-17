@@ -40,6 +40,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 import one.util.streamex.StreamEx;
+import org.gradle.internal.impldep.com.google.common.util.concurrent.ListenableScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -50,6 +51,7 @@ import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
 
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.data.api.schema.ContainerNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
@@ -63,11 +65,12 @@ import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
 import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
 import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceProvider;
 
-import org.opendaylight.binding.runtime.api.BindingRuntimeContext;
+// import org.opendaylight.binding.runtime.api.BindingRuntimeContext;
 import org.opendaylight.binding.runtime.spi.BindingRuntimeHelpers;
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.dom.adapter.AdapterContext;
 import org.opendaylight.mdsal.binding.dom.adapter.BindingDOMDataBrokerAdapter;
+import org.opendaylight.mdsal.binding.dom.adapter.BindingDOMRpcProviderServiceAdapter;
 import org.opendaylight.mdsal.binding.dom.adapter.CurrentAdapterSerializer;
 import org.opendaylight.mdsal.binding.dom.codec.impl.BindingCodecContext;
 
@@ -89,36 +92,95 @@ import org.opendaylight.mdsal.dom.store.inmemory.InMemoryDOMDataStoreConfigPrope
 import com.adva.netemu.datastore.DaggerYangDatastore;
 import com.adva.netemu.datastore.YangDatastore;
 
+
+/** Manages datastores, transactions, and data-bindings for a set of YANG modules.
+  */
 public class YangPool implements EffectiveModelContextProvider, SchemaSourceProvider<YangTextSchemaSource> {
 
+    /** Default logger for this class.
+      */
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(YangPool.class);
 
+    /** Provider of tools for reading XML data.
+      */
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
+    /** Default executor for asynchronous OpenDaylight operations.
+     */
+    @Nonnull
+    private final ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(0); // 0 -> no idle threads
+
+    /** Default executor for asynchronous OpenDaylight datastore transactions.
+      */
     @Nonnull
     private final ScheduledExecutorService transactionExecutor = new ScheduledThreadPoolExecutor(0); // 0 -> no idle threads
 
+    /** Default executor for logging results of asynchronous OpenDaylight datastore transactions.
+     */
     @Nonnull
     private final Executor loggingCallbackExecutor = MoreExecutors.directExecutor();
 
+    /** Unique ID of this YANG pool.
+      */
     @Nonnull
     private final String id;
 
+    /** Returns the unique, non-changeable ID of this YANG pool.
+
+      * @return
+            The ID string
+      */
     @Nonnull
     public String id() {
         return this.id;
     }
 
+    /** Set of schemas defining this YANG pool's datastore structures.
+      */
     @Nonnull
     private final Set<YangModuleInfo> modules;
 
+    /** Returns the schemas of this YANG pool.
+
+      * @return
+            An immutable set
+      */
     @Nonnull
     public Set<YangModuleInfo> getModules() {
         return this.modules;
     }
 
+    /** Returns the source of YANG module specified by given identifier.
+
+      * This is an asynchronous operation!
+
+      * <p> NETEMU prefers {@link CompletableFuture} over the {@link ListenableFuture} returned by this overriden OpenDaylight
+        method from {@link SchemaSourceProvider}. For a consistent coding style,
+        {@link FutureConverter#toCompletableFuture(ListenableFuture)} should be applied.
+
+      * <p> For example, to get the content of YANG module {@code ietf-interfaces@2018-02-20} as a string:
+
+      * <pre>{@code
+      *     var identifier = RevisionSourceIdentifier
+      *             .create("ietf-interfaces", Revision.of("2018-02-20"));
+      *
+      *     FutureConverter.toCompletableFuture(yangPool.getSource(identifier))
+      *             .thenAccept(source -> {
+      *                 var content = source.asCharSource(StandardCharsets.US_ASCII).read();
+      *                 ...
+      *             });
+      * }</pre>
+
+      * @param identifier
+            A unique YANG module identification by name and optional revision. Default implementations are
+            {@link org.opendaylight.yangtools.yang.model.repo.api.RevisionSourceIdentifier} and
+            {@link org.opendaylight.yangtools.yang.model.repo.api.SemVerSourceIdentifier}
+
+      * @return
+            The readable YANG module source. This is an asynchronous result!
+      */
     @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
     public ListenableFuture<? extends YangTextSchemaSource> getSource(@Nonnull final SourceIdentifier identifier) {
 
@@ -130,14 +192,20 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                 new NoSuchElementException(identifier.toString())), this.executor);
     }
 
+    /** Model context of this YANG pool.
+      */
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     private final EffectiveModelContext context;
 
-    @Nonnull
+    @Deprecated @Nonnull
     public SchemaContext getYangContext() {
         return this.context; // .getSchemaContext();
     }
 
+    /** Returns the model context of this YANG pool.
+
+      * @return The immutable YANG model context
+      */
     @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
     public EffectiveModelContext getEffectiveModelContext() {
         return this.context;
@@ -148,6 +216,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         */
     }
 
+    /** Datastore of this YANG pool.
+      */
     @Nonnull
     private final YangDatastore datastore = DaggerYangDatastore.create();
 
@@ -257,20 +327,23 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         @Nonnull final var runtimeContext = BindingRuntimeHelpers.createRuntimeContext(
                 StreamEx.of(this.modules).map(YangModuleInfo::getClass).toArray(Class[]::new));
 
-        this.normalizedNodeBroker = new NormalizedNodeBroker(this);
-        this.broker = new BindingDOMDataBrokerAdapter(new AdapterContext() {
+        @Nonnull final var adapterContext = new AdapterContext() {
 
             @Nonnull @Override
             public CurrentAdapterSerializer currentSerializer() {
                 return new CurrentAdapterSerializer(new BindingCodecContext(runtimeContext));
             }
+        };
 
-        }, this.normalizedNodeBroker);
+        this.normalizedNodeBroker = new NormalizedNodeBroker(this);
+        this.broker = new BindingDOMDataBrokerAdapter(adapterContext, this.normalizedNodeBroker);
 
         /*
                 new BindingToNormalizedNodeCodec(this.context, new BindingNormalizedNodeCodecRegistry(
                         BindingRuntimeContext.create(this.context, this.getYangContext()))));
         */
+
+        // @Nonnull final var rpcService = new BindingDOMRpcProviderServiceAdapter(adapterContext, )
     }
 
     @Nonnull @SuppressWarnings({"UnusedReturnValue"})
@@ -426,6 +499,26 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<? extends List<? extends CommitInfo>> updateConfigurationData() {
+        LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.CONFIGURATION);
+
+        synchronized (this.yangBindingRegistry) {
+            return FutureConverter.toCompletableFuture(Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
+                    .map(this::writeConfigurationDataFrom)));
+        }
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public CompletableFuture<? extends List<? extends CommitInfo>> updateOperationalData() {
+        LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.OPERATIONAL);
+
+        synchronized (this.yangBindingRegistry) {
+            return FutureConverter.toCompletableFuture(Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
+                    .map(this::writeOperationalDataFrom)));
+        }
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<Optional<NormalizedNode<?, ?>>> readConfigurationData() {
         return this.readData(LogicalDatastoreType.CONFIGURATION);
     }
@@ -437,26 +530,42 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<Optional<NormalizedNode<?, ?>>> readData(@Nonnull final LogicalDatastoreType storeType) {
+        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
+
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
-            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
-            synchronized (this.yangBindingRegistry) {
-                updatingFuture = Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
-            }
+            /*
+            LOG.info("Updating {} Datastore from {} Datastore", storeType, LogicalDatastoreType.CONFIGURATION);
 
-            try {
-                updatingFuture.get();
+            updatingFuture = this.readConfigurationData().transformAsync(config -> FluentFuture.from(config
+                    .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).getValue())
+                            .map(childNode -> (ListenableFuture<CommitInfo>) this.writeOperationalData(childNode))))
 
-            } catch (final InterruptedException | ExecutionException e) {
-                return FluentFuture.from(Futures.immediateFailedFuture(e.getCause()));
-            }
+                    .orElseGet(() -> Futures.immediateFuture(List.of()))
+
+            ), this.transactionExecutor).transformAsync(ignoredCommitInfo -> {
+                synchronized (this.yangBindingRegistry) {
+                    return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
+                }
+
+            }, this.transactionExecutor);
+            */
+
+            updatingFuture = Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
+
+        } else {
+            updatingFuture = Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
         }
 
-        @Nonnull final var txn = this.getNormalizedNodeBroker().newReadOnlyTransaction();
-        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var future = txn.read(storeType, YangInstanceIdentifier.empty());
+        return FluentFuture.from(updatingFuture).transformAsync(ignoredCommitInfos -> {
+            @Nonnull final var txn = this.getNormalizedNodeBroker().newReadOnlyTransaction();
+            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var readingFuture =
+                    txn.read(storeType, YangInstanceIdentifier.empty());
 
-        LOG.info("Reading from {} Datastore", storeType);
-        future.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.loggingCallbackExecutor);
-        return future;
+            LOG.info("Reading from {} Datastore", storeType);
+            readingFuture.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.loggingCallbackExecutor);
+            return readingFuture;
+
+        }, this.transactionExecutor);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
@@ -556,7 +665,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
         @Nonnull final var yangPath = YangInstanceIdentifier.create(node.getIdentifier());
         @Nonnull final var txn = this.getNormalizedNodeBroker().newWriteOnlyTransaction();
-        txn.put(storeType, yangPath, node);
+        txn.merge(storeType, yangPath, node);
 
         LOG.info("Writing to {} Datastore: {}", storeType, yangPath);
 
@@ -583,7 +692,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
             @Nonnull final LogicalDatastoreType storeType, @Nonnull final YangBinding<Y, B> object) {
 
         @Nonnull final var writing = this.datastore.injectModeledWriting().of(storeType, object.getIidBuilder().build());
-        @Nonnull final var future = writing.transactor.apply(this.broker, object);
+        @Nonnull final var future = writing.transactor.apply(this.broker, storeType, object);
         future.addCallback(writing.futureCallback, this.loggingCallbackExecutor);
         return future;
     }

@@ -14,6 +14,7 @@ import com.squareup.inject.assisted.dagger2.AssistedModule;
 import dagger.Module;
 import dagger.Provides;
 
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,12 +77,19 @@ class YangDatastoreModule {
 
             @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
             public <Y extends ChildOf<?>, B extends Builder<Y>>
-            FluentFuture<? extends CommitInfo> apply(@Nonnull final DataBroker broker, @Nonnull final YangBinding<Y, B> object) {
+            FluentFuture<? extends CommitInfo> apply(
+                    @Nonnull final DataBroker broker,
+                    @Nonnull final LogicalDatastoreType storeType,
+                    @Nonnull final YangBinding<Y, B> object) {
+
                 @SuppressWarnings("unchecked") final var path = (InstanceIdentifier<Y>) this.yangModeledPath;
 
                 @Nullable final YangData<Y> data;
                 try {
-                    data = object.provideOperationalData().get();
+                    data = ((storeType == LogicalDatastoreType.OPERATIONAL) ? object.provideOperationalData()
+                            : object.provideConfigurationData()
+
+                    ).get();
 
                 } catch (final InterruptedException | ExecutionException e) {
                     return FluentFuture.from(Futures.immediateFailedFuture(e.getCause()));
@@ -94,7 +102,7 @@ class YangDatastoreModule {
                 LOG.info("Writing to {} Datastore: {}", this.storeType, path);
 
                 @Nonnull final var txn = broker.newWriteOnlyTransaction();
-                txn.put(this.storeType, path, data.get());
+                txn.merge(this.storeType, path, data.get());
                 return txn.commit();
             }
         };
