@@ -147,22 +147,28 @@ public class NetconfService extends EmuService implements RpcHandler {
 
         LOG.info("Received <{}> request with {}: {}", request.getName(), XmlNetconfConstants.MESSAGE_ID, id);
 
-        @Nonnull final var response = RESPONSE_BUILDER.newDocument();
-        @Nonnull final Element root;
+        @Nonnull final String namespace;
         try {
-            root = response.createElementNS(request.getNamespace(), "rpc-reply");
-            response.appendChild(root);
-            root.setAttribute(XmlNetconfConstants.MESSAGE_ID, id);
+            namespace = request.getNamespace();
 
         } catch (final MissingNameSpaceException e) {
             LOG.error("Request has no namespace!", e);
             return Optional.empty();
         }
 
+        @Nonnull final var response = RESPONSE_BUILDER.newDocument();
+        @Nonnull final var root = response.createElementNS(namespace, "rpc-reply");
+        response.appendChild(root);
+        root.setAttribute(XmlNetconfConstants.MESSAGE_ID, id);
+
         @Nonnull final CompletableFuture<Optional<Element>> futureData;
         switch (request.getName()) {
             case "get":
                 futureData = this.applyGetRequest(request);
+                break;
+
+            case "get-config":
+                futureData = this.applyGetConfigRequest(request);
                 break;
 
             case "get-schema":
@@ -181,11 +187,76 @@ public class NetconfService extends EmuService implements RpcHandler {
             futureData.get().ifPresent(element -> root.appendChild(response.importNode(element, true)));
 
         } catch (final InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-            return Optional.empty();
+            LOG.error("Request failed", e);
+
+            @Nonnull final var rpcErrorElement = response.createElementNS(namespace, "rpc-error");
+            root.appendChild(rpcErrorElement);
+
+            @Nonnull final var errorTypeElement = response.createElementNS(namespace, "error-type");
+            errorTypeElement.setTextContent("application");
+            rpcErrorElement.appendChild(errorTypeElement);
+
+            @Nonnull final var errorTagElement = response.createElementNS(namespace, "error-tag");
+            errorTagElement.setTextContent("operation-failed");
+            rpcErrorElement.appendChild(errorTagElement);
+
+            @Nonnull final var errorSeverityElement = response.createElementNS(namespace, "error-severity");
+            errorSeverityElement.setTextContent("error");
+            rpcErrorElement.appendChild(errorSeverityElement);
+
+            @Nonnull final var errorMessageElement = response.createElementNS(namespace, "error-message");
+            errorMessageElement.setTextContent(e.getMessage());
+            rpcErrorElement.appendChild(errorMessageElement);
+
+            LOG.info("Sending <rpc-error> response");
         }
 
         return Optional.of(response);
+    }
+
+    @Nonnull
+    CompletableFuture<Optional<Element>> applyGetConfigRequest(@Nonnull @SuppressWarnings({"unused"}) final XmlElement request) {
+        return FutureConverter.toCompletableFuture(super.yangPool().readConfigurationData()).thenApplyAsync(data ->
+                data.map(yangNode -> {
+                    @Nonnull final var xmlByteStream = new ByteArrayOutputStream();
+
+                    @Nonnull final XMLStreamWriter xmlWriter;
+                    try {
+                        xmlWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(xmlByteStream, "UTF-8");
+
+                    } catch (final XMLStreamException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNodeWriter = NormalizedNodeWriter
+                            .forStreamWriter(XMLStreamNormalizedNodeStreamWriter.createSchemaless(
+                                    new IndentingXMLStreamWriter(xmlWriter)));
+                    // this._pool.getYangContext()));
+
+                    try {
+                        yangNodeWriter.write(yangNode).flush(); // TODO: @SuppressWarnings({"UnstableApiUsage"})
+
+                    } catch (final IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    /*  Adding <data> element to response adapted from
+                        https://stackoverflow.com/questions/729621/convert-string-xml-fragment-to-document-node-in-java
+                    */
+
+                    @Nonnull final Document xmlData;
+                    try {
+                        xmlData = RESPONSE_BUILDER.parse(new InputSource(new StringReader(xmlByteStream.toString(
+                                StandardCharsets.UTF_8))));
+
+                    } catch (final SAXException | IOException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    @Nonnull final var xmlDataElement = xmlData.getDocumentElement();
+                    xmlDataElement.appendChild(xmlData.importNode(this.netconfState.toXmlElement(), true));
+                    return xmlDataElement;
+                }));
     }
 
     @Nonnull
@@ -319,7 +390,7 @@ public class NetconfService extends EmuService implements RpcHandler {
 
             return xmlReader;
 
-        }).thenCompose(xmlReader -> FutureConverter.toCompletableFuture(super.yangPool().writeOperationalDataFrom(xmlReader))
+        }).thenCompose(xmlReader -> FutureConverter.toCompletableFuture(super.yangPool().writeConfigurationDataFrom(xmlReader))
                 .thenApply(ignoredCommitInfos -> Optional.empty()));
     }
 }
