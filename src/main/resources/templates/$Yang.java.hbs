@@ -66,12 +66,10 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
     {{#if this.valueIsList}}
         @Nonnull
         public Optional<List<{{{this.valueClass}}}>> get{{{@key}}}() {
-            return super.map(
+            return super.map({{{yangClass}}}::get{{{@key}}})
         {{#if this.valueIsMap}}
-                data -> List.copyOf(data.get{{{@key}}}().values())
-        {{else}}
-                {{{yangClass}}}::get{{{@key}}}
-        {{/if}});
+                .map(items -> List.copyOf(items.values()))
+        {{/if}};
         }
 
         @Nonnull
@@ -266,6 +264,12 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
             return this;
         }
 
+        @Nonnull
+        public {{{../builderName}}} set{{{@key}}}(@Nonnull final YangData<{{{this.valueClass}}}> value) {
+            this.future{{{@key}}} = value.isPresent() ? CompletableFuture.completedFuture(value.get()) : null;
+            return this;
+        }
+
         {{/if}}
     {{/if}}
 {{/each}}
@@ -310,6 +314,26 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         return (data != null) ? Data.of(data) : Data.empty();
     }
     */
+
+    @Nonnull
+    public static Data configurationDataFrom(@Nonnull final {{{class}}} object) {
+        @Nullable final var dataFuture = bindingOf(object).map({{{class}}}{{{bindingClassSuffix}}}::provideConfigurationData);
+        if (dataFuture.isPresent()) {
+            @Nonnull final YangData<{{{yangClass}}}> data;
+            try {
+                data = dataFuture.get().get();
+
+            } catch (final InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e.getCause());
+            }
+
+            if (data.isPresent()) {
+                return Data.of(data.get());
+            }
+        }
+
+        return Data.empty();
+    }
 
     @Nonnull
     public static Data operationalDataFrom(@Nonnull final {{{class}}} object) {

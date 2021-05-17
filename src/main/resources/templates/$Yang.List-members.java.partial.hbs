@@ -17,10 +17,8 @@
                 .map(Optional::get);
     }
 
-    /*
     @Nonnull
-    public static StreamEx<{{{yangClass}}}> streamConfigurationDataFrom(
-            @Nonnull final Collection<? extends {{{class}}}> objects) {
+    public static StreamEx<{{{yangClass}}}> streamConfigurationDataFrom(@Nonnull final Collection<? extends {{{class}}}> objects) {
 
         return streamConfigurationDataFrom(objects.stream());
     }
@@ -28,9 +26,21 @@
     @Nonnull
     public static StreamEx<{{{yangClass}}}> streamConfigurationDataFrom(@Nonnull final Stream<? extends {{{class}}}> objects) {
 
-        return StreamEx.of(objects).map({{{class}}}$Yang::configurationDataFrom).filter(Data::isPresent).map(Data::get);
+        return StreamEx.of(objects).map({{{class}}}{{{utilityClassSuffix}}}::configurationDataFrom).filter(Data::isPresent)
+                .map(Data::get);
     }
-    */
+
+    @Nonnull
+    public static List<{{{yangClass}}}> listConfigurationDataFrom(@Nonnull final Collection<? extends {{{class}}}> objects) {
+
+        return streamConfigurationDataFrom(objects).toImmutableList();
+    }
+
+    @Nonnull
+    public static List<{{{yangClass}}}> listConfigurationDataFrom(@Nonnull final Stream<? extends {{{class}}}> objects) {
+
+        return streamConfigurationDataFrom(objects).toImmutableList();
+    }
 
     @Nonnull
     public static StreamEx<{{{yangClass}}}> streamOperationalDataFrom(@Nonnull final Collection<? extends {{{class}}}> objects) {
