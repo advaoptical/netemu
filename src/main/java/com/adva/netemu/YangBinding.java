@@ -90,8 +90,9 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
                         continue;
 
                     case SUBTREE_MODIFIED:
-                        // TODO!
-                        // continue;
+                        // TODO: Different application method (?)
+                        this.object.applyData(this.storeType, node.getDataAfter());
+                        continue;
 
                     case DELETE:
                         // TODO!
@@ -163,6 +164,35 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
             @Nonnull @SuppressWarnings({"unused"}) final Owned.Maker maker, @Nullable final YangBinding<?, ?> owner) {
 
         this.owner = owner;
+    }
+
+    @Nonnull
+    public <T extends YangBindable> T registerChild(@Nonnull final T object) {
+        object.getYangBinding().ifPresent(binding -> {
+            binding.owner = this;
+        });
+
+        return object;
+    }
+
+    @Nonnull
+    public <T extends YangListBindable> T registerChild(@Nonnull final T object) {
+        object.getYangListBinding().ifPresent(binding -> {
+            binding.owner = this;
+        });
+
+        return object;
+    }
+
+    @Nonnull
+    public <C extends Collection<T>, T extends YangListBindable> C registerChildren(@Nonnull final C objects) {
+        for (@Nonnull final var object : objects) {
+            object.getYangListBinding().ifPresent(binding -> {
+                binding.owner = this;
+            });
+        }
+
+        return objects;
     }
 
     @Nonnull
@@ -298,10 +328,40 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     }
 
     @Nullable
+    private Function<B, B> configurationDataProvider = null;
+
+    protected void setConfigurationDataProvider(@Nullable final Function<B, B> provider) {
+        this.configurationDataProvider = provider;
+    }
+
+    @Nullable
     private Function<B, B> operationalDataProvider = null;
 
     protected void setOperationalDataProvider(@Nullable final Function<B, B> provider) {
         this.operationalDataProvider = provider;
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public synchronized FluentFuture<YangData<Y>> provideConfigurationData() {
+        @Nullable final var provider = this.configurationDataProvider;
+        if (provider == null) {
+            return this.dataApplyingFuture.get().transform(applied -> YangData.empty(), MoreExecutors.directExecutor());
+        }
+
+        return this.dataApplyingFuture.get().transform(applied -> {
+            @Nonnull final B builder;
+            try {
+                builder = this.getBuilderClass().getDeclaredConstructor().newInstance();
+
+            } catch (final
+            NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
+
+                throw new Error(e);
+            }
+
+            return YangData.of(provider.apply(builder).build());
+
+        }, this.executor);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
