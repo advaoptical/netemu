@@ -55,6 +55,31 @@ public class {{class}}{{bindingClassSuffix}} extends YangBinding<{{yangClass}}, 
     }
 
     @Nonnull
+    public {{class}}{{bindingClassSuffix}} providesConfigurationDataUsing(
+            @Nonnull final Function<{{class}}{{utilityClassSuffix}}.Builder, {{class}}{{utilityClassSuffix}}.Builder> provider) {
+
+        super.setConfigurationDataProvider(provider);
+        return this;
+    }
+
+    @Nonnull
+    public {{class}}{{bindingClassSuffix}} providesConfigurationDataUsingFuture(
+            @Nonnull final Function<
+                    {{class}}{{utilityClassSuffix}}.Builder, CompletableFuture<{{class}}{{utilityClassSuffix}}.Builder>>
+
+            provider) {
+
+        return this.providesConfigurationDataUsing(builder -> {
+            try {
+                return provider.apply(builder).get();
+
+            } catch (final ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Nonnull
     public {{class}}{{bindingClassSuffix}} providesOperationalDataUsing(
             @Nonnull final Function<{{class}}{{utilityClassSuffix}}.Builder, {{class}}{{utilityClassSuffix}}.Builder> provider) {
 
