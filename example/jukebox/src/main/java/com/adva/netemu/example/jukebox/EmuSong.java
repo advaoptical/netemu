@@ -63,6 +63,7 @@ public class EmuSong implements YangListBindable {
       * @param spotifyTrack
             Spotify track data
       */
+    @SuppressWarnings({"UnstableApiUsage"})
     private EmuSong(@Nonnull final TrackSimplified spotifyTrack) {
         this.spotifyTrack = spotifyTrack;
 

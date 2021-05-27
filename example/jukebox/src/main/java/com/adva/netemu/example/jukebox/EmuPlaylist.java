@@ -23,6 +23,7 @@ import com.adva.netemu.YangListBound;
 
   * <p>Manages a YANG {@code /example-jukebox:jukebox/playlist}
   */
+@SuppressWarnings({"UnstableApiUsage"})
 @YangListBound(context = NetEmuDefined.class, namespace = "http://example.com/ns/example-jukebox", value = "jukebox/playlist")
 public class EmuPlaylist implements YangListBindable {
 

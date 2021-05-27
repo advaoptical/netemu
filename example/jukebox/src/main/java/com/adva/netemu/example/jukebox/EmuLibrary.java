@@ -81,6 +81,7 @@ public class EmuLibrary implements YangBindable {
       * @param spotifyAlbums
             Spotify albums data
       */
+    @SuppressWarnings({"UnstableApiUsage"})
     private EmuLibrary(@Nonnull final Collection<Album> spotifyAlbums) {
 
         this.artists = this.yangBinding.registerChildren(StreamEx

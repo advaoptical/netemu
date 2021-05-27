@@ -85,7 +85,7 @@ public class Main {
       * @return
             An asynchronous operation handler!
       */
-    @Nonnull
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     private static CompletableFuture<Void> runJukeboxAsyncUsingSpotify(@Nonnull final String spotifyAuthorizationCode) {
 
         return SPOTIFY.authorizationCode(spotifyAuthorizationCode).build().executeAsync().thenComposeAsync(credentials -> {
