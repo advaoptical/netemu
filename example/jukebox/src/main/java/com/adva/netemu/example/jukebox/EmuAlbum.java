@@ -14,6 +14,10 @@ import com.adva.netemu.YangListBinding;
 import com.adva.netemu.YangListBound;
 
 
+/** An album in the jukebox library.
+
+  * <p>Maps a Spotify album to a YANG {@code /example-jukebox:jukebox/library/artist/album} list item
+  */
 @YangListBound(
         context = NetEmuDefined.class,
         namespace = "http://example.com/ns/example-jukebox",
@@ -21,6 +25,8 @@ import com.adva.netemu.YangListBound;
 
 public class EmuAlbum implements YangListBindable {
 
+    /** YANG datastore binding for this jukebox album.
+      */
     @Nonnull
     private final EmuAlbum_YangBinding yangBinding;
 
@@ -29,22 +35,41 @@ public class EmuAlbum implements YangListBindable {
         return Optional.of(this.yangBinding);
     }
 
+    /** Underlying Spotify album.
+      */
     @Nonnull
     private final Album spotifyAlbum;
 
+    /** Returns the name of this jukebox album.
+
+      * @return
+            The name string
+      */
     @Nonnull
     public String name() {
         return this.spotifyAlbum.getName();
     }
 
+    /** All songs of this jukebox album.
+     */
     @Nonnull
     private final Set<EmuSong> songs;
 
+    /** Returns all songs of this jukebox album.
+
+      * @return
+            An immutable set
+      */
     @Nonnull
     public Set<EmuSong> songs() {
         return Set.copyOf(this.songs);
     }
 
+    /** Creates event handlers for YANG datastore binding and extracts songs from given Spotify album.
+
+      * @param spotifyAlbum
+            Spotify album data
+      */
     private EmuAlbum(@Nonnull final Album spotifyAlbum) {
         this.spotifyAlbum = spotifyAlbum;
 
@@ -62,6 +87,14 @@ public class EmuAlbum implements YangListBindable {
                 .setSong(EmuSong_Yang.listOperationalDataFrom(this.songs())));
     }
 
+    /** Creates a new jukebox album from given Spotify album.
+
+      * @param spotifyAlbum
+            Spotify album data
+
+      * @return
+            A new instance
+      */
     public static EmuAlbum fromSpotify(@Nonnull final Album spotifyAlbum) {
         return new EmuAlbum(spotifyAlbum);
     }

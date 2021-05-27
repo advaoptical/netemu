@@ -16,6 +16,10 @@ import com.adva.netemu.YangListBinding;
 import com.adva.netemu.YangListBound;
 
 
+/** An artist in the jukebox library.
+
+  * <p>Maps a Spotify artist and selected albums to a YANG {@code /example-jukebox:jukebox/library/artist} list item
+  */
 @YangListBound(
         context = NetEmuDefined.class,
         namespace = "http://example.com/ns/example-jukebox",
@@ -23,6 +27,8 @@ import com.adva.netemu.YangListBound;
 
 public class EmuArtist implements YangListBindable {
 
+    /** YANG datastore binding for this jukebox artist.
+     */
     @Nonnull
     private final EmuArtist_YangBinding yangBinding;
 
@@ -31,6 +37,8 @@ public class EmuArtist implements YangListBindable {
         return Optional.of(this.yangBinding);
     }
 
+    /** Underlying Spotify artist.
+     */
     @Nonnull
     private final ArtistSimplified spotifyArtist;
 
@@ -39,19 +47,39 @@ public class EmuArtist implements YangListBindable {
         return this.spotifyArtist.getName();
     }
 
+    /** Available albums of this jukebox artist.
+     */
     @Nonnull
     private final Set<EmuAlbum> albums;
 
+    /** Returns available albums of this jukebox artist.
+
+      * @return
+            An immutable set
+      */
     @Nonnull
     public Set<EmuAlbum> albums() {
         return Set.copyOf(this.albums);
     }
 
+    /** Returns all songs of the available albums of this jukebox artist.
+
+      * @return
+            An immutable set
+      */
     @Nonnull
     public Set<EmuSong> songs() {
         return StreamEx.of(this.albums).flatMap(album -> album.songs().stream()).toImmutableSet();
     }
 
+    /** Creates event handlers for YANG datastore binding and creates jukebox albums from given Spotify artist and albums.
+
+      * @param spotifyArtist
+            Spotify artist data
+
+      * @param spotifyArtistAlbums
+            Spotify albums data
+      */
     private EmuArtist(@Nonnull final ArtistSimplified spotifyArtist, @Nonnull final Collection<Album> spotifyArtistAlbums) {
         this.spotifyArtist = spotifyArtist;
 
@@ -68,6 +96,17 @@ public class EmuArtist implements YangListBindable {
                 .setAlbum(EmuAlbum_Yang.listOperationalDataFrom(this.albums)));
     }
 
+    /** Creates a new jukebox artist from given Spotify artist and selection of artist's albums.
+
+      * @param spotifyArtist
+            Spotify artist data
+
+      * @param spotifyArtistAlbums
+            Spotify albums data
+
+      * @return
+            A new instance
+      */
     @Nonnull
     public static EmuArtist fromSpotify(
             @Nonnull final ArtistSimplified spotifyArtist,

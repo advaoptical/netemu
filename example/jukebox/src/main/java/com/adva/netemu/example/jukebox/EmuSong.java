@@ -13,6 +13,10 @@ import com.adva.netemu.YangListBinding;
 import com.adva.netemu.YangListBound;
 
 
+/** A song in the jukebox library.
+
+  * <p>Maps a Spotify track to a YANG {@code /example-jukebox:jukebox/library/artist/album/song} list item
+  */
 @YangListBound(
         context = NetEmuDefined.class,
         namespace = "http://example.com/ns/example-jukebox",
@@ -20,6 +24,8 @@ import com.adva.netemu.YangListBound;
 
 public class EmuSong implements YangListBindable {
 
+    /** YANG datastore binding for this jukebox song.
+      */
     @Nonnull
     private final EmuSong_YangBinding yangBinding;
 
@@ -28,18 +34,35 @@ public class EmuSong implements YangListBindable {
         return Optional.of(this.yangBinding);
     }
 
+    /** Underlying Spotify track.
+      */
     @Nonnull
     private final TrackSimplified spotifyTrack;
 
+    /** Returns the name of this jukebox song.
+
+      * @return
+            The name string
+      */
     @Nonnull
     public String name() {
         return this.spotifyTrack.getName();
     }
 
+    /** Returns the length of this jukebox song.
+
+      * @return
+            The song duration in seconds
+      */
     public int seconds() {
         return this.spotifyTrack.getDurationMs() / 1000;
     }
 
+    /** Creates event handlers for YANG datastore binding.
+
+      * @param spotifyTrack
+            Spotify track data
+      */
     private EmuSong(@Nonnull final TrackSimplified spotifyTrack) {
         this.spotifyTrack = spotifyTrack;
 
@@ -55,6 +78,14 @@ public class EmuSong implements YangListBindable {
                         .setLocation(this.spotifyTrack.getHref()));
     }
 
+    /** Creates a new jukebox song from given Spotify track.
+
+      * @param spotifyTrack
+            Spotify track data
+
+      * @return
+            A new instance
+      */
     @Nonnull
     public static EmuSong fromSpotify(@Nonnull final TrackSimplified spotifyTrack) {
         return new EmuSong(spotifyTrack);

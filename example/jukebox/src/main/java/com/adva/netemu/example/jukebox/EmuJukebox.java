@@ -19,19 +19,25 @@ import org.slf4j.LoggerFactory;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.model_objects.specification.Album;
 
-import org.opendaylight.yangtools.yang.common.Uint32;
-
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangBinding;
 import com.adva.netemu.YangBound;
 
 
+/** The jukebox singleton.
+
+  * <p>Manages the YANG {@code /example-jukebox:jukebox} container
+  */
 @YangBound(context = NetEmuDefined.class, namespace = "http://example.com/ns/example-jukebox", value = "jukebox")
 public class EmuJukebox implements YangBindable {
 
+    /** Default logger for this jukebox singleton.
+      */
     @Nonnull
-    private static Logger LOG = LoggerFactory.getLogger(EmuJukebox.class);
+    private static final Logger LOG = LoggerFactory.getLogger(EmuJukebox.class);
 
+    /** YANG datastore binding for jukebox.
+      */
     @Nonnull
     private final EmuJukebox_YangBinding yangBinding = new EmuJukebox_YangBinding();
 
@@ -40,27 +46,48 @@ public class EmuJukebox implements YangBindable {
         return Optional.of(this.yangBinding);
     }
 
+    /** Singleton jukebox instance.
+      */
     @Nullable
     private static EmuJukebox INSTANCE = null;
 
+    /** Music library of jukebox.
+     */
     @Nonnull
     private final EmuLibrary library;
 
+    /** Returns all artists in jukebox library.
+
+      * @return
+            An immutable set
+      */
     @Nonnull
     public static Set<EmuArtist> artists() {
         return INSTANCE.library.artists();
     }
 
+    /** Returns all albums in jukebox library.
+
+      * @return
+            An immutable set
+      */
     @Nonnull
     public static Set<EmuAlbum> albums() {
         return INSTANCE.library.albums();
     }
 
+    /** Returns all songs in jukebox library.
+
+      * @return
+            An immutable set
+      */
     @Nonnull
     public static Set<EmuSong> songs() {
         return INSTANCE.library.songs();
     }
 
+    /** All playlists of jukebox.
+      */
     @Nonnull
     private final Set<EmuPlaylist> playlists = Collections.synchronizedSet(new HashSet<>());
 
@@ -68,6 +95,14 @@ public class EmuJukebox implements YangBindable {
       */
     private double playerGap = 0.0;
 
+    /** Creates event handlers for YANG datastore binding and creates jukebox library from given Spotify albums.
+
+      * @param spotify
+            Spotify Web API accessor
+
+      * @param spotifyAlbums
+            Spotify albums data
+      */
     private EmuJukebox(@Nonnull final SpotifyApi spotify, @Nonnull final Collection<Album> spotifyAlbums) {
         this.library = this.yangBinding.registerChild(EmuLibrary.fromSpotifyAlbums(spotifyAlbums));
 
@@ -97,15 +132,26 @@ public class EmuJukebox implements YangBindable {
                         .setGap(BigDecimal.valueOf(this.playerGap * 10.0))));
     }
 
+    /** Creates the jukebox singleton instance.
+
+      * @param spotify
+            Spotify Web API accessor
+
+      * @param spotifyAlbums
+            Spotify albums data
+
+      * @return
+            The singleton instance
+      */
     @Nonnull
     public static EmuJukebox createSingletonUsingSpotify(
-            @Nonnull final SpotifyApi spotify, @Nonnull final Collection<Album> albums) {
+            @Nonnull final SpotifyApi spotify, @Nonnull final Collection<Album> spotifyAlbums) {
 
         if (INSTANCE != null) {
             throw new RuntimeException(String.format("Singleton instance of %s was already created.", EmuJukebox.class));
         }
 
-        INSTANCE = new EmuJukebox(spotify, albums);
+        INSTANCE = new EmuJukebox(spotify, spotifyAlbums);
         return INSTANCE;
     }
 

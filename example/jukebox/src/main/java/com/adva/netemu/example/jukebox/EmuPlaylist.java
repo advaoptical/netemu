@@ -19,9 +19,15 @@ import com.adva.netemu.YangListBinding;
 import com.adva.netemu.YangListBound;
 
 
+/** A playlist of jukebox songs.
+
+  * <p>Manages a YANG {@code /example-jukebox:jukebox/playlist}
+  */
 @YangListBound(context = NetEmuDefined.class, namespace = "http://example.com/ns/example-jukebox", value = "jukebox/playlist")
 public class EmuPlaylist implements YangListBindable {
 
+    /** YANG datastore binding for this jukebox playlist.
+      */
     @Nonnull
     private final EmuPlaylist_YangBinding yangBinding;
 
@@ -30,9 +36,16 @@ public class EmuPlaylist implements YangListBindable {
         return Optional.of(this.yangBinding);
     }
 
+    /** Name of this jukebox playlist.
+      */
     @Nonnull
     private final String name;
 
+    /** Returns the name of this jukebox playlist.
+
+      * @return
+            The name string
+      */
     @Nonnull
     public String name() {
         return this.name;
@@ -48,14 +61,26 @@ public class EmuPlaylist implements YangListBindable {
         return this.name.hashCode();
     }
 
+    /** All library songs referenced by this jukebox playlist.
+      */
     @Nonnull
     private final AtomicReference<List<EmuSong>> songs = new AtomicReference<>();
 
+    /** Returns all library songs referenced by this jukebox playlist.
+
+      * @return
+            An immutable list
+      */
     @Nonnull
     public List<EmuSong> songs() {
         return List.copyOf(this.songs.get());
     }
 
+    /** Creates event handlers for YANG datastore binding.
+
+      * @param name
+            The name of this new playlist
+      */
     private EmuPlaylist(@Nonnull final String name) {
         this.name = name;
         this.yangBinding = EmuPlaylist_YangBinding.withKey(EmuPlaylist_Yang.ListKey.from(name))
@@ -79,6 +104,14 @@ public class EmuPlaylist implements YangListBindable {
                                 .setId(songWithIndex.getValue().getYangListBinding().map(YangBinding::getIid))));
     }
 
+    /** Creates a new jukebox playlist and applies given YANG configuration data.
+
+      * @param data
+            YANG data of an {@code /example-jukebox:jukebox/playlist}
+
+      * @return
+            A new instance
+      */
     @Nonnull
     public static EmuPlaylist fromConfiguration(@Nonnull final EmuPlaylist_Yang.Data data) {
         @Nonnull final var instance = new EmuPlaylist(data.requireName());
