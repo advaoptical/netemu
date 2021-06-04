@@ -533,12 +533,11 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
-            /*
             LOG.info("Updating {} Datastore from {} Datastore", storeType, LogicalDatastoreType.CONFIGURATION);
 
             updatingFuture = this.readConfigurationData().transformAsync(config -> FluentFuture.from(config
                     .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).getValue())
-                            .map(childNode -> (ListenableFuture<CommitInfo>) this.writeOperationalData(childNode))))
+                            .map(childNode -> (ListenableFuture<? extends CommitInfo>) this.writeOperationalData(childNode))))
 
                     .orElseGet(() -> Futures.immediateFuture(List.of()))
 
@@ -548,9 +547,6 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                 }
 
             }, this.transactionExecutor);
-            */
-
-            updatingFuture = Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
 
         } else {
             updatingFuture = Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
