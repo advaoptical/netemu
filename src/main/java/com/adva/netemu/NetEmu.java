@@ -9,16 +9,16 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-
 import java.nio.file.Paths;
+
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -31,7 +31,6 @@ import javax.xml.stream.XMLStreamReader;
 import com.google.common.io.PatternFilenameFilter;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 import one.util.streamex.StreamEx;
-
 import org.apache.commons.lang3.ArrayUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
@@ -61,6 +60,7 @@ public class NetEmu {
     }
 
     public static final class RegisteredDriver<D extends EmuDriver> {
+
         @Nonnull
         private final NetEmu netEmu;
 
@@ -86,15 +86,120 @@ public class NetEmu {
         }
     }
 
+    public static final class RegisteredService<S extends EmuService> {
+
+        @Nonnull
+        private final String name;
+
+        @Nonnull
+        public String name() {
+            return this.name;
+        }
+
+        @Nonnull
+        private final NetEmu emu;
+
+        @Nonnull
+        private final Function<YangPool, S> instanceCreator;
+
+        @Nonnull
+        private AtomicBoolean enabled = new AtomicBoolean(true);
+
+        public boolean isEnabled() {
+            return this.enabled.get();
+        }
+
+        @Nonnull
+        private final AtomicReference<Thread> starterThread = new AtomicReference<>();
+
+        @Nonnull
+        public Optional<Thread> getStarterThread() {
+            return Optional.ofNullable(this.starterThread.get());
+        }
+
+        @Nonnull
+        private final AtomicReference<S> instance = new AtomicReference<>();
+
+        @Nonnull
+        public Optional<S> getInstance() {
+            return Optional.of(this.instance.get());
+        }
+
+        public boolean isStarting() {
+            return this.getStarterThread().map(Thread::isAlive).orElse(false);
+        }
+
+        public boolean isRunning() {
+            return this.getStarterThread().map(thread -> !thread.isAlive()).orElse(false);
+        }
+
+        private RegisteredService(@Nonnull final String name, @Nonnull final NetEmu emu,
+                @Nonnull final Function<YangPool, S> instanceCreator) {
+
+            this.name = name;
+            this.emu = emu;
+            this.instanceCreator = instanceCreator;
+        }
+
+        public void enable() {
+            LOG.info("Enabling {}", this);
+            this.enabled.set(true);
+        }
+
+        public void disable() {
+            LOG.info("Disabling {}", this);
+            this.enabled.set(false);
+        }
+
+        @Nonnull
+        public Thread start() {
+            synchronized (this.enabled) {
+                if (!this.isEnabled()) {
+                    throw new RuntimeException("Service is disabled");
+                }
+
+                synchronized (this.starterThread) {
+                    if (this.isStarting()) {
+                        throw new RuntimeException("Service is already starting");
+                    }
+
+                    synchronized (this.instance) {
+                        if (this.isRunning()) {
+                            throw new RuntimeException("Service is already running");
+                        }
+
+                        @Nonnull final var service = this.instanceCreator.apply(this.emu.pool);
+                        this.instance.set(service);
+
+                        @Nonnull final var starterThread = new Thread(service);
+                        starterThread.setDaemon(false);
+                        starterThread.start();
+
+                        this.starterThread.set(starterThread);
+                        return starterThread;
+                    }
+                }
+            }
+        }
+    }
+
     @Nonnull
     private final List<Class<? extends EmuDriver>> driverRegistry = Collections.synchronizedList(new ArrayList<>());
 
     @Nonnull
-    private final List<Function<YangPool, ? extends EmuService>> serviceRegistry =
-            Collections.synchronizedList(new ArrayList<>());
+    private final List<RegisteredService<?>> serviceRegistry = Collections.synchronizedList(new ArrayList<>());
 
+    /*
     @Nonnull
     private final Map<Class<? extends EmuService>, Thread> serviceThreads = new HashMap<>();
+    */
+
+    @Nonnull
+    public List<RegisteredService<?>> registeredServices() {
+        synchronized (this.serviceRegistry) {
+            return List.copyOf(this.serviceRegistry);
+        }
+    }
 
     public NetEmu(@Nonnull final YangPool pool) {
         this.pool = pool;
@@ -106,39 +211,43 @@ public class NetEmu {
     }
 
     @SafeVarargs
-    public final <S extends EmuService> void registerService(
+    public final <S extends EmuService> List<RegisteredService<S>> registerService(
             @Nonnull final Class<S> serviceClass, @Nonnull final EmuService.Settings<S>... constructionSettings) {
 
-        for (@Nonnull final var settings : constructionSettings) {
-            this.registerService(yangPool -> {
-                try {
-                    return serviceClass.getDeclaredConstructor(YangPool.class, settings.getClass())
-                            .newInstance(yangPool, settings.getClass().cast(settings));
+        return StreamEx.of(constructionSettings).map(settings -> this.registerService(serviceClass.getName(), yangPool -> {
+            try {
+                return serviceClass.getDeclaredConstructor(YangPool.class, settings.getClass())
+                        .newInstance(yangPool, settings.getClass().cast(settings));
 
-                } catch (final
-                        NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            } catch (final
+                    NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
 
-                    throw new RuntimeException(e);
-                }
-            });
-        }
+                throw new RuntimeException(e);
+            }
 
-        // this.serviceRegistry.add(serviceClass);
+        })).toImmutableList();
     }
 
-    public void registerService(@Nonnull final Function<YangPool, ? extends EmuService> supplier) {
-        this.serviceRegistry.add(supplier);
+    @Nonnull
+    public <S extends EmuService> RegisteredService<S>
+    registerService(@Nonnull final String name, @Nonnull final Function<YangPool, S> supplier) {
+        @Nonnull final var registeredService = new RegisteredService<S>(name, this, supplier);
+        this.serviceRegistry.add(registeredService);
+        return registeredService;
     }
 
     public synchronized void start() {
 
-        for (@Nonnull final var serviceCreator : this.serviceRegistry) {
+        for (@Nonnull final var registeredService : this.serviceRegistry) {
+            /*
             @Nonnull final var service = serviceCreator.apply(this.pool);
             @Nonnull final var serviceThread = new Thread(service);
             serviceThread.setDaemon(false);
             serviceThread.start();
+            */
 
-            this.serviceThreads.put(service.getClass(), serviceThread);
+            // this.serviceThreads.put(service.getClass(), serviceThread);
+            registeredService.start();
         }
     }
 
