@@ -252,14 +252,24 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
         @Nonnull @Override
         public DOMTransactionChain createTransactionChain(@Nonnull final DOMTransactionChainListener listener) {
-            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
-            synchronized (this.yangPool.yangBindingRegistry) {
-                updatingFuture = Futures.allAsList(StreamEx.of(this.yangPool.yangBindingRegistry)
-                        .map(this.yangPool::writeOperationalDataFrom));
-            }
+            LOG.info("Updating {} Datastore from {} Datastore", LogicalDatastoreType.OPERATIONAL,
+                    LogicalDatastoreType.CONFIGURATION);
+
+            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture =
+                    this.yangPool.readConfigurationData().transformAsync(config -> config
+                            .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).getValue())
+                                    .map(childNode -> (ListenableFuture<CommitInfo>)
+                                            this.yangPool.writeOperationalData(childNode))))
+
+                            .orElseGet(() -> Futures.immediateFuture(List.of())), this.yangPool.transactionExecutor);
 
             try {
-                updatingFuture.get();
+                synchronized (this.yangPool.yangBindingRegistry) {
+                    Futures.transformAsync(updatingFuture, ignoredCommitInfos -> Futures.allAsList(
+                            StreamEx.of(this.yangPool.yangBindingRegistry).map(this.yangPool::writeOperationalDataFrom)
+
+                            ), this.yangPool.transactionExecutor).get();
+                }
 
             } catch (final InterruptedException | ExecutionException ignored) {}
 
