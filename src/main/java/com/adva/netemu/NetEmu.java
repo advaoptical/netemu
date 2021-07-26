@@ -12,10 +12,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,6 +37,8 @@ import org.reflections.scanners.ResourcesScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
+
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
 import com.adva.netemu.driver.EmuDriver;
@@ -57,6 +59,11 @@ public class NetEmu {
     @Nonnull
     public YangPool getYangPool() {
         return this.pool;
+    }
+
+    @Nonnull
+    public String id() {
+        return this.getYangPool().id();
     }
 
     public static final class RegisteredDriver<D extends EmuDriver> {
@@ -201,8 +208,38 @@ public class NetEmu {
         }
     }
 
-    public NetEmu(@Nonnull final YangPool pool) {
+    private NetEmu(@Nonnull final YangPool pool) {
         this.pool = pool;
+    }
+
+    @Nonnull
+    public static NetEmu forYangPool(@Nonnull final YangPool yangPool) {
+        return new NetEmu(yangPool);
+    }
+
+    @Nonnull
+    public static Factory withId(@Nonnull final String id) {
+        return new Factory(id);
+    }
+
+    public static class Factory {
+
+        @Nonnull
+        private final String id;
+
+        private Factory(@Nonnull final String id) {
+            this.id = id;
+        }
+
+        @Nonnull
+        public NetEmu fromYangModuleInfos(@Nonnull final Collection<YangModuleInfo> yangModuleInfos) {
+            return NetEmu.forYangPool(new YangPool(this.id, yangModuleInfos));
+        }
+
+        @Nonnull
+        public NetEmu fromYangModuleInfos(@Nonnull final YangModuleInfo ...yangModuleInfos) {
+            return NetEmu.forYangPool(new YangPool(this.id, yangModuleInfos));
+        }
     }
 
     public <D extends EmuDriver> RegisteredDriver<D> registerDriver(@Nonnull final Class<D> driverClass) {
