@@ -10,7 +10,7 @@ import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
 
 
-public class WebService extends EmuService {
+public class WebService extends EmuService<WebService.Settings> {
 
     /*
     @Path("/yang")

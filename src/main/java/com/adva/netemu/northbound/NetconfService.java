@@ -61,7 +61,7 @@ import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
 
 
-public class NetconfService extends EmuService implements RpcHandler {
+public class NetconfService extends EmuService<NetconfService.Settings> implements RpcHandler {
 
     public static class Settings extends ConfigurationBuilder implements EmuService.Settings<NetconfService> {}
 
@@ -99,16 +99,16 @@ public class NetconfService extends EmuService implements RpcHandler {
     private final NetconfState netconfState;
 
     @Nonnull
-    private final AtomicReference<NetconfDeviceSimulator> netconf = new AtomicReference<>(null);
+    private final AtomicReference<NetconfDeviceSimulator> netconf = new AtomicReference<>();
 
     @Nonnull
     public NetconfDeviceSimulator netconf() {
         return this.netconf.get();
     }
 
-    public NetconfService(@Nonnull final YangPool pool, @Nonnull final Settings settings) {
-        super(pool, settings);
-        this.netconfState = NetconfState.from(pool.getEffectiveModelContext());
+    public NetconfService(@Nonnull final YangPool yangPool, @Nonnull final Settings settings) {
+        super(yangPool, settings);
+        this.netconfState = NetconfState.from(yangPool.getEffectiveModelContext());
     }
 
     @Override
@@ -117,7 +117,7 @@ public class NetconfService extends EmuService implements RpcHandler {
             throw new IllegalStateException(String.format("%s is already running", this));
         }
 
-        @Nonnull final var netconf = new NetconfDeviceSimulator(((ConfigurationBuilder) super.settings())
+        @Nonnull final var netconf = new NetconfDeviceSimulator(super.settings()
                 .setCapabilities(Set.of("urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"))
                 .setModels(Set.copyOf(super.yangPool().getModules()))
                 .setRpcMapping(this)

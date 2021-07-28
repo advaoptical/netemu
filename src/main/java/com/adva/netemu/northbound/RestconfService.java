@@ -34,7 +34,7 @@ import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
 
 
-public class RestconfService extends EmuService {
+public class RestconfService extends EmuService<RestconfService.Settings> {
 
     public static class Settings implements EmuService.Settings<RestconfService> {
 

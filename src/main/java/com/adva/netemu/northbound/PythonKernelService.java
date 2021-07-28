@@ -1,5 +1,7 @@
 package com.adva.netemu.northbound;
 
+import java.util.Objects;
+
 import javax.annotation.Nonnull;
 
 import jep.JepException;
@@ -8,7 +10,7 @@ import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuPythonService;
 
 
-public class PythonKernelService extends EmuPythonService {
+public class PythonKernelService extends EmuPythonService<PythonKernelService.Settings> {
 
     public static class Settings implements EmuPythonService.Settings<PythonKernelService> {}
 
@@ -18,6 +20,6 @@ public class PythonKernelService extends EmuPythonService {
 
     @Override
     protected void launchAppFrom(@Nonnull final EmuPythonService.Python python) throws JepException {
-        python.launchKernelApp();
+        Objects.requireNonNull(python, "Missing Python interpreter for launching app").launchKernelApp();
     }
 }

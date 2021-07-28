@@ -1,5 +1,8 @@
 package com.adva.netemu.service;
 
+import java.io.File;
+import java.io.IOException;
+
 import javax.annotation.Nonnull;
 
 import jep.Jep;
@@ -9,11 +12,8 @@ import jep.SharedInterpreter;
 
 import com.adva.netemu.YangPool;
 
-import java.io.File;
-import java.io.IOException;
 
-
-public abstract class EmuPythonService extends EmuService {
+public abstract class EmuPythonService<T extends EmuService.Settings<? extends EmuPythonService<?>>> extends EmuService<T> {
 
     protected static class Python {
 
@@ -80,9 +80,9 @@ public abstract class EmuPythonService extends EmuService {
         }
     }
 
-    public interface Settings<S extends EmuPythonService> extends EmuService.Settings<S> {}
+    public interface Settings<S extends EmuPythonService<?>> extends EmuService.Settings<S> {}
 
-    public EmuPythonService(@Nonnull final YangPool pool, @Nonnull final Settings<? extends EmuPythonService> settings) {
+    public EmuPythonService(@Nonnull final YangPool pool, @Nonnull final T settings) {
         super(pool, settings);
     }
 

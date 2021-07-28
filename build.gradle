@@ -83,6 +83,7 @@ dependencies {
     // api "com.bea.xml:jsr173-ri:1.0"
     // api "com.ea.async:ea-async:1.2.3"
     api "net.javacrumbs.future-converter:future-converter-java8-guava:1.2.0"
+    api "net.jodah:typetools:0.6.3"
     api "one.util:streamex:0.7.2"
 
     // To avoid java.lang.NoClassDefFoundError: org/glassfish/jersey/server/model/Parameter$Source

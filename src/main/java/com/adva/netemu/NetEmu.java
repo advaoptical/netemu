@@ -15,11 +15,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
@@ -30,6 +32,7 @@ import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.io.PatternFilenameFilter;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
+import net.jodah.typetools.TypeResolver;
 import one.util.streamex.StreamEx;
 import org.apache.commons.lang3.ArrayUtils;
 import org.reflections.Reflections;
@@ -93,7 +96,7 @@ public class NetEmu {
         }
     }
 
-    public static final class RegisteredService<S extends EmuService> {
+    public static final class RegisteredService<S extends EmuService<T>, T extends EmuService.Settings<S>> {
 
         @Nonnull
         private final String name;
@@ -107,10 +110,26 @@ public class NetEmu {
         private final NetEmu emu;
 
         @Nonnull
-        private final Function<YangPool, S> instanceCreator;
+        private final Class<S> serviceClass;
 
         @Nonnull
-        private AtomicBoolean enabled = new AtomicBoolean(true);
+        public Class<S> getServiceClass() {
+            return this.serviceClass;
+        }
+
+        @Nonnull @SuppressWarnings({"unchecked"})
+        public Class<T> getSettingsClass() {
+            return (Class<T>) TypeResolver.resolveRawArguments(EmuService.class, this.serviceClass)[0];
+        }
+
+        @Nonnull
+        private final T settings;
+
+        @Nonnull
+        private final BiFunction<YangPool, T, S> instanceCreator;
+
+        @Nonnull
+        private final AtomicBoolean enabled = new AtomicBoolean(true);
 
         public boolean isEnabled() {
             return this.enabled.get();
@@ -140,12 +159,47 @@ public class NetEmu {
             return this.getStarterThread().map(thread -> !thread.isAlive()).orElse(false);
         }
 
-        private RegisteredService(@Nonnull final String name, @Nonnull final NetEmu emu,
-                @Nonnull final Function<YangPool, S> instanceCreator) {
+        private RegisteredService(@Nonnull final String name, @Nonnull final NetEmu emu, @Nonnull final Class<S> serviceClass,
+                @Nullable final T settings,
+                @Nullable final BiFunction<YangPool, T, S> instanceCreator) {
 
-            this.name = name;
-            this.emu = emu;
-            this.instanceCreator = instanceCreator;
+            this.name = Objects.requireNonNull(name, "Missing name for EMU-Service registration");
+            this.emu = Objects.requireNonNull(emu, "Missing EMU-Instance reference for EMU-Service registration");
+            this.serviceClass = Objects.requireNonNull(serviceClass, "Missing Class<> for EMU-Service registration");
+
+            @Nonnull final var settingsClass = this.getSettingsClass();
+            this.settings = Objects.requireNonNullElseGet(settings, () -> {
+                try {
+                    return settingsClass.getDeclaredConstructor().newInstance();
+
+                } catch (final
+                        InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+
+                    throw new RuntimeException("Failed construction of default settings for EMU-Service registration", e);
+                }
+            });
+
+            this.instanceCreator = Objects.requireNonNullElse(instanceCreator, (yangPool, instanceSettings) -> {
+                try {
+                    return this.serviceClass.getDeclaredConstructor(YangPool.class, settingsClass)
+                            .newInstance(yangPool, instanceSettings);
+
+                } catch (final
+                        InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+
+                    throw new RuntimeException("Failed EMU-Service instantiation", e);
+                }
+            });
+        }
+
+        private RegisteredService(@Nonnull final String name, @Nonnull final NetEmu emu, @Nonnull final Class<S> serviceClass,
+                @Nonnull final BiFunction<YangPool, T, S> instanceCreator) {
+
+            this(name, emu, serviceClass, null, instanceCreator);
+        }
+
+        private RegisteredService(@Nonnull final String name, @Nonnull final NetEmu emu, @Nonnull final Class<S> serviceClass) {
+            this(name, emu, serviceClass, null, null);
         }
 
         public void enable() {
@@ -175,7 +229,7 @@ public class NetEmu {
                             throw new RuntimeException("Service is already running");
                         }
 
-                        @Nonnull final var service = this.instanceCreator.apply(this.emu.pool);
+                        @Nonnull final var service = this.instanceCreator.apply(this.emu.pool, this.settings);
                         this.instance.set(service);
 
                         @Nonnull final var starterThread = new Thread(service);
@@ -194,7 +248,7 @@ public class NetEmu {
     private final List<Class<? extends EmuDriver>> driverRegistry = Collections.synchronizedList(new ArrayList<>());
 
     @Nonnull
-    private final List<RegisteredService<?>> serviceRegistry = Collections.synchronizedList(new ArrayList<>());
+    private final List<RegisteredService<?, ?>> serviceRegistry = Collections.synchronizedList(new ArrayList<>());
 
     /*
     @Nonnull
@@ -202,13 +256,13 @@ public class NetEmu {
     */
 
     @Nonnull
-    public List<RegisteredService<?>> registeredServices() {
+    public List<RegisteredService<?, ?>> registeredServices() {
         synchronized (this.serviceRegistry) {
             return List.copyOf(this.serviceRegistry);
         }
     }
 
-    private NetEmu(@Nonnull final YangPool pool) {
+    protected NetEmu(@Nonnull final YangPool pool) {
         this.pool = pool;
     }
 
@@ -247,11 +301,12 @@ public class NetEmu {
         return new RegisteredDriver<>(this, driverClass);
     }
 
+    /*
     @SafeVarargs
-    public final <S extends EmuService> List<RegisteredService<S>> registerService(
-            @Nonnull final Class<S> serviceClass, @Nonnull final EmuService.Settings<S>... constructionSettings) {
+    public final <S extends EmuService<T>, T extends EmuService.Settings<S>> List<RegisteredService<S, T>> registerService(
+            @Nonnull final Class<S> serviceClass, @Nonnull final T... constructionSettings) {
 
-        return StreamEx.of(constructionSettings).map(settings -> this.registerService(serviceClass.getName(), yangPool -> {
+        return StreamEx.of(constructionSettings).map(settingsInstance -> this.registerService(serviceClass.getName(), (yangPool, settings) -> {
             try {
                 return serviceClass.getDeclaredConstructor(YangPool.class, settings.getClass())
                         .newInstance(yangPool, settings.getClass().cast(settings));
@@ -264,13 +319,28 @@ public class NetEmu {
 
         })).toImmutableList();
     }
+    */
 
     @Nonnull
-    public <S extends EmuService> RegisteredService<S>
-    registerService(@Nonnull final String name, @Nonnull final Function<YangPool, S> supplier) {
-        @Nonnull final var registeredService = new RegisteredService<S>(name, this, supplier);
+    public <S extends EmuService<T>, T extends EmuService.Settings<S>> T // RegisteredService<S, T>
+    registerService(@Nonnull final String name, @Nonnull final Class<S> serviceClass, @Nonnull final BiFunction<YangPool, T, S> instanceCreator) {
+        @Nonnull final var registeredService = new RegisteredService<>(name, this, serviceClass, instanceCreator);
         this.serviceRegistry.add(registeredService);
-        return registeredService;
+        return registeredService.settings;
+    }
+
+    @Nonnull
+    public <S extends EmuService<T>, T extends EmuService.Settings<S>> T // RegisteredService<S, T>
+    registerService(@Nonnull final String name, @Nonnull final Class<S> serviceClass) {
+        @Nonnull final var registeredService = new RegisteredService<>(name, this, serviceClass);
+        this.serviceRegistry.add(registeredService);
+        return registeredService.settings;
+    }
+
+    @Nonnull
+    public <S extends EmuService<T>, T extends EmuService.Settings<S>> T // RegisteredService<S, T>
+    registerService(@Nonnull final Class<S> serviceClass) {
+        return this.registerService(serviceClass.getName(), serviceClass);
     }
 
     public synchronized void start() {
