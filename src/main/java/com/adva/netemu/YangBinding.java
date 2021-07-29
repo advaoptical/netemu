@@ -50,6 +50,14 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     @Nonnull
     private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(0); // 0 -> no idle threads
 
+    @Nonnull
+    private final AtomicReference<YangPool> yangPool = new AtomicReference<>();
+
+    @Nonnull
+    public Optional<YangPool> getYangPool() {
+        return Optional.ofNullable(this.yangPool.get());
+    }
+
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
         return Optional.of(this);
@@ -125,8 +133,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         return new OperationalDatastoreBinding(this);
     }
 
-    @Nonnull
-    @SuppressWarnings({"UnstableApiUsage", "unchecked"})
+    @Nonnull @SuppressWarnings({"UnstableApiUsage", "unchecked"})
     public Class<Y> getDataClass() {
         return (Class<Y>) (new TypeToken<Y>(this.getClass()) {}).getRawType();
     }
@@ -166,10 +173,18 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         this.owner = owner;
     }
 
+    public void setYangPool(@Nonnull final YangPool yangPool) {
+        this.yangPool.set(yangPool);
+    }
+
     @Nonnull
     public <T extends YangBindable> T registerChild(@Nonnull final T object) {
         object.getYangBinding().ifPresent(binding -> {
             binding.owner = this;
+        });
+
+        this.getYangPool().ifPresent(yangPool -> {
+            yangPool.registerYangBindable(object);
         });
 
         return object;
@@ -181,15 +196,17 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
             binding.owner = this;
         });
 
+        this.getYangPool().ifPresent(yangPool -> {
+            yangPool.registerYangBindable(object);
+        });
+
         return object;
     }
 
     @Nonnull
     public <C extends Collection<T>, T extends YangListBindable> C registerChildren(@Nonnull final C objects) {
         for (@Nonnull final var object : objects) {
-            object.getYangListBinding().ifPresent(binding -> {
-                binding.owner = this;
-            });
+            this.registerChild(object);
         }
 
         return objects;
