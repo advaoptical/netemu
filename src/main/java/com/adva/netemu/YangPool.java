@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
 import javax.annotation.Nonnull;
@@ -40,7 +41,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
 import one.util.streamex.StreamEx;
-import org.gradle.internal.impldep.com.google.common.util.concurrent.ListenableScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -356,18 +356,38 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         // @Nonnull final var rpcService = new BindingDOMRpcProviderServiceAdapter(adapterContext, )
     }
 
+    @Nonnull
+    private final AtomicReference<CompletableFuture<? extends YangBinding<?, ?>>> yangBindingRegisteringFuture =
+            new AtomicReference<>(CompletableFuture.completedFuture(null));
+
+    @Nonnull
+    public CompletableFuture<? extends YangBinding<?, ?>> awaitYangBindingRegistering() {
+        return this.yangBindingRegisteringFuture.get();
+    }
+
     @Nonnull @SuppressWarnings({"UnusedReturnValue"})
     public <T extends YangBinding<Y, B>, Y extends ChildOf<?>, B extends Builder<Y>>
-    T registerYangBinding(@Nonnull final T binding) {
-        for (@Nonnull final YangBinding<Y, B>.DatastoreBinding storeBinding: List.of(
-                binding.createConfigurationDatastoreBinding(),
-                binding.createOperationalDatastoreBinding())) {
+    CompletableFuture<T> registerYangBinding(@Nonnull final T binding) {
+        synchronized (this.yangBindingRegisteringFuture) {
+            @Nonnull final var futureBinding = this.yangBindingRegisteringFuture.get()
+                    .thenApplyAsync(ignoredRegisteredBinding -> {
 
-            this.broker.registerDataTreeChangeListener(storeBinding.getDataTreeId(), storeBinding);
+                        for (@Nonnull final YangBinding<Y, B>.DatastoreBinding storeBinding : List.of(
+                                binding.createConfigurationDatastoreBinding(),
+                                binding.createOperationalDatastoreBinding())) {
+
+                            LOG.info("Registering {} Change listener for {}", storeBinding.storeType(), binding);
+                            this.broker.registerDataTreeChangeListener(storeBinding.getDataTreeId(), storeBinding);
+                        }
+
+                        this.yangBindingRegistry.add(binding);
+                        binding.setYangPool(this);
+                        return binding;
+                    });
+
+            this.yangBindingRegisteringFuture.set(futureBinding);
+            return futureBinding;
         }
-
-        this.yangBindingRegistry.add(binding);
-        return binding;
     }
 
     @Nonnull
@@ -559,7 +579,13 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
             }, this.transactionExecutor);
 
         } else {
-            updatingFuture = Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
+            updatingFuture = Futures.transformAsync(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()),
+                    ignoredRegisteredBinding -> {
+                        synchronized (this.yangBindingRegistry) {
+                            return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
+                        }
+
+                    }, this.executor);
         }
 
         return FluentFuture.from(updatingFuture).transformAsync(ignoredCommitInfos -> {
@@ -669,15 +695,21 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     public FluentFuture<? extends CommitInfo> writeData(
             @Nonnull final LogicalDatastoreType storeType, @Nonnull final NormalizedNode<?, ?> node) {
 
-        @Nonnull final var yangPath = YangInstanceIdentifier.create(node.getIdentifier());
-        @Nonnull final var txn = this.getNormalizedNodeBroker().newWriteOnlyTransaction();
-        txn.merge(storeType, yangPath, node);
+        return FluentFuture.from(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()))
+                .transformAsync(ignoredRegisteredBinding -> {
+                    @Nonnull final var yangPath = YangInstanceIdentifier.create(node.getIdentifier());
+                    @Nonnull final var txn = this.getNormalizedNodeBroker().newWriteOnlyTransaction();
+                    txn.merge(storeType, yangPath, node);
 
-        LOG.info("Writing to {} Datastore: {}", storeType, yangPath);
+                    LOG.info("Writing to {} Datastore: {}", storeType, yangPath);
 
-        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var future = txn.commit();
-        future.addCallback(this.datastore.injectWriting().of(storeType, yangPath).futureCallback, this.loggingCallbackExecutor);
-        return future;
+                    @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var committingFuture = txn.commit();
+                    committingFuture.addCallback(this.datastore.injectWriting().of(storeType, yangPath).futureCallback,
+                            this.loggingCallbackExecutor);
+
+                    return committingFuture;
+
+                }, this.executor);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
