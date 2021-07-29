@@ -69,6 +69,11 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         private final LogicalDatastoreType storeType;
 
         @Nonnull
+        public LogicalDatastoreType storeType() {
+            return this.storeType;
+        }
+
+        @Nonnull
         private final YangBinding<Y, B> object;
 
         @Nonnull
