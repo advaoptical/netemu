@@ -8,7 +8,12 @@ import java.lang.annotation.Target;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
@@ -43,6 +48,19 @@ public @interface YangListBound {
         }
 
         @Nonnull
+        public E get(@Nonnull final Identifier<?> key) {
+            return this.find(key).orElseThrow(() -> new  IllegalArgumentException(String.format("%s not in %s", key, this)));
+        }
+
+        @Nonnull
+        public Optional<E> find(@Nonnull final Identifier<?> key) {
+            return StreamEx.of(this.items)
+                    .findFirst(item -> item.getYangListBinding().map(YangListBinding::getKey)
+                            .orElseThrow(() -> new RuntimeException(String.format("%s has no YANG-Binding", item)))
+                            .equals(key));
+        }
+
+        @Nonnull
         public Set<? extends Identifier<?>> keySet() {
             return StreamEx.of(this.items)
                     .map(item -> item.getYangListBinding().map(YangListBinding::getKey).orElseThrow(() -> new RuntimeException(
@@ -67,7 +85,7 @@ public @interface YangListBound {
         }
 
         public boolean containsKey(@Nonnull final Identifier<?> key) {
-            return this.keySet().contains(key);
+            return this.find(key).isPresent();
         }
 
         @Override @Nonnull
@@ -100,6 +118,19 @@ public @interface YangListBound {
 
             this.parentYangBinding.registerChild(item);
             return true;
+        }
+
+        public Optional<E> merge(@Nonnull final E item, @Nonnull final BiConsumer<E, E> merger) {
+            @Nonnull final var existingItem = this.find(item.getYangListBinding().map(YangListBinding::getKey).orElseThrow(() ->
+                    new IllegalArgumentException(String.format("%s has no YANG-Binding", item))));
+
+            if (existingItem.isPresent()) {
+                merger.accept(existingItem.get(), item);
+                return Optional.empty();
+            }
+
+            this.add(item);
+            return Optional.of(item);
         }
 
         @Override
@@ -137,6 +168,19 @@ public @interface YangListBound {
             }
 
             return !items.isEmpty();
+        }
+
+        @Nonnull
+        public List<? extends E> mergeAll(
+                @Nonnull final java.util.Collection<? extends E> items,
+                @Nonnull final BiConsumer<E, E> merger) {
+
+            return this.mergeAll(items.stream(), merger);
+        }
+
+        @Nonnull
+        public List<? extends E> mergeAll(@Nonnull final Stream<? extends E> items, @Nonnull final BiConsumer<E, E> merger) {
+            return StreamEx.of(items).flatMap(item -> this.merge(item, merger).stream()).nonNull().toImmutableList();
         }
 
         @Override
