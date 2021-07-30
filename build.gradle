@@ -25,10 +25,12 @@ targetCompatibility = 11
 
 final def operatingSystem = DefaultNativePlatform.currentOperatingSystem
 
+/*
 ext.jepDir = [
         "python", "-c", "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
 
 ].execute().text.trim()
+*/
 
 
 repositories {
@@ -50,9 +52,11 @@ repositories {
     }
     */
 
+    /*
     flatDir {
         dirs jepDir
     }
+    */
 }
 
 dependencies {
@@ -117,7 +121,7 @@ dependencies {
 
     // implementation ":netconf-testtool-1.7.0-executable"
 
-    api "black.ninia:jep:3.9.0"
+    // api "black.ninia:jep:3.9.0"
 
     // implementation "commons-io:commons-io:2.6"
     // testImplementation "junit", "junit", "4.12"

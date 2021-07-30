@@ -1,20 +1,25 @@
 package com.adva.netemu.service;
 
+/*
 import java.io.File;
 import java.io.IOException;
+*/
 
 import javax.annotation.Nonnull;
 
+/*
 import jep.Jep;
 import jep.JepException;
 import jep.MainInterpreter;
 import jep.SharedInterpreter;
+*/
 
 import com.adva.netemu.YangPool;
 
 
 public abstract class EmuPythonService<T extends EmuService.Settings<? extends EmuPythonService<?>>> extends EmuService<T> {
 
+    /*
     protected static class Python {
 
         @Nonnull
@@ -79,6 +84,7 @@ public abstract class EmuPythonService<T extends EmuService.Settings<? extends E
             return this.execute("__import__('ipykernel.kernelapp').kernelapp.launch_new_instance()");
         }
     }
+    */
 
     public interface Settings<S extends EmuPythonService<?>> extends EmuService.Settings<S> {}
 
@@ -88,6 +94,7 @@ public abstract class EmuPythonService<T extends EmuService.Settings<? extends E
 
     @Override
     public void run() {
+        /*
         try {
             @Nonnull final var python = Python.withArguments("netemu");
             @Nonnull final var yangPoolVariable = python.importModule("jep").importModule("java.lang")
@@ -98,10 +105,11 @@ public abstract class EmuPythonService<T extends EmuService.Settings<? extends E
 
             this.launchAppFrom(python.execute(String.format("type(YANGPool).INSTANCE = YANGPool(%s)", yangPoolVariable)));
 
-    } catch (final JepException e) {
+        } catch (final JepException e) {
             throw new RuntimeException(e);
         }
+        */
     }
 
-    protected abstract void launchAppFrom(@Nonnull final Python python) throws JepException;
+    // protected abstract void launchAppFrom(@Nonnull final Python python) throws JepException;
 }
