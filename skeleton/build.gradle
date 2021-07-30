@@ -1,0 +1,85 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "com.adva:netemu:0.1.0-SNAPSHOT"
+    }
+}
+
+plugins {
+    id 'application'
+    id 'groovy'
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
+}
+
+apply plugin: 'application'
+apply plugin: 'groovy'
+apply plugin: 'java'
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+
+
+group = "emu.skeleton"
+version = "0.1.0-SNAPSHOT"
+
+application {
+    mainClassName = "emu.skeleton.renameIt.Main"
+}
+
+sourceCompatibility = 11
+targetCompatibility = 11
+
+
+apply plugin: "com.adva.netemu"
+
+netEmu {
+    // definesContextInPackage "com.adva.netemu.example.jukebox"
+
+    /*
+    pythonizer {
+        appendsYangModelsToFile "emu_jukebox/yang_models.py"
+    }
+    */
+}
+
+sourceSets {
+    main.java.srcDirs += [
+            "${buildDir}/${netEmu.yangToSources.mdSalOutputDir}",
+            "${buildDir}/${netEmu.yangToSources.netEmuOutputDir}",
+    ]
+}
+
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    localGroovy()
+
+    implementation "com.adva:netemu:0.1.0-SNAPSHOT"
+    annotationProcessor "com.adva:netemu:0.1.0-SNAPSHOT"
+
+    testImplementation "org.spockframework:spock-core:2.0-M4-groovy-3.0"
+}
+
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+
+jar {
+    manifest {
+        attributes 'Main-Class': "emu.skeleton.renameIt.Main"
+    }
+}
