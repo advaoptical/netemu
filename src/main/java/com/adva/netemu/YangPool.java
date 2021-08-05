@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -381,7 +382,6 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                         }
 
                         this.yangBindingRegistry.add(binding);
-                        binding.setYangPool(this);
                         return binding;
                     });
 
@@ -682,29 +682,58 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<? extends CommitInfo> writeOperationalData(@Nonnull final NormalizedNode<?, ?> node) {
-        return this.writeData(LogicalDatastoreType.OPERATIONAL, node);
+    public FluentFuture<? extends CommitInfo> writeOperationalData(@Nonnull final NormalizedNode<?, ?> ...nodes) {
+        return this.writeData(LogicalDatastoreType.OPERATIONAL, nodes);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<? extends CommitInfo> writeConfigurationData(@Nonnull final NormalizedNode<?, ?> node) {
-        return this.writeData(LogicalDatastoreType.CONFIGURATION, node);
+    public FluentFuture<? extends CommitInfo> writeOperationalData(
+            @Nonnull final Collection<? extends NormalizedNode<?, ?>> nodes) {
+
+        return this.writeData(LogicalDatastoreType.OPERATIONAL, nodes);
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<? extends CommitInfo> writeConfigurationData(@Nonnull final NormalizedNode<?, ?> ...nodes) {
+        return this.writeData(LogicalDatastoreType.CONFIGURATION, nodes);
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<? extends CommitInfo> writeConfigurationData(
+            @Nonnull final Collection<? extends NormalizedNode<?, ?>> nodes) {
+
+        return this.writeData(LogicalDatastoreType.CONFIGURATION, nodes);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<? extends CommitInfo> writeData(
-            @Nonnull final LogicalDatastoreType storeType, @Nonnull final NormalizedNode<?, ?> node) {
+            @Nonnull final LogicalDatastoreType storeType,
+            @Nonnull final NormalizedNode<?, ?> ...nodes) {
+
+        return this.writeData(storeType, List.of(nodes));
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<? extends CommitInfo> writeData(
+            @Nonnull final LogicalDatastoreType storeType,
+            @Nonnull final Collection<? extends NormalizedNode<?, ?>> nodes) {
 
         return FluentFuture.from(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()))
                 .transformAsync(ignoredRegisteredBinding -> {
-                    @Nonnull final var yangPath = YangInstanceIdentifier.create(node.getIdentifier());
                     @Nonnull final var txn = this.getNormalizedNodeBroker().newWriteOnlyTransaction();
-                    txn.merge(storeType, yangPath, node);
 
-                    LOG.info("Writing to {} Datastore: {}", storeType, yangPath);
+                    @Nonnull final var yangPaths = StreamEx.of(nodes)
+                            .mapToEntry(node -> YangInstanceIdentifier.create(node.getIdentifier()), Function.identity())
+                            .mapKeyValue((yangPath, node) -> {
+                                txn.merge(storeType, yangPath, node);
+                                return yangPath;
+
+                            }).toImmutableList();
+
+                    LOG.info("Writing to {} Datastore: {}", storeType, yangPaths);
 
                     @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var committingFuture = txn.commit();
-                    committingFuture.addCallback(this.datastore.injectWriting().of(storeType, yangPath).futureCallback,
+                    committingFuture.addCallback(this.datastore.injectWriting().of(storeType, yangPaths).futureCallback,
                             this.loggingCallbackExecutor);
 
                     return committingFuture;

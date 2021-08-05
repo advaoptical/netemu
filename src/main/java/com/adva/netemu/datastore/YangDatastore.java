@@ -1,5 +1,6 @@
 package com.adva.netemu.datastore;
 
+import java.util.Collection;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
@@ -67,12 +68,15 @@ public interface YangDatastore {
         LogicalDatastoreType storeType = null;
 
         @Nullable
-        YangInstanceIdentifier yangPath = null;
+        Collection<? extends YangInstanceIdentifier> yangPaths = null;
 
         @Nonnull
-        WritingFutureCallback of(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangInstanceIdentifier yangPath) {
+        WritingFutureCallback of(
+                @Nonnull final LogicalDatastoreType storeType,
+                @Nonnull final Collection<? extends YangInstanceIdentifier> yangPaths) {
+
             this.storeType = storeType;
-            this.yangPath = yangPath;
+            this.yangPaths = yangPaths;
             return this;
         }
     }
@@ -85,16 +89,16 @@ public interface YangDatastore {
         @AssistedInject
         Writing(@Nonnull final WritingFutureCallback callback,
                 @Assisted @Nonnull final LogicalDatastoreType storeType,
-                @Assisted @Nonnull final YangInstanceIdentifier yangPath) {
+                @Assisted @Nonnull final Collection<? extends YangInstanceIdentifier> yangPaths) {
 
-            this.futureCallback = callback.of(storeType, yangPath);
+            this.futureCallback = callback.of(storeType, yangPaths);
         }
 
         @AssistedInject.Factory
         interface Factory {
 
             @Nonnull
-            Writing of(final LogicalDatastoreType storeType, final YangInstanceIdentifier yangPath);
+            Writing of(final LogicalDatastoreType storeType, final Collection<? extends YangInstanceIdentifier> yangPaths);
         }
     }
 

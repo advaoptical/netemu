@@ -6,17 +6,14 @@ import java.util.concurrent.ExecutionException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.adva.netemu.YangData;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
-import com.squareup.inject.assisted.dagger2.AssistedModule;
-
-import dagger.Module;
-import dagger.Provides;
-
-import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.squareup.inject.assisted.dagger2.AssistedModule;
+import dagger.Module;
+import dagger.Provides;
 
 import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
@@ -25,8 +22,10 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.common.api.CommitInfo;
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 
 import com.adva.netemu.YangBinding;
+import com.adva.netemu.YangData;
 
 
 @AssistedModule
@@ -66,7 +65,7 @@ class YangDatastoreModule {
             @Override
             public void onFailure(@Nonnull final Throwable t) {
                 LOG.error("While writing to {} Datastore:", this.storeType, t);
-                LOG.error("Failed writing to {} Datastore: {}", this.storeType, this.yangPath);
+                LOG.error("Failed writing to {} Datastore: {}", this.storeType, this.yangPaths);
             }
         };
     }
