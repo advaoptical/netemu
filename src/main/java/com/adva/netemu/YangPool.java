@@ -369,15 +369,18 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     @Nonnull @SuppressWarnings({"UnusedReturnValue"})
     public <T extends YangBinding<Y, B>, Y extends ChildOf<?>, B extends Builder<Y>>
     CompletableFuture<T> registerYangBinding(@Nonnull final T binding) {
+        binding.setYangPool(this);
+
         synchronized (this.yangBindingRegisteringFuture) {
             @Nonnull final var futureBinding = this.yangBindingRegisteringFuture.get()
                     .thenApplyAsync(ignoredRegisteredBinding -> {
+                        LOG.info("Registering {}", binding);
 
                         for (@Nonnull final YangBinding<Y, B>.DatastoreBinding storeBinding : List.of(
                                 binding.createConfigurationDatastoreBinding(),
                                 binding.createOperationalDatastoreBinding())) {
 
-                            LOG.info("Registering {} Change listener for {}", storeBinding.storeType(), binding);
+                            LOG.debug("Registering {} Change listener for {}", storeBinding.storeType(), binding);
                             this.broker.registerDataTreeChangeListener(storeBinding.getDataTreeId(), storeBinding);
                         }
 
