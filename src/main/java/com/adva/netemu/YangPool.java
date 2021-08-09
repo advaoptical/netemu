@@ -262,7 +262,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                                     .map(childNode -> (ListenableFuture<CommitInfo>)
                                             this.yangPool.writeOperationalData(childNode))))
 
-                            .orElseGet(() -> Futures.immediateFuture(List.of())), this.yangPool.transactionExecutor);
+                            .orElseGet(() -> Futures.immediateFuture(List.of())), this.yangPool.executor);
 
             try {
                 synchronized (this.yangPool.yangBindingRegistry) {
@@ -566,20 +566,21 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
-            LOG.info("Updating {} Datastore from {} Datastore", storeType, LogicalDatastoreType.CONFIGURATION);
+            updatingFuture = this.readConfigurationData().transformAsync(config -> {
+                LOG.info("Updating {} Datastore from {} Datastore", storeType, LogicalDatastoreType.CONFIGURATION);
 
-            updatingFuture = this.readConfigurationData().transformAsync(config -> FluentFuture.from(config
-                    .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).getValue())
-                            .map(childNode -> (ListenableFuture<? extends CommitInfo>) this.writeOperationalData(childNode))))
+                return FluentFuture.from(config
+                        .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).getValue())
+                                .map(childNode -> (ListenableFuture<? extends CommitInfo>) this.writeOperationalData(childNode))))
 
-                    .orElseGet(() -> Futures.immediateFuture(List.of()))
+                        .orElseGet(() -> Futures.immediateFuture(List.of())));
 
-            ), this.transactionExecutor).transformAsync(ignoredCommitInfo -> {
+            }, this.executor).transformAsync(ignoredCommitInfo -> {
                 synchronized (this.yangBindingRegistry) {
                     return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
                 }
 
-            }, this.transactionExecutor);
+            }, this.executor);
 
         } else {
             updatingFuture = Futures.transformAsync(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()),
@@ -600,7 +601,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
             readingFuture.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.loggingCallbackExecutor);
             return readingFuture;
 
-        }, this.transactionExecutor);
+        }, this.executor);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
