@@ -12,8 +12,11 @@ import com.squareup.inject.assisted.Assisted;
 import com.squareup.inject.assisted.AssistedInject;
 import dagger.Component;
 
+/*
 import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
+*/
+
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
@@ -110,11 +113,11 @@ public interface YangDatastore {
 
         @Nonnull
         @SuppressWarnings({"UnstableApiUsage"})
-        <Y extends ChildOf<?>, B extends Builder<Y>>
+        // <Y extends ChildOf<?>, B extends Builder<Y>>
         FluentFuture<? extends CommitInfo> apply(
                 @Nonnull final DataBroker broker,
                 @Nonnull final LogicalDatastoreType storeType,
-                @Nonnull final YangBinding<Y, B> object);
+                @Nonnull final Collection<? extends YangBinding<?, ?>> bindings);
     }
 
     abstract class ModeledWritingTransactor implements ModeledWritingFunction {
@@ -123,14 +126,15 @@ public interface YangDatastore {
         LogicalDatastoreType storeType = null;
 
         @Nullable
-        InstanceIdentifier<?> yangModeledPath = null;
+        Collection<? extends InstanceIdentifier<?>> yangModeledPaths = null;
 
         @Nonnull
         ModeledWritingTransactor of(
-                @Nonnull final LogicalDatastoreType storeType, @Nonnull final InstanceIdentifier<?> yangModeledPath) {
+                @Nonnull final LogicalDatastoreType storeType,
+                @Nonnull final Collection<? extends InstanceIdentifier<?>> yangModeledPaths) {
 
             this.storeType = storeType;
-            this.yangModeledPath = yangModeledPath;
+            this.yangModeledPaths = yangModeledPaths;
             return this;
         }
     }
@@ -142,14 +146,15 @@ public interface YangDatastore {
         LogicalDatastoreType storeType = null;
 
         @Nullable
-        InstanceIdentifier<?> yangModeledPath = null;
+        Collection<? extends InstanceIdentifier<?>> yangModeledPaths = null;
 
         @Nonnull
         ModeledWritingFutureCallback of(
-                @Nonnull final LogicalDatastoreType storeType, @Nonnull final InstanceIdentifier<?> yangModeledPath) {
+                @Nonnull final LogicalDatastoreType storeType,
+                @Nonnull final Collection<? extends InstanceIdentifier<?>> yangModeledPaths) {
 
             this.storeType = storeType;
-            this.yangModeledPath = yangModeledPath;
+            this.yangModeledPaths = yangModeledPaths;
             return this;
         }
     }
@@ -167,17 +172,19 @@ public interface YangDatastore {
                 @Nonnull final ModeledWritingTransactor transactor,
                 @Nonnull final ModeledWritingFutureCallback callback,
                 @Assisted @Nonnull final LogicalDatastoreType storeType,
-                @Assisted @Nonnull final InstanceIdentifier<?> yangModeledPath) {
+                @Assisted @Nonnull final Collection<? extends InstanceIdentifier<?>> yangModeledPaths) {
 
-            this.transactor = transactor.of(storeType, yangModeledPath);
-            this.futureCallback = callback.of(storeType, yangModeledPath);
+            this.transactor = transactor.of(storeType, yangModeledPaths);
+            this.futureCallback = callback.of(storeType, yangModeledPaths);
         }
 
         @AssistedInject.Factory
         interface Factory {
 
             @Nonnull
-            ModeledWriting of(final LogicalDatastoreType storeType, final InstanceIdentifier<?> yangModeledPath);
+            ModeledWriting of(
+                    @Nonnull final LogicalDatastoreType storeType,
+                    @Nonnull final Collection<? extends InstanceIdentifier<?>> yangModeledPaths);
         }
     }
 

@@ -41,6 +41,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 
+// import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -266,13 +267,20 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
             try {
                 synchronized (this.yangPool.yangBindingRegistry) {
-                    Futures.transformAsync(updatingFuture, ignoredCommitInfos -> Futures.allAsList(
-                            StreamEx.of(this.yangPool.yangBindingRegistry).map(this.yangPool::writeOperationalDataFrom)
+                    LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.OPERATIONAL);
 
-                            ), this.yangPool.transactionExecutor).get();
+                    Futures.transformAsync(updatingFuture, /* ignoredCommitInfos -> Futures.allAsList(
+                            StreamEx.of(this.yangPool.yangBindingRegistry).map(this.yangPool::writeOperationalDataFrom) */
+                            ignoredCommitInfos -> this.yangPool.writeOperationalDataFrom(this.yangPool.yangBindingRegistry),
+                            this.yangPool.executor
+
+                    ).get();
                 }
 
-            } catch (final InterruptedException | ExecutionException ignored) {}
+            } catch (final InterruptedException | ExecutionException e) {
+                LOG.error("Failed updating {} Datastore from registered bindings", LogicalDatastoreType.OPERATIONAL,
+                        e.getCause());
+            }
 
             return super.createTransactionChain(listener);
         }
@@ -532,22 +540,24 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public CompletableFuture<? extends List<? extends CommitInfo>> updateConfigurationData() {
+    public CompletableFuture</*? extends List<*/? extends CommitInfo> updateConfigurationData() {
         LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.CONFIGURATION);
 
         synchronized (this.yangBindingRegistry) {
-            return FutureConverter.toCompletableFuture(Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
-                    .map(this::writeConfigurationDataFrom)));
+            return FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(this.yangBindingRegistry));
+            /* Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
+                    .map(this::writeConfigurationDataFrom))); */
         }
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public CompletableFuture<? extends List<? extends CommitInfo>> updateOperationalData() {
+    public CompletableFuture</*? extends List<*/? extends CommitInfo> updateOperationalData() {
         LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.OPERATIONAL);
 
         synchronized (this.yangBindingRegistry) {
-            return FutureConverter.toCompletableFuture(Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
-                    .map(this::writeOperationalDataFrom)));
+            return FutureConverter.toCompletableFuture(this.writeOperationalDataFrom(this.yangBindingRegistry));
+            /* Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
+                    .map(this::writeOperationalDataFrom))); */
         }
     }
 
@@ -563,7 +573,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<Optional<NormalizedNode<?, ?>>> readData(@Nonnull final LogicalDatastoreType storeType) {
-        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture;
+        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<? extends CommitInfo> updatingFuture;
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
             updatingFuture = this.readConfigurationData().transformAsync(config -> {
@@ -577,7 +587,10 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
             }, this.executor).transformAsync(ignoredCommitInfo -> {
                 synchronized (this.yangBindingRegistry) {
-                    return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
+                    // return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
+                    LOG.info("Updating {} Datastore from all registered bindings", storeType);
+
+                    return this.writeOperationalDataFrom(this.yangBindingRegistry);
                 }
 
             }, this.executor);
@@ -586,7 +599,10 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
             updatingFuture = Futures.transformAsync(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()),
                     ignoredRegisteredBinding -> {
                         synchronized (this.yangBindingRegistry) {
-                            return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
+                            // return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
+                            LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.CONFIGURATION);
+
+                            return this.writeConfigurationDataFrom(this.yangBindingRegistry);
                         }
 
                     }, this.executor);
@@ -746,27 +762,120 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public <Y extends ChildOf<?>, B extends Builder<Y>>
-    FluentFuture<? extends CommitInfo> writeOperationalDataFrom(@Nonnull final YangBinding<Y, B> object) {
-        return this.writeData(LogicalDatastoreType.OPERATIONAL, object);
+    public FluentFuture<? extends CommitInfo> writeOperationalDataFrom(@Nonnull final YangBinding<?, ?> ...bindings) {
+        return this.writeBindingData(LogicalDatastoreType.OPERATIONAL, List.of(bindings));
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public <Y extends ChildOf<?>, B extends Builder<Y>>
-    FluentFuture<? extends CommitInfo> writeConfigurationDataFrom(@Nonnull final YangBinding<Y, B> object) {
-        return this.writeData(LogicalDatastoreType.CONFIGURATION, object);
+    public // <Y extends ChildOf<?>, B extends Builder<Y>>
+    FluentFuture<? extends CommitInfo> writeOperationalDataFrom(
+            @Nonnull final Collection<? extends YangBinding<?, ?>> bindings) {
+
+        return this.writeBindingData(LogicalDatastoreType.OPERATIONAL, bindings);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public <Y extends ChildOf<?>, B extends Builder<Y>>
-    FluentFuture<? extends CommitInfo> writeData(
-            @Nonnull final LogicalDatastoreType storeType, @Nonnull final YangBinding<Y, B> object) {
+    public FluentFuture<? extends CommitInfo> writeConfigurationDataFrom(@Nonnull final YangBinding<?, ?> ...bindings) {
+        return this.writeBindingData(LogicalDatastoreType.CONFIGURATION, List.of(bindings));
+    }
 
-        @Nonnull final var writing = this.datastore.injectModeledWriting().of(storeType, object.getIidBuilder().build());
-        @Nonnull final var future = writing.transactor.apply(this.broker, storeType, object);
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public // <Y extends ChildOf<?>, B extends Builder<Y>>
+    FluentFuture<? extends CommitInfo> writeConfigurationDataFrom(
+            @Nonnull final Collection<? extends YangBinding<?, ?>> bindings) {
+
+        return this.writeBindingData(LogicalDatastoreType.CONFIGURATION, bindings);
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<? extends CommitInfo> writeBindingData(
+            @Nonnull final LogicalDatastoreType storeType,
+            @Nonnull final YangBinding<?, ?> ...bindings) {
+
+        return this.writeBindingData(storeType, List.of(bindings));
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<? extends CommitInfo> writeBindingData(
+            @Nonnull final LogicalDatastoreType storeType,
+            @Nonnull final Collection<? extends YangBinding<?, ?>> bindings) {
+
+        @Nonnull final var txn = this.broker.newWriteOnlyTransaction();
+        @Nonnull final var yangModeledPaths = StreamEx.of(bindings)
+                .mapToEntry(YangBinding::getIid, binding -> this.mergeBindingDataIntoWriteTransaction(txn, storeType, binding))
+                .filter(data -> data.getValue().isPresent())
+                .keys().toImmutableList();
+
+        @Nonnull final var writing = this.datastore.injectModeledWriting().of(storeType, yangModeledPaths);
+        LOG.info("Writing to {} Datastore: {}", storeType, yangModeledPaths);
+
+        @Nonnull final var future = txn.commit();
         future.addCallback(writing.futureCallback, this.loggingCallbackExecutor);
         return future;
     }
+
+    @Nonnull
+    private <Y extends ChildOf<?>, B extends Builder<Y>>
+    YangData<Y> mergeBindingDataIntoWriteTransaction(@Nonnull final WriteTransaction txn, @Nonnull final LogicalDatastoreType storeType, @Nonnull final YangBinding<Y, B> binding) {
+        @Nonnull final var futureData = (storeType == LogicalDatastoreType.CONFIGURATION) ?
+                binding.provideConfigurationData() : binding.provideOperationalData();
+
+        try {
+            @Nonnull final YangData<Y> data = futureData.get();
+            if (data.isPresent()) {
+                txn.merge(storeType, binding.getIid(), data.get());
+            }
+
+            return data;
+
+        } catch (final InterruptedException | ExecutionException e) {
+            LOG.error("Failed {} Data provisioning from {}", storeType, binding, e.getCause());
+
+            return YangData.empty();
+        }
+    }
+
+    /*
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public // <Y extends ChildOf<?>, B extends Builder<Y>>
+    FluentFuture<? extends CommitInfo> writeData(
+            @Nonnull final LogicalDatastoreType storeType,
+            @Nonnull final Map<? extends InstanceIdentifier<?>, ? extends ListenableFuture<YangData<?>>> modeledNodes) {
+
+        @Nonnull final var txn = this.broker.newWriteOnlyTransaction();
+
+        @Nonnull final var yangModeledPaths = EntryStream.of(modeledNodes)
+        // .mapToEntry(binding -> binding.getIidBuilder().build(), Function.identity())
+                .mapKeyValue((yangModeledPath, futureData) -> {
+                    @Nullable final YangData<?> data;
+                    try {
+                        this.addDataToTransaction(txn, storeType, yangModeledPath, (YangData<?>) futureData.get().get());
+                        data = futureData.get();
+
+                    } catch (final InterruptedException | ExecutionException e) {
+                        // data = YangData.empty();
+
+                        LOG.error("Failed reading {} Data from {}", storeType, binding);
+                    }
+
+                    if (data.isPresent()) {
+                        this.addDataToTransaction(txn, storeType, yangModeledPath, data.get());
+                    }
+
+                    return yangModeledPath;
+
+                }).toImmutableList();
+
+        @Nonnull final var writing = this.datastore.injectModeledWriting().of(storeType, StreamEx.of(bindings)
+                .map(binding -> binding.getIidBuilder().build())
+                .toImmutableList());
+
+        // @Nonnull final var future = writing.transactor.apply(this.broker, storeType, bindings);
+
+        future.addCallback(writing.futureCallback, this.loggingCallbackExecutor);
+        return future;
+    }
+    */
 
     public <Y extends ChildOf<?>, B extends Builder<Y>>
     void deleteOperationalDataOf(@Nonnull final YangBinding<Y, B> object) {

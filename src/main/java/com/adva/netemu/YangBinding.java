@@ -410,7 +410,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     }
 
     public void writeDataTo(@Nonnull final YangPool pool, @Nonnull final LogicalDatastoreType storeType) {
-        pool.writeData(storeType, this);
+        pool.writeBindingData(storeType, this);
     }
 
     public void deleteDataFrom(@Nonnull final YangPool pool, @Nonnull final LogicalDatastoreType storeType) {
