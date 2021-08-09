@@ -116,7 +116,6 @@ public class NetworkInterface implements YangListBindable {
                 } else {
                     this.disable();
                 }
-
             });
         });
     }
