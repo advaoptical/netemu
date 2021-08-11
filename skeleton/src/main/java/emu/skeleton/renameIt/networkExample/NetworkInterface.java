@@ -2,6 +2,7 @@ package emu.skeleton.renameIt.networkExample;
 
 import java.net.SocketException;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,7 +30,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.
 public class NetworkInterface implements YangListBindable {
 
     @Nonnull
-    private final Logger LOG = LoggerFactory.getLogger(NetworkInterface.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NetworkInterface.class);
 
     @Nonnull
     private final NetworkInterface_YangBinding yangBinding;
@@ -51,20 +52,30 @@ public class NetworkInterface implements YangListBindable {
     }
 
     public void setAdapter(@Nonnull final java.net.NetworkInterface adapter) {
-        this.adapter.set(adapter);
+        this.adapter.set(Objects.requireNonNull(adapter, "Missing new network adapter reference"));
     }
 
     @Nonnull
     private final AtomicBoolean enabled = new AtomicBoolean(false);
 
     public void enable() {
-        LOG.info("Enabling network interface '{}'", this.name);
-        this.enabled.set(true);
+        synchronized (this.enabled) {
+            if (!this.enabled.get()) {
+                LOG.info("Enabling network interface '{}'", this.name);
+
+                this.enabled.set(true);
+            }
+        }
     }
 
     public void disable() {
-        LOG.info("Disabling network interface '{}'", this.name);
-        this.enabled.set(false);
+        synchronized (this.enabled) {
+            if (this.enabled.get()) {
+                LOG.info("Disabling network interface '{}'", this.name);
+
+                this.enabled.set(false);
+            }
+        }
     }
 
     @Nonnull
@@ -80,7 +91,7 @@ public class NetworkInterface implements YangListBindable {
                         .replaceAll("(..)", ":$1").substring(1));
 
             } catch (final SocketException e) {
-                throw new RuntimeException(String.format("Failed reading MAC address from network adapter %s", adapter), e);
+                throw new RuntimeException(String.format("Failed retrieving MAC address from network adapter %s", adapter), e);
             }
         });
     }
@@ -127,17 +138,22 @@ public class NetworkInterface implements YangListBindable {
 
     @Nonnull
     public static NetworkInterface fromAdapter(@Nonnull final java.net.NetworkInterface adapter) {
-        return new NetworkInterface(adapter);
+        return new NetworkInterface(Objects.requireNonNull(adapter, () ->
+                String.format("Missing network adapter reference for instantiation of %s", NetworkInterface.class)));
     }
 
     @Nonnull
     public static NetworkInterface withName(@Nonnull final String name) {
-        return new NetworkInterface(name);
+        return new NetworkInterface(Objects.requireNonNull(name, () ->String.format("Missing name for instantiation of %s",
+                NetworkInterface.class)));
     }
 
     @Nonnull
     public static NetworkInterface fromConfiguration(@Nonnull final NetworkInterface_Yang.Data data) {
-        @Nonnull final var instance = NetworkInterface.withName(data.requireName());
+        @Nonnull final var instance = NetworkInterface.withName(Objects
+                .requireNonNull(data, () -> String.format("Missing YANG Data for instantiation of %s", NetworkInterface.class))
+                .requireName());
+
         instance.yangBinding.applyConfigurationData(data);
         return instance;
     }

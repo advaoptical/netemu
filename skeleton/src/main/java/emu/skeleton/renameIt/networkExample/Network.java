@@ -6,11 +6,12 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
+import one.util.streamex.StreamEx;
+
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangBinding;
 import com.adva.netemu.YangBound;
 import com.adva.netemu.YangListBound;
-import one.util.streamex.StreamEx;
 
 
 @YangBound(context = NetEmuDefined.class, namespace = "urn:ietf:params:xml:ns:yang:ietf-interfaces", value = "interfaces")
