@@ -120,7 +120,8 @@ public @interface YangListBound {
             return true;
         }
 
-        public Optional<E> merge(@Nonnull final E item, @Nonnull final BiConsumer<E, E> merger) {
+        public <I extends E>
+        Optional<I> merge(@Nonnull final I item, @Nonnull final BiConsumer<E, I> merger) {
             @Nonnull final var existingItem = this.find(item.getYangListBinding().map(YangListBinding::getKey).orElseThrow(() ->
                     new IllegalArgumentException(String.format("%s has no YANG-Binding", item))));
 
@@ -171,15 +172,14 @@ public @interface YangListBound {
         }
 
         @Nonnull
-        public List<? extends E> mergeAll(
-                @Nonnull final java.util.Collection<? extends E> items,
-                @Nonnull final BiConsumer<E, E> merger) {
-
+        public <I extends E>
+        List<I> mergeAll(@Nonnull final java.util.Collection<I> items, @Nonnull final BiConsumer<E, I> merger) {
             return this.mergeAll(items.stream(), merger);
         }
 
         @Nonnull
-        public List<? extends E> mergeAll(@Nonnull final Stream<? extends E> items, @Nonnull final BiConsumer<E, E> merger) {
+        public <I extends E>
+        List<I> mergeAll(@Nonnull final Stream<I> items, @Nonnull final BiConsumer<E, I> merger) {
             return StreamEx.of(items).flatMap(item -> this.merge(item, merger).stream()).nonNull().toImmutableList();
         }
 
