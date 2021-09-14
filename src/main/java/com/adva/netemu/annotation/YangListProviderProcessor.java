@@ -76,7 +76,7 @@ public class YangListProviderProcessor extends YangProviderProcessor {
 
         final var keyClass = (TypeElement) super.processingEnv.getTypeUtils().asElement(keyGetter.get().getReturnType());
         return super.provideTemplateContextFrom(annotation).map(context -> EntryStream.of(context)
-                .append("keyClass", keyClass.getQualifiedName().toString())
+                .append("bindingType", "List", "keyClass", keyClass.getQualifiedName().toString())
                 .toImmutableMap());
     }
 

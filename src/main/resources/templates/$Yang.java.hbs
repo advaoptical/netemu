@@ -5,12 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -23,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.yang.binding.Augmentation;
 import org.opendaylight.yangtools.yang.binding.DataObject;
+
+import com.adva.netemu.YangBinding;
 
 import {{{yangPackage}}}.{{{yangClass}}};
 import {{{yangPackage}}}.{{{yangClass}}}Builder;
@@ -38,32 +42,70 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger({{{class}}}{{{utilityClassSuffix}}}.class);
 
-    public static final class Data extends YangData<{{{yangClass}}}> {
+{{#*inline "yangData"}}
+    public static final class {{{yangName}}}Data extends YangData<{{{yangClass}}}> {
 
         @Nonnull
-        private static final Data EMPTY = new Data(null);
+        private static final {{{yangName}}}Data EMPTY = new {{{yangName}}}Data(null);
 
-        private Data(@Nullable final {{{yangClass}}} object) {
+        private {{{yangName}}}Data(@Nullable final {{{yangClass}}} object) {
             super(object);
         }
 
         @Nonnull
-        public static Data of(@Nonnull final {{{yangClass}}} object) {
-            return new Data(object);
+        public static {{{yangName}}}Data of(@Nonnull final {{{yangClass}}} object) {
+            return new {{{yangName}}}Data(Objects.requireNonNull(object, () -> String.format(
+                    "Missing YANG DataObject for instantiation of %s", {{{yangName}}}Data.class)));
         }
 
         @Nonnull
-        public static Data from(@Nonnull final org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> builder) {
-            return new Data(builder.build());
+        public static {{{yangName}}}Data ofNullable(@Nullable final {{{yangClass}}} object) {
+            return new {{{yangName}}}Data(object);
         }
 
         @Nonnull
-        public static Data empty() {
+        public static {{{yangName}}}Data from(@Nonnull final YangData<{{{yangClass}}}> data) {
+            return new {{{yangName}}}Data(data.orElse(null));
+        }
+
+        @Nonnull
+        public static {{{yangName}}}Data from(
+                @Nonnull final org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> builder) {
+
+            return new {{{yangName}}}Data(builder.build());
+        }
+
+        @Nonnull
+        public static {{{yangName}}}Data empty() {
             return EMPTY;
         }
 
 {{#each yangDataGetters}}
     {{#if this.valueIsList}}
+        {{#if this.valueHasBuilder}}
+            {{> yangData yangClass=this.valueClass yangName=@key yangDataGetters=this.builderClassYangDataGetters}}
+
+        @Nonnull
+        public Optional<List<{{{@key}}}Data>> get{{{@key}}}() {
+            return super.map({{{yangClass}}}::get{{{@key}}}).map(items -> StreamEx.of(items
+            {{#if this.valueIsMap}}
+                    .values()
+
+            {{/if}}).map({{{@key}}}Data::of).toImmutableList());
+        }
+
+        @Nonnull
+        public List<{{{@key}}}Data> list{{{@key}}}() {
+            return this.get{{{@key}}}().orElseGet(() -> List.of());
+        }
+
+        @Nonnull
+        public StreamEx<{{{@key}}}Data> stream{{{@key}}}() {
+            return StreamEx.of(this.list{{{@key}}}());
+        }
+
+        {{else}}
+
         @Nonnull
         public Optional<List<{{{this.valueClass}}}>> get{{{@key}}}() {
             return super.map({{{yangClass}}}::get{{{@key}}})
@@ -96,7 +138,18 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         }
         */
 
+        {{/if}}
+
     {{else}}
+        {{#if this.valueHasBuilder}}
+            {{> yangData yangClass=this.valueClass yangName=@key yangDataGetters=this.builderClassYangDataGetters}}
+
+        @Nonnull
+        public YangData<{{{this.valueClass}}}> get{{{@key}}}() {
+            return super.map({{{yangClass}}}::{{{this.getterName}}}).map(YangData::of).orElseGet(() -> YangData.empty());
+        }
+        {{else}}
+
         @Nonnull
         public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
             return super.map({{{yangClass}}}::{{{this.getterName}}});
@@ -108,9 +161,13 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                     "Missing or empty YANG {{{@key}}} leaf in %s", this.object)));
         }
 
+        {{/if}}
     {{/if}}
 {{/each}}
     }
+{{/inline}}
+
+{{> yangData}}
 
 {{#*inline "yangBuilder"}}
     public static final class {{{builderName}}} implements org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> {
@@ -304,6 +361,181 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
     public static Optional<{{{class}}}{{{bindingClassSuffix}}}> bindingOf(@Nonnull final {{{class}}} object) {
         return object.{{{bindingGetter}}}().map({{{class}}}{{{bindingClassSuffix}}}.class::cast);
     }
+
+{{#each yangDataGetters}}
+    {{#if this.valueHasBuilder}}
+        {{#if this.valueIsList}}
+
+    public static final class {{{@key}}}Binding extends YangBinding.ChildListBinding<{{{this.valueClass}}}, {{{this.valueClass}}}Key, Builder.{{{@key}}}Builder> {
+
+        private {{{@key}}}Binding(@Nonnull final {{{class}}} parent, @Nonnull final {{{this.valueClass}}}Key listKey) {
+            super({{{this.valueClass}}}.class, {{{this.valueClass}}}Key.class, Builder.{{{@key}}}Builder.class,
+                    parent.requireYang{{{bindingType}}}Binding(),
+                    listKey);
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding appliesConfigurationDataUsing(@Nonnull final Consumer<Data.{{{@key}}}Data> applier) {
+            super.setConfigurationDataApplier((applier != null) ? (@Nonnull final YangData<{{{this.valueClass}}}> data) -> {
+                if (data.isPresent()) {
+                    applier.accept(Data.{{{@key}}}Data.of(data.get()));
+                }
+
+            } : null);
+
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding appliesOperationalDataUsing(@Nonnull final Consumer<Data.{{{@key}}}Data> applier) {
+            super.setOperationalDataApplier((applier != null) ? (@Nonnull final YangData<{{{this.valueClass}}}> data) -> {
+                if (data.isPresent()) {
+                    applier.accept(Data.{{{@key}}}Data.of(data.get()));
+                }
+
+            } : null);
+
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesConfigurationDataUsing(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, Builder.{{{@key}}}Builder> provider) {
+
+            super.setConfigurationDataProvider(provider);
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesConfigurationDataUsingFuture(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, CompletableFuture<Builder.{{{@key}}}Builder>> provider) {
+
+            return this.providesConfigurationDataUsing(builder -> {
+                try {
+                    return provider.apply(builder).get();
+
+                } catch (final ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesOperationalDataUsing(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, Builder.{{{@key}}}Builder> provider) {
+
+            super.setOperationalDataProvider(provider);
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesOperationalDataUsingFuture(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, CompletableFuture<Builder.{{{@key}}}Builder>> provider) {
+
+            return this.providesOperationalDataUsing(builder -> {
+                try {
+                    return provider.apply(builder).get();
+
+                } catch (final ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+    }
+
+    @Nonnull
+    public static {{{@key}}}Binding create{{{@key}}}BindingFor(
+            @Nonnull final {{{class}}} parent,
+            @Nonnull final {{{this.valueClass}}}Key listKey) {
+
+        return new {{{@key}}}Binding(parent, listKey);
+    }
+
+        {{else}}
+
+    public static final class {{{@key}}}Binding extends YangBinding.ChildBinding<{{{this.valueClass}}}, Builder.{{{@key}}}Builder> {
+
+        private {{{@key}}}Binding(@Nonnull final {{{class}}} parent) {
+            super({{{this.valueClass}}}.class, Builder.{{{@key}}}Builder.class, parent.requireYang{{{bindingType}}}Binding());
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding appliesConfigurationDataUsing(@Nonnull final Consumer<Data.{{{@key}}}Data> applier) {
+            super.setConfigurationDataApplier((applier != null) ? (@Nonnull final YangData<{{{this.valueClass}}}> data) -> {
+                if (data.isPresent()) {
+                    applier.accept(Data.{{{@key}}}Data.of(data.get()));
+                }
+
+            } : null);
+
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding appliesOperationalDataUsing(@Nonnull final Consumer<Data.{{{@key}}}Data> applier) {
+            super.setOperationalDataApplier((applier != null) ? (@Nonnull final YangData<{{{this.valueClass}}}> data) -> {
+                if (data.isPresent()) {
+                    applier.accept(Data.{{{@key}}}Data.of(data.get()));
+                }
+
+            } : null);
+
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesConfigurationDataUsing(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, Builder.{{{@key}}}Builder> provider) {
+
+            super.setConfigurationDataProvider(provider);
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesConfigurationDataUsingFuture(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, CompletableFuture<Builder.{{{@key}}}Builder>> provider) {
+
+            return this.providesConfigurationDataUsing(builder -> {
+                try {
+                    return provider.apply(builder).get();
+
+                } catch (final ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesOperationalDataUsing(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, Builder.{{{@key}}}Builder> provider) {
+
+            super.setOperationalDataProvider(provider);
+            return this;
+        }
+
+        @Nonnull
+        public {{{@key}}}Binding providesOperationalDataUsingFuture(
+                @Nonnull final Function<Builder.{{{@key}}}Builder, CompletableFuture<Builder.{{{@key}}}Builder>> provider) {
+
+            return this.providesOperationalDataUsing(builder -> {
+                try {
+                    return provider.apply(builder).get();
+
+                } catch (final ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+    }
+
+    @Nonnull
+    public static {{{@key}}}Binding create{{{@key}}}BindingFor(@Nonnull final {{{class}}} parent) {
+        return new {{{@key}}}Binding(parent);
+    }
+
+        {{/if}}
+    {{/if}}
+{{/each}}
 
     /*
     @Nonnull
