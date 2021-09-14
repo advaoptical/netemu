@@ -2,13 +2,7 @@ package com.adva.netemu;
 
 import java.lang.reflect.InvocationTargetException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -31,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
+import org.opendaylight.yangtools.yang.binding.Identifiable;
+import org.opendaylight.yangtools.yang.binding.Identifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 import org.opendaylight.mdsal.binding.api.DataTreeChangeListener;
@@ -136,6 +132,57 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     @Nonnull
     public OperationalDatastoreBinding createOperationalDatastoreBinding() {
         return new OperationalDatastoreBinding(this);
+    }
+
+    public static abstract class ChildBinding<C_Y extends ChildOf, C_B extends Builder<C_Y>> extends YangBinding<C_Y, C_B> {
+
+        @Nonnull
+        private final YangBinding<?, ?> parentBinding;
+
+        @Nonnull
+        public YangBinding<?, ?> parentBinding() {
+            return this.parentBinding;
+        }
+
+        protected <P_Y extends ChildOf, P_B extends Builder<P_Y>> ChildBinding(
+                @Nonnull final Class<C_Y> dataClass,
+                @Nonnull final Class<C_B> builderClass,
+                @Nonnull final YangBinding<P_Y, P_B> parentBinding) {
+
+            this.parentBinding = parentBinding;
+        }
+    }
+
+    public static abstract class ChildListBinding
+            <C_Y extends ChildOf & Identifiable<C_K>, C_K extends Identifier<C_Y>, C_B extends Builder<C_Y>>
+            extends YangListBinding<C_Y, C_K, C_B> {
+
+        @Nonnull
+        private final YangBinding<?, ?> parentBinding;
+
+        @Nonnull
+        public YangBinding<?, ?> parentBinding() {
+            return this.parentBinding;
+        }
+
+        @Nonnull
+        private final C_K listKey;
+
+        protected <P_Y extends ChildOf, P_B extends Builder<P_Y>> ChildListBinding(
+                @Nonnull final Class<C_Y> dataClass,
+                @Nonnull final Class<C_K> listKeyClass,
+                @Nonnull final Class<C_B> builderClass,
+                @Nonnull final YangBinding<P_Y, P_B> parentBinding,
+                @Nonnull final C_K listKey) {
+
+            this.parentBinding = parentBinding;
+            this.listKey = listKey;
+        }
+
+        @Nonnull @Override
+        public C_K getKey() {
+            return this.listKey;
+        }
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage", "unchecked"})
