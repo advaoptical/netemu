@@ -145,8 +145,9 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
             {{> yangData yangClass=this.valueClass yangName=@key yangDataGetters=this.builderClassYangDataGetters}}
 
         @Nonnull
-        public YangData<{{{this.valueClass}}}> get{{{@key}}}() {
-            return super.map({{{yangClass}}}::{{{this.getterName}}}).map(YangData::of).orElseGet(() -> YangData.empty());
+        public {{{@key}}}Data get{{{@key}}}() {
+            return super.map({{{yangClass}}}::{{{this.getterName}}}).map({{{@key}}}Data::of)
+                    .orElseGet(() -> {{{@key}}}Data.empty());
         }
         {{else}}
 
@@ -365,6 +366,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 {{#each yangDataGetters}}
     {{#if this.valueHasBuilder}}
         {{#if this.valueIsList}}
+            {{#if this.valueIsMap}}
 
     public static final class {{{@key}}}Binding extends YangBinding.ChildListBinding<{{{this.valueClass}}}, {{{this.valueClass}}}Key, Builder.{{{@key}}}Builder> {
 
@@ -451,6 +453,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         return new {{{@key}}}Binding(parent, listKey);
     }
 
+            {{/if}}
         {{else}}
 
     public static final class {{{@key}}}Binding extends YangBinding.ChildBinding<{{{this.valueClass}}}, Builder.{{{@key}}}Builder> {
