@@ -25,8 +25,12 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.PrimitiveType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
 
 import javax.tools.Diagnostic;
@@ -132,37 +136,59 @@ public class YangProviderProcessor extends AbstractProcessor {
                         .mapToEntry(method -> method.getSimpleName().toString(), Function.identity())
                         .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
                         .mapKeyValue((name, method) -> {
-                            @Nonnull var valueType = (DeclaredType) method.getReturnType();
-                            @Nonnull final var valueTypeName = ((TypeElement) valueType.asElement()).getQualifiedName();
+                            @Nonnull String valueTypeName;
 
-                            @Nonnull final Boolean valueIsMap = valueTypeName.toString().equals(Map.class.getCanonicalName());
-                            @Nonnull final Boolean valueIsList;
-                            if (valueIsMap) {
-                                valueType = (DeclaredType) valueType.getTypeArguments().get(1);
-                                valueIsList = true;
+                            final boolean valueIsMap;
+                            final boolean valueIsList;
+                            final boolean valueIsEnum;
+                            final boolean valueHasBuilder;
+                            @Nullable final TypeElement valueClass;
 
-                            } else if (valueTypeName.toString().equals(List.class.getCanonicalName())) {
-                                valueType = (DeclaredType) valueType.getTypeArguments().get(0);
-                                valueIsList = true;
+                            @Nonnull var returnType = method.getReturnType();
+                            if (returnType.getKind() == TypeKind.ARRAY) {
+                                @Nonnull final var valueType = (ArrayType) returnType;
+                                valueTypeName = String.format("%s[]", ((PrimitiveType) valueType.getComponentType()).toString());
+
+                                valueIsMap = false;
+                                valueIsList = false;
+                                valueIsEnum = false;
+                                valueHasBuilder = false;
+                                valueClass = null;
 
                             } else {
-                                valueIsList = false;
+                                @Nonnull var valueType = (DeclaredType) method.getReturnType();
+                                valueTypeName = ((TypeElement) valueType.asElement()).getQualifiedName().toString();
+
+                                valueIsMap = valueTypeName.equals(Map.class.getCanonicalName());
+                                if (valueIsMap) {
+                                    valueType = (DeclaredType) valueType.getTypeArguments().get(1);
+                                    valueIsList = true;
+
+                                } else if (valueTypeName.equals(List.class.getCanonicalName())) {
+                                    valueType = (DeclaredType) valueType.getTypeArguments().get(0);
+                                    valueIsList = true;
+
+                                } else {
+                                    valueIsList = false;
+                                }
+
+                                valueClass = (TypeElement) valueType.asElement();
+                                valueIsEnum = valueClass.getKind() == ElementKind.ENUM;
+                                valueHasBuilder = !valueIsEnum
+                                        && StreamEx.of(valueClass.getInterfaces()).anyMatch(interfaceMirror ->
+                                        interfaceMirror.toString().startsWith(ChildOf.class.getCanonicalName()))
+
+                                        && StreamEx.of(valueClass.getInterfaces()).noneMatch(interfaceMirror ->
+                                        interfaceMirror.toString().startsWith(OpaqueObject.class.getCanonicalName()));
+
+                                @Nonnull final var valueTypeArguments = valueType.getTypeArguments();
+                                valueTypeName = String.format("%s%s", valueClass.getQualifiedName(),
+                                        valueTypeArguments.isEmpty() ? "" : String.format("<%s>", String.join(", ",
+                                                StreamEx.of(valueTypeArguments).map(Object::toString))));
                             }
 
-                            @Nonnull final var valueClass = (TypeElement) valueType.asElement();
-                            @Nonnull final Boolean valueIsEnum = valueClass.getKind() == ElementKind.ENUM;
-                            @Nonnull final Boolean valueHasBuilder = !valueIsEnum
-                                    && StreamEx.of(valueClass.getInterfaces()).anyMatch(interfaceMirror ->
-                                            interfaceMirror.toString().startsWith(ChildOf.class.getCanonicalName()))
-
-                                    && StreamEx.of(valueClass.getInterfaces()).noneMatch(interfaceMirror ->
-                                            interfaceMirror.toString().startsWith(OpaqueObject.class.getCanonicalName()));
-
-                            @Nonnull final var valueTypeArguments = valueType.getTypeArguments();
                             return new SimpleImmutableEntry<>(name.replaceFirst("^(get|is)", ""), Map.of(
-                                    "valueClass", String.format("%s%s", valueClass.getQualifiedName(),
-                                            valueTypeArguments.isEmpty() ? "" : String.format("<%s>", String.join(", ",
-                                                    StreamEx.of(valueTypeArguments).map(Object::toString)))),
+                                    "valueClass", valueTypeName,
 
                                     "valueIsEnum", valueIsEnum,
                                     "valueIsList", valueIsList,
