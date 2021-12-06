@@ -71,7 +71,7 @@ dependencies {
     implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
     implementation "org.glassfish.jersey.containers:jersey-container-grizzly2-http:2.27"
     implementation "org.glassfish.jersey.inject:jersey-hk2:2.27"
-    // implementation "org.glassfish.jersey.media:jersey-media-sse:3.0.0"
+    // implementation "org.glassfish.jersey.Model:jersey-Model-sse:3.0.0"
 
     implementation "com.github.jknack:handlebars:4.1.2"
     implementation "com.google.auto.service:auto-service:1.0-rc6"
@@ -104,10 +104,12 @@ dependencies {
     api "org.opendaylight.yangtools:rfc7952-data-util:5.0.7"
     api "org.opendaylight.yangtools:yang-data-codec-gson:5.0.7"
     api "org.opendaylight.yangtools:yang-data-codec-xml:5.0.7_1-ADVA"
+    api "org.opendaylight.yangtools:yang-data-impl:5.0.7_1-ADVA"
     api "org.opendaylight.yangtools:yang-data-util:5.0.7_1-ADVA"
     api "org.opendaylight.yangtools:yang-maven-plugin:5.0.7"
 
     api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:6.0.7"
+    api "org.opendaylight.mdsal:mdsal-binding-dom-codec:6.0.7_1-ADVA"
     api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:6.0.7"
     api "org.opendaylight.mdsal:yang-binding:5.0.7"
 
@@ -136,31 +138,60 @@ publishing {
 }
 
 
-task mvnInstallYangDataUtil(type: Exec) {
+task mvnInstallYangModelUtil(type: Exec) {
     workingDir rootDir
-    commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
-            ["groovy", "mvn-yang-data-util.groovy", "install"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-model-util.groovy", "install"]
+}
+
+task mvnInstallYangDataUtil(type: Exec) {
+    dependsOn mvnInstallYangModelUtil
+
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-util.groovy", "install"]
+}
+
+task mvnInstallYangDataImpl(type: Exec) {
+    dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataUtil
+
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-impl.groovy", "install"]
 }
 
 task mvnInstallYangDataCodecXml(type: Exec) {
+    dependsOn mvnInstallYangModelUtil
     dependsOn mvnInstallYangDataUtil
+    dependsOn mvnInstallYangDataImpl
 
     workingDir rootDir
-    commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
-            ["groovy", "mvn-yang-data-codec-xml.groovy", "install"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-codec-xml.groovy", "install"]
 }
 
-task mvnInstallNetconfNettyUtil(type: Exec) {
+task mvnInstallMdsalBindingDomCodec(type: Exec) {
+    dependsOn mvnInstallYangModelUtil
     dependsOn mvnInstallYangDataUtil
+    dependsOn mvnInstallYangDataImpl
     dependsOn mvnInstallYangDataCodecXml
 
     workingDir rootDir
-    commandLine = (operatingSystem.isWindows() ? ["cmd", "/c"] : []) +
-            ["groovy", "mvn-netconf-netty-util.groovy", "install"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-mdsal-binding-dom-codec.groovy", "install"]
+}
+
+task mvnInstallNetconfNettyUtil(type: Exec) {
+    dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataUtil
+    dependsOn mvnInstallYangDataImpl
+    dependsOn mvnInstallYangDataCodecXml
+    dependsOn mvnInstallMdsalBindingDomCodec
+
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf-netty-util.groovy", "install"]
 }
 
 task mvnInstallOpenDaylightModules {
+    dependsOn mvnInstallYangModelUtil
     dependsOn mvnInstallYangDataUtil
+    dependsOn mvnInstallYangDataImpl
     dependsOn mvnInstallYangDataCodecXml
     dependsOn mvnInstallNetconfNettyUtil
 }
