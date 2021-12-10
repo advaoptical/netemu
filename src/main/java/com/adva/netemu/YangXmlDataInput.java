@@ -22,6 +22,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.util.StreamReaderDelegate;
 
+import one.util.streamex.EntryStream;
 import one.util.streamex.IntStreamEx;
 import one.util.streamex.StreamEx;
 
@@ -46,29 +47,41 @@ public class YangXmlDataInput extends StreamReaderDelegate {
         @Nonnull
         private final NamespaceContext context;
 
-        private XmlNamespaceContext(@Nonnull final NamespaceContext context) {
+        @Nonnull
+        private final Map<String, String> extraEntries;
+
+        private XmlNamespaceContext(@Nonnull final NamespaceContext context, @Nonnull final Map<String, String> extraEntries) {
             this.context = context;
+            this.extraEntries = extraEntries;
         }
 
         @Nonnull
-        public static XmlNamespaceContext using(@Nonnull final NamespaceContext context) {
-            return new XmlNamespaceContext(context);
+        public static XmlNamespaceContext using(
+                @Nonnull final NamespaceContext context,
+                @Nonnull final Map<String, String> extraEntries) {
+
+            return new XmlNamespaceContext(context, extraEntries);
         }
 
         @Nonnull @Override
         public String getNamespaceURI(@Nonnull final String prefix) {
-            return Optional.ofNullable(this.context.getNamespaceURI(prefix)).orElseThrow(() -> new IllegalArgumentException(
-                    String.format("Undefined namespace prefix: %s", prefix)));
+            return Optional.ofNullable(this.context.getNamespaceURI(prefix))
+                    .or(() -> Optional.ofNullable(this.extraEntries.get(prefix)))
+                    .orElseThrow(() -> new IllegalArgumentException(String.format("Undefined namespace prefix: %s", prefix)));
         }
 
         @Nullable @Override
         public String getPrefix(@Nonnull final String namespace) {
-            return this.context.getPrefix(namespace);
+            return Optional.ofNullable(this.context.getPrefix(namespace))
+                    .or(() -> EntryStream.of(this.extraEntries).findFirst(entry -> entry.getValue().equals(namespace))
+                            .map(Map.Entry::getKey))
+
+                    .orElse(null);
         }
 
         @Nonnull @Override
         public Iterator<String> getPrefixes(@Nonnull final String namespace) {
-            return this.context.getPrefixes(namespace);
+            return StreamEx.of(this.context.getPrefixes(namespace)).append(this.extraEntries.values()).distinct().iterator();
         }
     }
 
@@ -181,7 +194,11 @@ public class YangXmlDataInput extends StreamReaderDelegate {
 
     @Nonnull @Override
     public NamespaceContext getNamespaceContext() {
-        return XmlNamespaceContext.using(super.getNamespaceContext());
+        return XmlNamespaceContext.using(super.getNamespaceContext(), Optional.ofNullable(this.namespaceEntries)
+                .map(entries -> StreamEx.of(entries).toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (existingValue, value) -> value))
+
+                .orElseGet(Map::of));
     }
 
     public boolean nextYangTree() throws XMLStreamException, EndOfDocument {
