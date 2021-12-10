@@ -297,16 +297,21 @@ public class YangXmlDataInput extends StreamReaderDelegate {
 
     @Nonnull @Override
     public javax.xml.namespace.QName getName() {
+        @Nonnull final var superXmlQName = super.getName();
+        if (this.tagStack.isEmpty() || !this.tagStack.lastElement().equals(superXmlQName)) {
+            return superXmlQName;
+        }
+
         @Nullable final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
                 .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
                 .toArray(new QName[0]));
 
         @Nullable final var elementTagProcessor = this.elementTagProcessors.get(yangPath);
         if (elementTagProcessor != null) {
-            return elementTagProcessor.apply(yangPath, super.getName());
+            return elementTagProcessor.apply(yangPath, superXmlQName);
         }
 
-        return super.getName();
+        return superXmlQName;
     }
 
     @Nonnull @Override
