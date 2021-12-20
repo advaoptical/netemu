@@ -52,6 +52,29 @@
 
 {{~#each yangDataGetters}}
     {{#if this.valueIsList}}
+        {{#if this.valueHasBuilder}}
+
+    @Nonnull
+    public Optional<List<Data.{{{@key}}}Data>> get{{{@key}}}() {
+        return this.data.get().get{{{@key}}}();
+    }
+
+    @Nonnull
+    public StreamEx<Data.{{{@key}}}Data> stream{{{@key}}}() {
+        return StreamEx.of(this.get{{{@key}}}().orElse(List.of()));
+    }
+
+    @Nonnull
+    public List<Data.{{{@key}}}Data> list{{{@key}}}() {
+        return this.stream{{{@key}}}().toImmutableList();
+    }
+
+    @Nonnull
+    public FluentFuture<Optional<List<Data.{{{@key}}}Data>>> update{{{@key}}}() {
+        return this.update().transform(Data::get{{{@key}}}, this.executor);
+    }
+
+        {{else}}
 
     @Nonnull
     public Optional<List<{{{this.valueClass}}}>> get{{{@key}}}() {
@@ -68,6 +91,13 @@
         return this.stream{{{@key}}}().toImmutableList();
     }
 
+    @Nonnull
+    public FluentFuture<Optional<List<{{{this.valueClass}}}>>> update{{{@key}}}() {
+        return this.update().transform(Data::get{{{@key}}}, this.executor);
+    }
+
+        {{/if}}
+
     protected void set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> value) {
         this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(List.copyOf(value)).build()));
     }
@@ -78,25 +108,35 @@
                 .build()));
     }
 
+    {{else}}
+        {{#if this.valueHasBuilder}}
+
     @Nonnull
-    public FluentFuture<Optional<List<{{{this.valueClass}}}>>> update{{{@key}}}() {
+    public YangData<{{{this.valueClass}}}> get{{{@key}}}() {
+        return this.data.get().get{{{@key}}}().or(() -> this.config.get().get{{{@key}}}());
+    }
+
+    @Nonnull
+    public FluentFuture<YangData<{{{this.valueClass}}}>> update{{{@key}}}() {
         return this.update().transform(Data::get{{{@key}}}, this.executor);
     }
 
-    {{else}}
+        {{else}}
 
     @Nonnull
     public Optional<{{{this.valueClass}}}> get{{{@key}}}() {
         return this.data.get().get{{{@key}}}().or(() -> this.config.get().get{{{@key}}}());
     }
 
-    protected void set{{{@key}}}(@Nullable final {{{this.valueClass}}} value) {
-        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(value).build()));
-    }
-
     @Nonnull
     public FluentFuture<Optional<{{{this.valueClass}}}>> update{{{@key}}}() {
         return this.update().transform(Data::get{{{@key}}}, this.executor);
+    }
+
+        {{/if}}
+
+    protected void set{{{@key}}}(@Nullable final {{{this.valueClass}}} value) {
+        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(value).build()));
     }
 
     {{/if}}
