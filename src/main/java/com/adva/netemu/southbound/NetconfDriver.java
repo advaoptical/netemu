@@ -42,7 +42,6 @@ import org.opendaylight.netconf.sal.connect.netconf.util.NetconfMessageTransform
 
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangPool;
-import com.adva.netemu.YangXmlDataInput;
 import com.adva.netemu.driver.EmuDriver;
 
 
@@ -193,12 +192,12 @@ public class NetconfDriver extends EmuDriver {
             throw new RuntimeException(e);
         }
 
-        LOG.info("Received NETCONF response from {}@{}:\n{}", this.authentication.getUsername(), this.address, response);
+        LOG.debug("Received NETCONF response from {}@{}:\n{}", this.authentication.getUsername(), this.address, response);
 
+        LOG.info("Applying NETCONF response from {}@{}", this.authentication.getUsername(), this.address);
         try {
-            return this.yangPool().writeOperationalDataFrom(YangXmlDataInput.using(
-                    XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(response.toString())),
-                    this.yangPool().getYangContext()));
+            return this.yangPool().writeOperationalDataFrom(XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(
+                    response.toString())));
 
             //this.transformer.toRpcResult(response, NetconfMessageTransformUtil.NETCONF_GET_PATH).getResult());
 
