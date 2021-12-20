@@ -633,6 +633,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         } catch (final IOException | XMLStreamException e) {
             LOG.error("While opening file for loading XML Configuration: ", e);
             LOG.error("Failed reading XML Configuration from: {}", file);
+
             return CompletableFuture.completedFuture(List.of());
         }
 
@@ -655,6 +656,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         } catch (final XMLStreamException e) {
             LOG.error("While using stream for loading XML Configuration: ", e);
             LOG.error("Failed reading XML Configuration from: {}", stream);
+
             return CompletableFuture.completedFuture(List.of());
         }
 
@@ -688,7 +690,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                 @Nonnull final var nodeWriter = ImmutableNormalizedNodeStreamWriter.from(nodeResult);
 
                 @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var parser = XmlParserStream.create(
-                        nodeWriter, this.context, input.getYangTreeNode(), true);
+                        nodeWriter, this.context, input.getYangTreeNode(), false); // TODO: Add strictParsing to method params
 
                 parser.parse(input);
                 dataNodes.add(nodeResult.getResult());
