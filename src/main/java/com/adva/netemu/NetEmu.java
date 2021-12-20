@@ -426,6 +426,7 @@ public class NetEmu {
         } catch (final XMLStreamException e) {
             LOG.error("While loading XML Configuration: ", e);
             LOG.error("Failed reading XML Configuration from: {}", reader);
+
             return CompletableFuture.completedFuture(List.of());
         }
 
@@ -443,6 +444,7 @@ public class NetEmu {
         } catch (final IOException | XMLStreamException e) {
             LOG.error("While opening file for loading XML Configuration: ", e);
             LOG.error("Failed reading XML Configuration from: {}", file);
+
             return CompletableFuture.completedFuture(List.of());
         }
 
@@ -461,7 +463,8 @@ public class NetEmu {
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public CompletableFuture<List<CommitInfo>> applyOperationalDataFromXml(
-            @Nonnull final File file, @Nonnull final Charset encoding) {
+            @Nonnull final File file,
+            @Nonnull final Charset encoding) {
 
         @Nonnull final XMLStreamReader xmlReader;
         try {
@@ -470,6 +473,7 @@ public class NetEmu {
         } catch (final IOException | XMLStreamException e) {
             LOG.error("While opening file for loading Operational XML Data: ", e);
             LOG.error("Failed reading Operational XML Data from: {}", file);
+
             return CompletableFuture.completedFuture(List.of());
         }
 
