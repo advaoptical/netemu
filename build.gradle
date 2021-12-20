@@ -193,6 +193,7 @@ task mvnInstallOpenDaylightModules {
     dependsOn mvnInstallYangDataUtil
     dependsOn mvnInstallYangDataImpl
     dependsOn mvnInstallYangDataCodecXml
+    dependsOn mvnInstallMdsalBindingDomCodec
     dependsOn mvnInstallNetconfNettyUtil
 }
 
