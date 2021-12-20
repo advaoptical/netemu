@@ -14,6 +14,7 @@ import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -78,6 +79,11 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         @Nonnull
         public static {{{yangName}}}Data empty() {
             return EMPTY;
+        }
+
+        @Nonnull
+        public {{{yangName}}}Data or(@Nonnull final Supplier<{{{yangName}}}Data> dataSupplier) {
+            return (this.object != null) ? this : dataSupplier.get();
         }
 
 {{#each yangDataGetters}}
