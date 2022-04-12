@@ -2,13 +2,17 @@ package com.adva.netemu.driver;
 
 import java.util.List;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.FluentFuture;
 
-import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+
+import org.opendaylight.mdsal.common.api.CommitInfo;
 
 import com.adva.netemu.YangBinding;
 import com.adva.netemu.YangPool;
@@ -58,9 +62,20 @@ public abstract class EmuDriver {
         return this.settings;
     }
 
+    @Nonnull
+    protected final Executor executor = new ScheduledThreadPoolExecutor(0);
+
     protected EmuDriver(@Nonnull final YangPool pool, @Nonnull final Settings<? extends EmuDriver> settings) {
         this.yangPool = pool;
         this.settings = settings;
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public abstract FluentFuture<List<CommitInfo>> fetchConfigurationData(@Nonnull final YangInstanceIdentifier iid);
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<List<CommitInfo>> fetchConfigurationData() {
+        return this.fetchConfigurationData(YangInstanceIdentifier.empty());
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
