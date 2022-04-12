@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.rcf8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
+import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
 import org.opendaylight.yangtools.yang.model.parser.api.YangParserFactory;
 import org.opendaylight.yangtools.yang.parser.impl.YangParserFactoryImpl;
@@ -165,6 +166,37 @@ public class NetconfDriver extends EmuDriver {
     }
 
     @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<List<CommitInfo>> fetchConfigurationData(@Nonnull final YangInstanceIdentifier iid) {
+        return this.requestGetConfig();
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<List<CommitInfo>> fetchConfigurationDataFor(@Nonnull final YangBindable object) {
+        return this.requestGetConfig();
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<List<CommitInfo>> requestGetConfig() {
+        @Nonnull final var message = this.transformer.toRpcRequest(
+                NetconfMessageTransformUtil.NETCONF_GET_CONFIG_PATH,
+                ImmutableContainerNodeBuilder.create().withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_CONFIG_NODEID)
+                        .build());
+
+        @Nonnull final var response = this.request(message);
+
+        LOG.info("Applying NETCONF response from {}@{}", this.authentication.getUsername(), this.address);
+        try {
+            return this.yangPool().writeConfigurationDataFrom(XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(
+                    response.toString())));
+
+            //this.transformer.toRpcResult(response, NetconfMessageTransformUtil.NETCONF_GET_PATH).getResult());
+
+        } catch (final XMLStreamException e) {
+            return FluentFuture.from(Futures.immediateFailedFuture(e));
+        }
+    }
+
+    @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<List<CommitInfo>> fetchOperationalData(@Nonnull final YangInstanceIdentifier iid) {
         return this.requestGet();
     }
@@ -181,6 +213,40 @@ public class NetconfDriver extends EmuDriver {
                 ImmutableContainerNodeBuilder.create().withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_DATA_NODEID)
                         .build());
 
+        @Nonnull final var response = this.request(message);
+
+        LOG.info("Applying NETCONF response from {}@{}", this.authentication.getUsername(), this.address);
+        try {
+            return this.yangPool().writeOperationalDataFrom(XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(
+                    response.toString())));
+
+            //this.transformer.toRpcResult(response, NetconfMessageTransformUtil.NETCONF_GET_PATH).getResult());
+
+        } catch (final XMLStreamException e) {
+            return FluentFuture.from(Futures.immediateFailedFuture(e));
+        }
+    }
+
+    /*
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<List<CommitInfo>> pushConfigurationDataFrom(@Nonnull final YangBindable object) {
+        return object.requireYangBinding().provideConfigurationData().transformAsync(data -> {
+            @Nonnull final var futureCommitInfos = this.yangPool().writeConfigurationDataFrom(object.requireYangBinding());
+            this.requestEditConfig(object.requireYangBinding().getIid(), data);
+
+            return futureCommitInfos;
+        }, this.executor);
+    }
+    */
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final NormalizedNode<?, ?> data) {
+        this.request(this.transformer.toRpcRequest(NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_PATH, data));
+        return FluentFuture.from(Futures.immediateFuture(List.of()));
+    }
+
+    @Nonnull
+    private NetconfMessage request(@Nonnull final NetconfMessage message) {
         LOG.info("Sending NETCONF request to {}@{}:\n{}", this.authentication.getUsername(), this.address, message);
 
         @Nonnull final var futureResponse = this.listener.sendRequest(message);
@@ -193,16 +259,6 @@ public class NetconfDriver extends EmuDriver {
         }
 
         LOG.debug("Received NETCONF response from {}@{}:\n{}", this.authentication.getUsername(), this.address, response);
-
-        LOG.info("Applying NETCONF response from {}@{}", this.authentication.getUsername(), this.address);
-        try {
-            return this.yangPool().writeOperationalDataFrom(XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(
-                    response.toString())));
-
-            //this.transformer.toRpcResult(response, NetconfMessageTransformUtil.NETCONF_GET_PATH).getResult());
-
-        } catch (final XMLStreamException e) {
-            return FluentFuture.from(Futures.immediateFailedFuture(e));
-        }
+        return response;
     }
 }
