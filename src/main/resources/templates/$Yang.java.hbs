@@ -354,7 +354,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 {{/unless}}
 
             for (@Nonnull final var augmentation : this.augmentations.entrySet()) {
-                builder.addAugmentation(augmentation.getKey(), augmentation.getValue());
+                builder.addAugmentation(/* Type argument removed in MD-SAL 7: augmentation.getKey(), */ augmentation.getValue());
             }
 
             return builder.build();

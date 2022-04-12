@@ -63,63 +63,70 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
 
-    implementation "org.reflections:reflections:0.9.12"
+    implementation 'org.reflections:reflections:0.10.2'
 
-    implementation "javax.activation:activation:1.1.1"
-    implementation "javax.xml.bind:jaxb-api:2.3.1"
+    implementation 'javax.activation:activation:1.1.1'
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
 
-    implementation "org.glassfish.jaxb:jaxb-runtime:2.3.2"
-    implementation "org.glassfish.jersey.containers:jersey-container-grizzly2-http:2.27"
-    implementation "org.glassfish.jersey.inject:jersey-hk2:2.27"
+    /*  Can't use jaxb-runtime 3.x versions before finding a compatible jaxb-api. In combination w/the above, 3.x leads to:
+        javax.xml.bind.JAXBException: Implementation of JAXB-API has not been found on module path or classpath.
+     */
+    implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.6'
+
+    /*  Can't use jersey 3.x versions because of incompatibility w/org.opendaylight.netconf:restconf-nb-rfc8040 due to
+        conflicting javax.ws.rs dependencies.
+     */
+    implementation 'org.glassfish.jersey.containers:jersey-container-grizzly2-http:2.35'
+    implementation 'org.glassfish.jersey.inject:jersey-hk2:2.35'
     // implementation "org.glassfish.jersey.Model:jersey-Model-sse:3.0.0"
 
-    implementation "com.github.jknack:handlebars:4.1.2"
-    implementation "com.google.auto.service:auto-service:1.0-rc6"
-    implementation "com.google.dagger:dagger:2.25.4"
-    implementation "com.squareup:javapoet:1.12.1"
-    implementation "com.squareup.inject:assisted-inject-annotations-dagger2:0.5.2"
+    implementation 'com.github.jknack:handlebars:4.3.0'
+    implementation 'com.google.auto.service:auto-service:1.0.1'
+    implementation 'com.google.dagger:dagger:2.41'
+    implementation 'com.squareup:javapoet:1.13.0'
+    implementation 'com.squareup.inject:assisted-inject-annotations-dagger2:0.8.1'
 
-    annotationProcessor "com.google.auto.service:auto-service:1.0-rc6"
-    annotationProcessor "com.google.dagger:dagger-compiler:2.25.4"
-    annotationProcessor "com.squareup.inject:assisted-inject-processor-dagger2:0.5.2"
+    annotationProcessor 'com.google.auto.service:auto-service:1.0.1'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.41'
+    annotationProcessor 'com.squareup.inject:assisted-inject-processor-dagger2:0.8.1'
 
     api "javax.xml:jsr173:1.0"
     // api "com.bea.xml:jsr173-ri:1.0"
     // api "com.ea.async:ea-async:1.2.3"
     api "net.javacrumbs.future-converter:future-converter-java8-guava:1.2.0"
     api "net.jodah:typetools:0.6.3"
-    api "one.util:streamex:0.7.2"
+    api 'one.util:streamex:0.8.1'
 
     // To avoid java.lang.NoClassDefFoundError: org/glassfish/jersey/server/model/Parameter$Source
     // when using com.adva.netemu.northbound.RestconfService in derived projects
     // api "org.glassfish.jersey.core:jersey-common:2.32"
 
-    api "io.jooby:jooby-netty:2.6.1"
-    annotationProcessor "io.jooby:jooby-apt:2.6.1"
+    api 'io.jooby:jooby-netty:2.13.0'
+    annotationProcessor 'io.jooby:jooby-apt:2.13.0'
 
     // Needed by auto-generated MD-SAL Java code from YANG
-    api "com.google.code.findbugs:findbugs-annotations:3.0.1"
-    api "org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.300"
+    api 'com.google.code.findbugs:findbugs-annotations:3.0.1'
+    api 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.600'
 
-    api "org.opendaylight.yangtools:rfc7952-data-util:5.0.7"
-    api "org.opendaylight.yangtools:yang-data-codec-gson:5.0.7"
-    api "org.opendaylight.yangtools:yang-data-codec-xml:5.0.7_1-ADVA"
-    api "org.opendaylight.yangtools:yang-data-impl:5.0.7_1-ADVA"
-    api "org.opendaylight.yangtools:yang-data-util:5.0.7_1-ADVA"
-    api "org.opendaylight.yangtools:yang-maven-plugin:5.0.7"
+    api 'org.opendaylight.yangtools:rfc7952-data-util:6.0.12'
+    api 'org.opendaylight.yangtools:yang-data-codec-gson:6.0.12'
+    api 'org.opendaylight.yangtools:yang-data-codec-xml:6.0.12_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-impl:6.0.12_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-util:6.0.12_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-maven-plugin:6.0.12'
 
-    api "org.opendaylight.mdsal:mdsal-binding-dom-adapter:6.0.7"
-    api "org.opendaylight.mdsal:mdsal-binding-dom-codec:6.0.7_1-ADVA"
-    api "org.opendaylight.mdsal:maven-sal-api-gen-plugin:6.0.7"
-    api "org.opendaylight.mdsal:yang-binding:5.0.7"
+    api 'org.opendaylight.mdsal:maven-sal-api-gen-plugin:7.0.14'
+    api 'org.opendaylight.mdsal:mdsal-binding-dom-adapter:7.0.14'
+    api 'org.opendaylight.mdsal:mdsal-binding-dom-codec:7.0.14_1-ADVA'
+    api 'org.opendaylight.mdsal:yang-binding:7.0.14'
 
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
 
-    api "org.opendaylight.netconf:netconf-client:1.9.1"
-    api "org.opendaylight.netconf:netconf-netty-util:1.9.1_1-ADVA"
-    api "org.opendaylight.netconf:netconf-testtool:1.9.1"
-    api "org.opendaylight.netconf:restconf-nb-rfc8040:1.12.1"
+    api 'org.opendaylight.netconf:netconf-client:1.13.8'
+    api 'org.opendaylight.netconf:netconf-netty-util:1.13.8_1-ADVA'
+    api 'org.opendaylight.netconf:netconf-testtool:1.13.8'
+    api 'org.opendaylight.netconf:restconf-nb-rfc8040:1.13.8'
 
     // implementation ":netconf-testtool-1.7.0-executable"
 

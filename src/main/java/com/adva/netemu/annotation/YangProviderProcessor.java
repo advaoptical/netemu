@@ -5,11 +5,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 import java.lang.annotation.Annotation;
+import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 
 import javax.annotation.Nonnull;
@@ -134,7 +131,7 @@ public class YangProviderProcessor extends AbstractProcessor {
                 .append(StreamEx
                         .of(ElementFilter.methodsIn(yangClass.getEnclosedElements()))
                         .mapToEntry(method -> method.getSimpleName().toString(), Function.identity())
-                        .filterKeys(name -> name.matches("^(get|is)[A-Z].*$"))
+                        .filterKeys(name -> name.matches("^get[A-Z].*$")) // "^(get|is)[A-Z].*$" is deprecated since MD-SAL 7
                         .mapKeyValue((name, method) -> {
                             @Nonnull String valueTypeName;
 
@@ -203,7 +200,10 @@ public class YangProviderProcessor extends AbstractProcessor {
 
                                     "builderName", valueHasBuilder ? name.replaceFirst("^get", "") + "Builder" : "",
                                     "builderClassYangDataGetters", valueHasBuilder
-                                            ? this.provideYangDataGettersFrom(valueClass).toImmutableMap() : Map.of(),
+                                            ? Collections.unmodifiableMap(this.provideYangDataGettersFrom(valueClass)
+                                            // .toImmutableMap() is missing overload w/mergeFunction
+                                            .toMap((ignoredBaseGetter, overriddenGetter) -> overriddenGetter))
+                                            : Map.of(),
 
                                     "pythonName", name.replaceFirst("^(get|is)", "").replaceAll("[A-Z]", "_$0").toLowerCase()
                                             .substring(1)));

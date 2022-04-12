@@ -22,6 +22,7 @@ import org.opendaylight.yangtools.rcf8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
+import org.opendaylight.yangtools.yang.model.parser.api.YangParserException;
 import org.opendaylight.yangtools.yang.model.parser.api.YangParserFactory;
 import org.opendaylight.yangtools.yang.parser.impl.YangParserFactoryImpl;
 
@@ -160,9 +161,14 @@ public class NetconfDriver extends EmuDriver {
             throw new RuntimeException(e);
         }
 
-        this.transformer = new NetconfMessageTransformer(
-                new EmptyMountPointContext(pool.getEffectiveModelContext()), true, // true -> strict message parsing
-                new DefaultBaseNetconfSchemas(YANG_PARSER_FACTORY).getBaseSchemaWithNotifications());
+        try {
+            this.transformer = new NetconfMessageTransformer(
+                    new EmptyMountPointContext(pool.getEffectiveModelContext()), true, // true -> strict message parsing
+                    new DefaultBaseNetconfSchemas(YANG_PARSER_FACTORY).getBaseSchemaWithNotifications());
+
+        } catch (final YangParserException e) {
+            throw new RuntimeException(String.format("Failed creating instance of %s", NetconfMessageTransformer.class), e);
+        }
     }
 
     @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
@@ -178,7 +184,7 @@ public class NetconfDriver extends EmuDriver {
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<List<CommitInfo>> requestGetConfig() {
         @Nonnull final var message = this.transformer.toRpcRequest(
-                NetconfMessageTransformUtil.NETCONF_GET_CONFIG_PATH,
+                NetconfMessageTransformUtil.NETCONF_GET_CONFIG_QNAME,
                 ImmutableContainerNodeBuilder.create().withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_CONFIG_NODEID)
                         .build());
 
@@ -209,7 +215,7 @@ public class NetconfDriver extends EmuDriver {
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<List<CommitInfo>> requestGet() {
         @Nonnull final var message = this.transformer.toRpcRequest(
-                NetconfMessageTransformUtil.NETCONF_GET_PATH,
+                NetconfMessageTransformUtil.NETCONF_GET_QNAME,
                 ImmutableContainerNodeBuilder.create().withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_DATA_NODEID)
                         .build());
 
@@ -241,7 +247,7 @@ public class NetconfDriver extends EmuDriver {
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final NormalizedNode<?, ?> data) {
-        this.request(this.transformer.toRpcRequest(NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_PATH, data));
+        this.request(this.transformer.toRpcRequest(NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_QNAME, data));
         return FluentFuture.from(Futures.immediateFuture(List.of()));
     }
 
