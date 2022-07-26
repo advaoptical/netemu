@@ -1,6 +1,5 @@
 package com.adva.netemu;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +29,7 @@ public final class Yang {
     @Nonnull
     public static SchemaPath absolutePathFrom(@Nonnull final SchemaContext yangContext, @Nonnull final String... path) {
         @Nonnull final var namespaceMap = YangNamespaceMap.from(yangContext);
-        @Nullable URI namespace = null;
+        @Nullable String namespace = null;
 
         @Nonnull final var qnames = new ArrayList<QName>();
         for (@Nonnull final var segment : StreamEx.of(path)
@@ -38,7 +37,7 @@ public final class Yang {
 
             if (segment.contains(":")) {
                 @Nonnull final var splitSegment = segment.split(":", 2); // 2 -> No more than one split
-                namespace = URI.create(namespaceMap.getNamespaceURI(splitSegment[0]));
+                namespace = namespaceMap.getNamespaceURI(splitSegment[0]);
                 qnames.add(QName.create(namespace, splitSegment[1]));
 
             } else {

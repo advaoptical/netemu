@@ -15,7 +15,8 @@ import org.opendaylight.yangtools.yang2sources.plugin.NetEmuYangToSourcesProcess
 
 import org.opendaylight.mdsal.binding.spec.naming.BindingMapping
 
-import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator
+import org.opendaylight.mdsal.binding.java.api.generator.NetEmuFileGenerator
+// import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator
 
 
 @SuppressWarnings("GroovyUnusedDeclaration")
@@ -30,10 +31,15 @@ class NetEmuPlugin implements Plugin<Project> {
 
         @Nonnull final mavenProject = new MavenProject()
         mavenProject.file = project.buildFile.canonicalFile
+        mavenProject.build.directory = project.buildDir as String
 
         @Nonnull final yangToSourcesTask = project.tasks.create('yangToSources').doFirst {
             @Nonnull final buildRoot = project.buildDir.toPath()
             @Nonnull final resourcesPath = buildRoot.resolve "resources/main"
+
+            @Nonnull final mavenGeneratedSourcesPath = buildRoot.resolve "generated-sources"
+            @Nonnull final javaFileGeneratorOutputPath = mavenGeneratedSourcesPath.resolve "BindingJavaFileGenerator"
+
             @Nonnull final mdSalOutputPath = buildRoot.resolve extension.yangToSources.mdSalOutputDir
             @Nonnull final netEmuOutputPath = buildRoot.resolve extension.yangToSources.netEmuOutputDir
 
@@ -46,7 +52,8 @@ class NetEmuPlugin implements Plugin<Project> {
                 @Nonnull final yangPackageName = it.fileName.toString()
 
                 new NetEmuYangToSourcesProcessor(resourcesPath, mdSalOutputPath, yangPackageName, mavenProject).execute()
-                FileUtils.copyDirectoryStructure mdSalOutputPath.toFile(), netEmuMdSalMergingPath.toFile()
+                FileUtils.copyDirectoryStructure javaFileGeneratorOutputPath.toFile(), netEmuMdSalMergingPath.toFile()
+                FileUtils.copyDirectoryStructure it.toFile(), yangMetaPath.toFile()
 
             @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile
             @Nullable pythonYangModelsFilePath = null
@@ -77,7 +84,7 @@ class NetEmuPlugin implements Plugin<Project> {
 
                 @Nonnull
                 public static final Set<YangModuleInfo> YANG_MODULE_INFOS = Set.of(
-                        ${String.join ",\n\n", NetEmuCodeGenerator.YANG_MODULES.get().stream().map() {
+                        ${String.join ",\n\n", NetEmuFileGenerator.YANG_MODULES.get().stream().map() {
                             "${BindingMapping.getRootPackageName it.getQNameModule()}.\$YangModuleInfoImpl.getInstance()"
 
                         }.collect()});
@@ -90,7 +97,7 @@ class NetEmuPlugin implements Plugin<Project> {
                         public static class NorevLookup {
 
                             ${String.join """\n
-                            """, NetEmuCodeGenerator.YANG_MODULES.get().stream().map() {
+                            """, NetEmuFileGenerator.YANG_MODULES.get().stream().map() {
                                 @Nonnull final yangPackage = BindingMapping.getRootPackageName(it.getQNameModule())
                                 @Nonnull final yangNorevPackage = yangPackage.replaceAll(/\.[^.]+$/, '.norev')
 
@@ -136,7 +143,9 @@ class NetEmuPlugin implements Plugin<Project> {
                 */
             }
 
+            FileUtils.deleteDirectory javaFileGeneratorOutputPath.toFile()
             FileUtils.deleteDirectory mdSalOutputPath.toFile()
+
             FileUtils.copyDirectoryStructure netEmuMdSalMergingPath.toFile(), mdSalOutputPath.toFile()
             FileUtils.deleteDirectory netEmuMdSalMergingPath.toFile()
 

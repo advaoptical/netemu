@@ -345,7 +345,13 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 {{#unless yangDataGetters.empty}}
             try {
     {{#each yangDataGetters}}
+        {{#if this.valueIsMap}}
+                builder.set{{{@key}}}((this.future{{{@key}}} != null)
+                        ? StreamEx.of(this.future{{{@key}}}.get()).toMap(item -> item.key(), Function.identity())
+                        : null);
+        {{else}}
                 builder.set{{{@key}}}((this.future{{{@key}}} != null) ? this.future{{{@key}}}.get() : null);
+        {{/if}}
     {{/each}}
 
             } catch (final ExecutionException | InterruptedException e) {

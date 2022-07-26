@@ -44,7 +44,7 @@ class YangDatastoreModule {
         return new YangDatastore.ReadingFutureCallback() {
 
             @Override
-            public void onSuccess(@Nullable final Optional<NormalizedNode<?, ?>> result) {
+            public void onSuccess(@Nullable final Optional<NormalizedNode> result) {
                 LOG.info("TODO: "); // {}", result);
             }
 

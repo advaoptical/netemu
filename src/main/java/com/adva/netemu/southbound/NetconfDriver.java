@@ -18,13 +18,13 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.opendaylight.yangtools.rcf8528.data.util.EmptyMountPointContext;
+import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
-import org.opendaylight.yangtools.yang.model.parser.api.YangParserException;
-import org.opendaylight.yangtools.yang.model.parser.api.YangParserFactory;
-import org.opendaylight.yangtools.yang.parser.impl.YangParserFactoryImpl;
+import org.opendaylight.yangtools.yang.parser.api.YangParserException;
+import org.opendaylight.yangtools.yang.parser.api.YangParserFactory;
+import org.opendaylight.yangtools.yang.parser.impl.DefaultYangParserFactory;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
@@ -121,7 +121,7 @@ public class NetconfDriver extends EmuDriver {
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
 
     @Nonnull
-    private static final YangParserFactory YANG_PARSER_FACTORY = new YangParserFactoryImpl();
+    private static final YangParserFactory YANG_PARSER_FACTORY = new DefaultYangParserFactory();
 
     @Nonnull
     private final InetSocketAddress address;
@@ -246,7 +246,7 @@ public class NetconfDriver extends EmuDriver {
     */
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final NormalizedNode<?, ?> data) {
+    public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final NormalizedNode data) {
         this.request(this.transformer.toRpcRequest(NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_QNAME, data));
         return FluentFuture.from(Futures.immediateFuture(List.of()));
     }

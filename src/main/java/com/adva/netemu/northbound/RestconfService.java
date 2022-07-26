@@ -19,15 +19,18 @@ import org.opendaylight.mdsal.dom.spi.FixedDOMSchemaService;
 
 import org.opendaylight.restconf.nb.rfc8040.RestconfApplication;
 
+/*
 import org.opendaylight.restconf.nb.rfc8040.handlers.ActionServiceHandler;
 import org.opendaylight.restconf.nb.rfc8040.handlers.DOMDataBrokerHandler;
 import org.opendaylight.restconf.nb.rfc8040.handlers.DOMMountPointServiceHandler;
 import org.opendaylight.restconf.nb.rfc8040.handlers.NotificationServiceHandler;
 import org.opendaylight.restconf.nb.rfc8040.handlers.RpcServiceHandler;
-import org.opendaylight.restconf.nb.rfc8040.handlers.SchemaContextHandler;
-import org.opendaylight.restconf.nb.rfc8040.handlers.TransactionChainHandler;
+*/
 
-import org.opendaylight.restconf.nb.rfc8040.services.wrapper.ServicesWrapper;
+import org.opendaylight.restconf.nb.rfc8040.handlers.SchemaContextHandler;
+// import org.opendaylight.restconf.nb.rfc8040.handlers.TransactionChainHandler;
+
+// import org.opendaylight.restconf.nb.rfc8040.services.wrapper.ServicesWrapper;
 import org.opendaylight.restconf.nb.rfc8040.streams.Configuration;
 
 import com.adva.netemu.YangPool;
@@ -77,8 +80,8 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var domSchemaService = FixedDOMSchemaService.of(super.yangPool());
         @Nonnull final var schemaContext = domSchemaService.getGlobalContext();
 
-        @Nonnull final var domMountPointServiceHandler = new DOMMountPointServiceHandler(new DOMMountPointServiceImpl());
-        @Nonnull final var transactionChainHandler = new TransactionChainHandler(super.yangPool().getNormalizedNodeBroker());
+        @Nonnull final var domMountPointServiceHandler = /*new DOMMountPointServiceHandler(*/new DOMMountPointServiceImpl();
+        @Nonnull final var transactionChainHandler = /*new TransactionChainHandler(*/super.yangPool().getNormalizedNodeBroker();
         @Nonnull final var schemaContextHandler = new SchemaContextHandler(transactionChainHandler, domSchemaService);
         schemaContextHandler.onModelContextUpdated(schemaContext);
 
@@ -86,17 +89,17 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
         domRpcRouter.onModelContextUpdated(schemaContext);
 
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var restconf = new RestconfApplication(
-                schemaContextHandler, domMountPointServiceHandler, ServicesWrapper.newInstance(
+                // schemaContextHandler, domMountPointServiceHandler, ServicesWrapper.newInstance(
                         schemaContextHandler,
                         domMountPointServiceHandler,
                         transactionChainHandler,
 
-                        new DOMDataBrokerHandler(super.yangPool().getNormalizedNodeBroker()),
-                        new RpcServiceHandler(domRpcRouter.getRpcService()),
-                        new ActionServiceHandler(domRpcRouter.getActionService()),
-                        new NotificationServiceHandler(DOMNotificationRouter.create(1024)),
+                        // new DOMDataBrokerHandler(super.yangPool().getNormalizedNodeBroker()),
+                        /*new RpcServiceHandler(*/domRpcRouter.getRpcService(),
+                        /*new ActionServiceHandler(*/domRpcRouter.getActionService(),
+                        /*new NotificationServiceHandler(*/DOMNotificationRouter.create(1024),
                         domSchemaService,
-                        new Configuration(0, 1, 0, true)));
+                        new Configuration(0, 1, 0, true));
 
         @Nonnull final var settings = (Settings) this.settings();
         @Nonnull final var http = GrizzlyHttpServerFactory.createHttpServer(

@@ -108,25 +108,27 @@ dependencies {
     api 'com.google.code.findbugs:findbugs-annotations:3.0.1'
     api 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.600'
 
-    api 'org.opendaylight.yangtools:rfc7952-data-util:6.0.12'
-    api 'org.opendaylight.yangtools:yang-data-codec-gson:6.0.12'
-    api 'org.opendaylight.yangtools:yang-data-codec-xml:6.0.12_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-impl:6.0.12_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-util:6.0.12_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-maven-plugin:6.0.12'
+    api 'org.opendaylight.yangtools:rfc7952-data-util:7.0.17'
+    api 'org.opendaylight.yangtools:yang-data-codec-gson:7.0.17'
+    api 'org.opendaylight.yangtools:yang-data-codec-xml:7.0.17_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-impl:7.0.17_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-util:7.0.17_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-maven-plugin:7.0.17'
 
-    api 'org.opendaylight.mdsal:maven-sal-api-gen-plugin:7.0.14'
-    api 'org.opendaylight.mdsal:mdsal-binding-dom-adapter:7.0.14'
-    api 'org.opendaylight.mdsal:mdsal-binding-dom-codec:7.0.14_1-ADVA'
-    api 'org.opendaylight.mdsal:yang-binding:7.0.14'
+    // api 'org.opendaylight.mdsal:maven-sal-api-gen-plugin:8.0.15'
+    api 'org.opendaylight.mdsal:mdsal-binding-dom-adapter:8.0.15'
+    api 'org.opendaylight.mdsal:mdsal-binding-dom-codec:8.0.15_1-ADVA'
+    api 'org.opendaylight.mdsal:mdsal-binding-java-api-generator:8.0.15'
+    api 'org.opendaylight.mdsal:mdsal-dom-inmemory-datastore:8.0.15'
+    api 'org.opendaylight.mdsal:yang-binding:8.0.15'
 
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
 
-    api 'org.opendaylight.netconf:netconf-client:1.13.8'
-    api 'org.opendaylight.netconf:netconf-netty-util:1.13.8_1-ADVA'
-    api 'org.opendaylight.netconf:netconf-testtool:1.13.8'
-    api 'org.opendaylight.netconf:restconf-nb-rfc8040:1.13.8'
+    api 'org.opendaylight.netconf:netconf-client:2.0.16'
+    api 'org.opendaylight.netconf:netconf-netty-util:2.0.16_1-ADVA'
+    api 'org.opendaylight.netconf:netconf-testtool:2.0.16_1-ADVA'
+    api 'org.opendaylight.netconf:restconf-nb-rfc8040:2.0.16'
 
     // implementation ":netconf-testtool-1.7.0-executable"
 
@@ -195,6 +197,18 @@ task mvnInstallNetconfNettyUtil(type: Exec) {
     commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf-netty-util.groovy", "install"]
 }
 
+task mvnInstallNetconfTestTool(type: Exec) {
+    dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataUtil
+    dependsOn mvnInstallYangDataImpl
+    dependsOn mvnInstallYangDataCodecXml
+    dependsOn mvnInstallMdsalBindingDomCodec
+    dependsOn mvnInstallNetconfNettyUtil
+
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf-testtool.groovy", "install"]
+}
+
 task mvnInstallOpenDaylightModules {
     dependsOn mvnInstallYangModelUtil
     dependsOn mvnInstallYangDataUtil
@@ -202,6 +216,7 @@ task mvnInstallOpenDaylightModules {
     dependsOn mvnInstallYangDataCodecXml
     dependsOn mvnInstallMdsalBindingDomCodec
     dependsOn mvnInstallNetconfNettyUtil
+    dependsOn mvnInstallNetconfTestTool
 }
 
 

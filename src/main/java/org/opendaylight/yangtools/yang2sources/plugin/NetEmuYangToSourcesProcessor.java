@@ -9,6 +9,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.maven.project.MavenProject;
 
+import org.opendaylight.mdsal.binding.java.api.generator.NetEmuFileGenerator;
 import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
 
 import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator;
@@ -26,7 +27,7 @@ public class NetEmuYangToSourcesProcessor extends YangToSourcesProcessor {
     private static final Path YANG_META_PATH = Paths.get("META-INF", "yang");
 
     @Nonnull
-    private static final String CODE_GENERATOR_CLASS = NetEmuCodeGenerator.class.getName();
+    private static final String CODE_GENERATOR_CLASS = NetEmuFileGenerator.class.getName(); // NetEmuCodeGenerator.class.getName();
 
     public NetEmuYangToSourcesProcessor(
             @Nonnull final Path resourcesPath, @Nonnull final Path mdSalOutputPath, @Nonnull final String yangPackageName,

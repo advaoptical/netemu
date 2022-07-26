@@ -28,7 +28,7 @@ public final class Main {
         System.out.println(intf.getIidBuilder().build());
         */
 
-        @Nonnull final var emu = new NetEmu(pool);
+        @Nonnull final var emu = NetEmu.forYangPool(pool);
         emu.registerService(NetconfService.class);
         emu.registerService(PythonKernelService.class);
         emu.registerService(WebService.class);

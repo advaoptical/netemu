@@ -2,7 +2,6 @@ package com.adva.netemu.annotation;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.net.URI;
 
 import java.util.AbstractMap;
 import java.util.Collections;
@@ -37,11 +36,12 @@ import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.QNameModule;
+import org.opendaylight.yangtools.yang.common.XMLNamespace;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
 // import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
-import org.opendaylight.mdsal.binding.model.util.BindingGeneratorUtil;
+import org.opendaylight.mdsal.binding.generator.BindingGeneratorUtil;
 import org.opendaylight.mdsal.binding.spec.naming.BindingMapping;
 
 import com.adva.netemu.YangBound;
@@ -171,7 +171,7 @@ public class YangBoundProcessor extends AbstractProcessor {
         @Nonnull final TypeElement compileTimeContext = this.provideCompileTimeContextFrom(annotation);
         @Nonnull final String yangNamespace = this.provideYangNamespaceFrom(annotation);
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNorevPackage = BindingMapping.getRootPackageName(
-                QNameModule.create(URI.create(yangNamespace)));
+                QNameModule.create(XMLNamespace.of(yangNamespace)));
 
         @Nonnull final Optional<TypeElement> yangNorevLookup = this.resolveInnerClass(
                 compileTimeContext, "CompileTime", "YangModules", "NorevLookup");
@@ -228,7 +228,13 @@ public class YangBoundProcessor extends AbstractProcessor {
                 true); // true -> SchemaPath is absolute
 
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangClassName = ClassName.get(
-                BindingGeneratorUtil.packageNameForGeneratedType(yangModulePackage, yangPath),
+                // BindingGeneratorUtil.packageNameForGeneratedType(yangModulePackage, yangPath),
+                // BindingMapping.getRootPackageName(yangPath.getLastComponent()),
+                (yangPath.getParent().getParent() == null) ? yangModulePackage : String.join(".", yangModulePackage, BindingMapping
+                        .normalizePackageName(StreamEx.of(yangPath.getParent().getPathFromRoot())
+                                .map(qName -> qName.getLocalName().replace("-", "."))
+                                .joining("."))),
+
                 BindingMapping.getClassName(yangPath.getLastComponent()));
 
         return Optional.of(Map.of(

@@ -45,13 +45,13 @@ public class TestDevice implements YangBindable {
         }
 
         this.yangBinding.appliesConfigurationDataUsing(data -> {
-            this.interfaces.set(Owned.by(this, data.streamInterface().map(TestInterface_Yang.Data::of)
+            this.interfaces.set(Owned.by(this, data.streamInterface().map(TestInterface_Yang.Data::from)
                     .map(TestInterface::fromConfigurationData)
                     .toImmutableList()));
 
         }).appliesOperationalDataUsing(data -> {
             synchronized (this.interfaces) {
-                for (@Nonnull final var interfaceData : data.streamInterface().map(TestInterface_Yang.Data::of)) {
+                for (@Nonnull final var interfaceData : data.streamInterface().map(TestInterface_Yang.Data::from)) {
                     TestInterface_Yang.bindingStreamOf(this.interfaces.get())
                             .findFirst(binding -> interfaceData.getName().map(binding.getKey().getName()::equals)
                                     .orElseThrow(() -> new IllegalArgumentException("No 'name' leaf value present in YANG Data")))

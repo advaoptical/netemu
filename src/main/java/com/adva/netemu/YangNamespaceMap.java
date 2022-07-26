@@ -1,6 +1,5 @@
 package com.adva.netemu;
 
-import java.net.URI;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Set;
@@ -10,11 +9,12 @@ import javax.xml.namespace.NamespaceContext;
 
 import one.util.streamex.StreamEx;
 
+import org.opendaylight.yangtools.yang.common.XMLNamespace;
 import org.opendaylight.yangtools.yang.model.api.Module;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
 
-public class YangNamespaceMap extends AbstractMap<String, URI> implements NamespaceContext {
+public class YangNamespaceMap extends AbstractMap<String, XMLNamespace> implements NamespaceContext {
 
     @Nonnull
     private final SchemaContext yangContext;
@@ -34,7 +34,7 @@ public class YangNamespaceMap extends AbstractMap<String, URI> implements Namesp
     }
 
     @Nonnull @Override
-    public Set<Entry<String, URI>> entrySet() {
+    public Set<Entry<String, XMLNamespace>> entrySet() {
         return StreamEx.of(this.yangContext.getModules()).mapToEntry(Module::getPrefix, Module::getNamespace).toImmutableSet();
     }
 

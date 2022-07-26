@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import org.opendaylight.yangtools.concepts.Builder;
+import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 // import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
@@ -68,8 +69,6 @@ import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
 import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
 import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceProvider;
 
-// import org.opendaylight.binding.runtime.api.BindingRuntimeContext;
-import org.opendaylight.mdsal.binding.runtime.spi.BindingRuntimeHelpers;
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.api.WriteTransaction;
 import org.opendaylight.mdsal.binding.dom.adapter.AdapterContext;
@@ -84,6 +83,9 @@ import org.opendaylight.mdsal.binding.dom.codec.impl.BindingNormalizedNodeCodecR
 import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 import org.opendaylight.mdsal.binding.generator.util.BindingRuntimeContext;
 */
+
+// import org.opendaylight.binding.runtime.api.BindingRuntimeContext;
+import org.opendaylight.mdsal.binding.runtime.spi.BindingRuntimeHelpers;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
 import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
@@ -261,7 +263,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
             @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<List<CommitInfo>> updatingFuture =
                     this.yangPool.readConfigurationData().transformAsync(config -> config
-                            .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).getValue())
+                            .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).body())
                                     .map(childNode -> (ListenableFuture<CommitInfo>)
                                             this.yangPool.writeOperationalData(childNode))))
 
@@ -564,17 +566,17 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<Optional<NormalizedNode<?, ?>>> readConfigurationData() {
+    public FluentFuture<Optional<NormalizedNode>> readConfigurationData() {
         return this.readData(LogicalDatastoreType.CONFIGURATION);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<Optional<NormalizedNode<?, ?>>> readOperationalData() {
+    public FluentFuture<Optional<NormalizedNode>> readOperationalData() {
         return this.readData(LogicalDatastoreType.OPERATIONAL);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<Optional<NormalizedNode<?, ?>>> readData(@Nonnull final LogicalDatastoreType storeType) {
+    public FluentFuture<Optional<NormalizedNode>> readData(@Nonnull final LogicalDatastoreType storeType) {
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final ListenableFuture<? extends CommitInfo> updatingFuture;
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
@@ -582,7 +584,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                 LOG.info("Updating {} Datastore from {} Datastore", storeType, LogicalDatastoreType.CONFIGURATION);
 
                 return FluentFuture.from(config
-                        .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).getValue())
+                        .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).body())
                                 .map(childNode -> (ListenableFuture<? extends CommitInfo>) this.writeOperationalData(childNode))))
 
                         .orElseGet(() -> Futures.immediateFuture(List.of())));
@@ -683,14 +685,15 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
             @Nonnull final LogicalDatastoreType storeType, @Nonnull final XMLStreamReader xmlReader) {
 
         @Nonnull final var input = this.createYangXmlDataInputUsing(xmlReader);
-        @Nonnull final var dataNodes = new ArrayList<NormalizedNode<?, ?>>();
+        @Nonnull final var dataNodes = new ArrayList<NormalizedNode>();
         try {
             while (input.nextYangTree()) {
                 @Nonnull final var nodeResult = new NormalizedNodeResult();
                 @Nonnull final var nodeWriter = ImmutableNormalizedNodeStreamWriter.from(nodeResult);
 
                 @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var parser = XmlParserStream.create(
-                        nodeWriter, this.context, input.getYangTreeNode(), false); // TODO: Add strictParsing to method params
+                        nodeWriter, new EmptyMountPointContext(this.context), input.getYangTreeNode().getPath().asAbsolute(),
+                        false); // TODO: Add strictParsing to method params
 
                 parser.parse(input);
                 dataNodes.add(nodeResult.getResult());
@@ -706,25 +709,25 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<? extends CommitInfo> writeOperationalData(@Nonnull final NormalizedNode<?, ?> ...nodes) {
+    public FluentFuture<? extends CommitInfo> writeOperationalData(@Nonnull final NormalizedNode ...nodes) {
         return this.writeData(LogicalDatastoreType.OPERATIONAL, nodes);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<? extends CommitInfo> writeOperationalData(
-            @Nonnull final Collection<? extends NormalizedNode<?, ?>> nodes) {
+            @Nonnull final Collection<? extends NormalizedNode> nodes) {
 
         return this.writeData(LogicalDatastoreType.OPERATIONAL, nodes);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<? extends CommitInfo> writeConfigurationData(@Nonnull final NormalizedNode<?, ?> ...nodes) {
+    public FluentFuture<? extends CommitInfo> writeConfigurationData(@Nonnull final NormalizedNode ...nodes) {
         return this.writeData(LogicalDatastoreType.CONFIGURATION, nodes);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<? extends CommitInfo> writeConfigurationData(
-            @Nonnull final Collection<? extends NormalizedNode<?, ?>> nodes) {
+            @Nonnull final Collection<? extends NormalizedNode> nodes) {
 
         return this.writeData(LogicalDatastoreType.CONFIGURATION, nodes);
     }
@@ -732,7 +735,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<? extends CommitInfo> writeData(
             @Nonnull final LogicalDatastoreType storeType,
-            @Nonnull final NormalizedNode<?, ?> ...nodes) {
+            @Nonnull final NormalizedNode ...nodes) {
 
         return this.writeData(storeType, List.of(nodes));
     }
@@ -740,7 +743,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<? extends CommitInfo> writeData(
             @Nonnull final LogicalDatastoreType storeType,
-            @Nonnull final Collection<? extends NormalizedNode<?, ?>> nodes) {
+            @Nonnull final Collection<? extends NormalizedNode> nodes) {
 
         return FluentFuture.from(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()))
                 .transformAsync(ignoredRegisteredBinding -> {

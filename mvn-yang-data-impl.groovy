@@ -6,7 +6,7 @@ import java.nio.file.Paths
 
 final IS_WINDOWS = ManagementFactory.operatingSystemMXBean.name.startsWith "Windows"
 
-final PROJECT_HOME = Paths.get "opendaylight-yangtools", "yang", "yang-data-impl"
+final PROJECT_HOME = Paths.get "opendaylight-yangtools", "data", "yang-data-impl"
 
 final JAVA_FILES = Files.walk PROJECT_HOME filter { path -> path.fileName.toString().endsWith ".java" } toList()
 

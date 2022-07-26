@@ -13,7 +13,7 @@ plugins {
     id 'application'
     id 'groovy'
     id 'java'
-    id 'maven'
+    id 'maven-publish'
 
     id "com.github.node-gradle.node" version "2.2.3"
 }
@@ -21,7 +21,7 @@ plugins {
 apply plugin: 'application'
 apply plugin: 'groovy'
 apply plugin: 'java'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 group = "com.adva.netemu"
 version = "0.1.0-SNAPSHOT"
@@ -59,18 +59,22 @@ sourceSets {
     ]
 }
 
+/*
 ext.jepDir = [
         "python", "-c", "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
 
 ].execute().text.trim()
+*/
 
 repositories {
     mavenLocal()
     mavenCentral()
 
+    /*
     flatDir {
         dirs jepDir
     }
+    */
 }
 
 dependencies {
@@ -89,16 +93,15 @@ test {
     }
 }
 
+/*
 run {
     environment "PATH", String.join(File.pathSeparator, [
 
-            /*
             "C:\\Miniconda3\\envs\\netemu",
             "C:\\Miniconda3\\envs\\netemu\\Library\\mingw-w64\\bin",
             "C:\\Miniconda3\\envs\\netemu\\Library\\usr\\bin",
             "C:\\Miniconda3\\envs\\netemu\\Library\\bin",
             "C:\\Miniconda3\\envs\\netemu\\Scripts",
-            */
 
             jepDir,
             System.getenv('PATH')])
@@ -108,6 +111,7 @@ run {
 
     ].execute().text.trim()
 }
+*/
 
 jar {
     manifest {

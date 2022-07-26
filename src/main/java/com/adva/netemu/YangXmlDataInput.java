@@ -241,7 +241,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
                 tree node in the YANG context afterwards
             */
 
-            final var modules = this.yangContext.findModules(uri).iterator();
+            final var modules = this.yangContext.findModules(uri.toString()).iterator();
             if (!modules.hasNext()) {
                 continue;
             }
@@ -319,13 +319,13 @@ public class YangXmlDataInput extends StreamReaderDelegate {
         return this.getName().getLocalPart();
     }
 
-    @Nonnull @Override
+    @Nullable @Override
     public String getNamespaceURI() {
         return this.getName().getNamespaceURI();
     }
 
     private void updateNamespaceEntries() {
-        @Nullable final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
+        @Nonnull final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
                 .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
                 .toArray(new QName[0]));
 

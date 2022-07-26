@@ -31,7 +31,7 @@ import com.adva.netemu.YangBinding;
 @Component(modules = {YangDatastoreModule.class})
 public interface YangDatastore {
 
-    abstract class ReadingFutureCallback implements FutureCallback<Optional<NormalizedNode<?, ?>>> {
+    abstract class ReadingFutureCallback implements FutureCallback<Optional<NormalizedNode>> {
 
         @Nullable
         LogicalDatastoreType storeType = null;
