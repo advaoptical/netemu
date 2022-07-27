@@ -79,15 +79,15 @@ public class NetEmuFileGenerator implements BasicCodeGenerator, BuildContextAwar
             throw new RuntimeException(String.format("Failed generating MD-SAL/Java sources from %s", yangContext), e);
         }
 
-        @Nonnull final var writtenFiles = new HashSet<File>();
+        @Nonnull final var generatedFiles = new HashSet<File>();
         for (@Nonnull final var generatedFile : generatedFileTable.cellSet()) {
             @Nonnull final var file = Paths.get(generatedFile.getColumnKey().getPath()).toFile();
-            LOG.info("Writing generated {}", file);
-            writtenFiles.add(file);
+            // LOG.info("Writing generated {}", file);
+            generatedFiles.add(file);
         }
 
         YANG_MODULES.set(Set.copyOf(yangModules));
-        return writtenFiles;
+        return generatedFiles;
     }
 
     @Override
