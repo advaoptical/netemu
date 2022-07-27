@@ -43,6 +43,34 @@
     }
 
     @Nonnull
+    public static EntryStream<{{{yangClass}}}Key, {{{yangClass}}}> entryStreamConfigurationDataFrom(
+            @Nonnull final Collection<? extends {{{class}}}> objects) {
+
+        return streamConfigurationDataFrom(objects).mapToEntry(item -> item.key(), Function.identity());
+    }
+
+    @Nonnull
+    public static EntryStream<{{{yangClass}}}Key, {{{yangClass}}}> entryStreamConfigurationDataFrom(
+            @Nonnull final Stream<? extends {{{class}}}> objects) {
+
+        return streamConfigurationDataFrom(objects).mapToEntry(item -> item.key(), Function.identity());
+    }
+
+    @Nonnull
+    public static Map<{{{yangClass}}}Key, {{{yangClass}}}> mapConfigurationDataFrom(
+            @Nonnull final Collection<? extends {{{class}}}> objects) {
+
+        return streamConfigurationDataFrom(objects).toMap(item -> item.key(), Function.identity());
+    }
+
+    @Nonnull
+    public static Map<{{{yangClass}}}Key, {{{yangClass}}}> mapConfigurationDataFrom(
+            @Nonnull final Stream<? extends {{{class}}}> objects) {
+
+        return streamConfigurationDataFrom(objects).toMap(item -> item.key(), Function.identity());
+    }
+
+    @Nonnull
     public static StreamEx<{{{yangClass}}}> streamOperationalDataFrom(@Nonnull final Collection<? extends {{{class}}}> objects) {
 
         return streamOperationalDataFrom(objects.stream());
@@ -65,4 +93,32 @@
     public static List<{{{yangClass}}}> listOperationalDataFrom(@Nonnull final Stream<? extends {{{class}}}> objects) {
 
         return streamOperationalDataFrom(objects).toImmutableList();
+    }
+
+    @Nonnull
+    public static EntryStream<{{{yangClass}}}Key, {{{yangClass}}}> entryStreamOperationalDataFrom(
+            @Nonnull final Collection<? extends {{{class}}}> objects) {
+
+        return streamOperationalDataFrom(objects).mapToEntry(item -> item.key(), Function.identity());
+    }
+
+    @Nonnull
+    public static EntryStream<{{{yangClass}}}Key, {{{yangClass}}}> entryStreamOperationalDataFrom(
+            @Nonnull final Stream<? extends {{{class}}}> objects) {
+
+        return streamOperationalDataFrom(objects).mapToEntry(item -> item.key(), Function.identity());
+    }
+
+    @Nonnull
+    public static Map<{{{yangClass}}}Key, {{{yangClass}}}> mapOperationalDataFrom(
+            @Nonnull final Collection<? extends {{{class}}}> objects) {
+
+        return streamOperationalDataFrom(objects).toMap(item -> item.key(), Function.identity());
+    }
+
+    @Nonnull
+    public static Map<{{{yangClass}}}Key, {{{yangClass}}}> mapStreamOperationalDataFrom(
+            @Nonnull final Stream<? extends {{{class}}}> objects) {
+
+        return streamOperationalDataFrom(objects).toMap(item -> item.key(), Function.identity());
     }
