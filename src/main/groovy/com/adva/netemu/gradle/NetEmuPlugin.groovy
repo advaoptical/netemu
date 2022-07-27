@@ -32,6 +32,8 @@ class NetEmuPlugin implements Plugin<Project> {
         @Nonnull final mavenProject = new MavenProject()
         mavenProject.file = project.buildFile.canonicalFile
         mavenProject.build.directory = project.buildDir as String
+        mavenProject.build.sourceDirectory = project.rootDir.toPath() resolve(
+                (project.sourceSets.main.java.source as List)[0] as String) toString()
 
         @Nonnull final yangToSourcesTask = project.tasks.create('yangToSources').doFirst {
             @Nonnull final buildRoot = project.buildDir.toPath()
