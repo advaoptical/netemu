@@ -74,6 +74,30 @@
         return this.update().transform(Data::get{{{@key}}}, this.executor);
     }
 
+            {{#if this.valueIsMap}}
+    protected void set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> value) {
+        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(StreamEx.of(value)
+                .toMap(item -> item.key(), Function.identity())).build()));
+    }
+
+    protected void set{{{@key}}}(@Nullable final Stream<{{{this.valueClass}}}> value) {
+        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get())
+                .set{{{@key}}}(StreamEx.of(value).toMap(item -> item.key(), Function.identity()))
+                .build()));
+    }
+            {{else}}
+
+    protected void set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> value) {
+        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(List.copyOf(value)).build()));
+    }
+
+    protected void set{{{@key}}}(@Nullable final Stream<{{{this.valueClass}}}> value) {
+        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get())
+                .set{{{@key}}}(StreamEx.of(value).toImmutableList())
+                .build()));
+    }
+
+            {{/if}}
         {{else}}
 
     @Nonnull
@@ -96,8 +120,6 @@
         return this.update().transform(Data::get{{{@key}}}, this.executor);
     }
 
-        {{/if}}
-
     protected void set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> value) {
         this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(List.copyOf(value)).build()));
     }
@@ -107,6 +129,8 @@
                 .set{{{@key}}}(StreamEx.of(value).toImmutableList())
                 .build()));
     }
+
+        {{/if}}
 
     {{else}}
         {{#if this.valueHasBuilder}}
