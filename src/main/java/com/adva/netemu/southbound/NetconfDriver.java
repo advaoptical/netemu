@@ -1,6 +1,7 @@
 package com.adva.netemu.southbound;
 
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -35,7 +36,7 @@ import org.opendaylight.netconf.client.SimpleNetconfClientSessionListener;
 import org.opendaylight.netconf.client.conf.NetconfClientConfiguration;
 import org.opendaylight.netconf.client.conf.NetconfClientConfigurationBuilder;
 
-import org.opendaylight.netconf.nettyutil.ReconnectImmediatelyStrategy;
+import org.opendaylight.netconf.nettyutil.TimedReconnectStrategyFactory;
 import org.opendaylight.netconf.nettyutil.handler.ssh.authentication.AuthenticationHandler;
 import org.opendaylight.netconf.nettyutil.handler.ssh.authentication.LoginPasswordHandler;
 import org.opendaylight.netconf.sal.connect.netconf.schema.mapping.DefaultBaseNetconfSchemas;
@@ -150,7 +151,10 @@ public class NetconfDriver extends EmuDriver {
                         .withProtocol(NetconfClientConfiguration.NetconfClientProtocol.SSH)
                         .withAddress(this.address)
                         .withAuthHandler(this.authentication)
-                        .withReconnectStrategy(new ReconnectImmediatelyStrategy(EVENT_EXECUTOR, 0))
+                                .withReconnectStrategy(new TimedReconnectStrategyFactory(EVENT_EXECUTOR, 5L, 0, BigDecimal.ONE)
+                                        .createReconnectStrategy())
+
+                        // .withReconnectStrategy(new ReconnectImmediatelyStrategy(EVENT_EXECUTOR, 0))
                         .withSessionListener(this.listener)
                         .build());
 
