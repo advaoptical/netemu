@@ -26,6 +26,7 @@ import one.util.streamex.EntryStream;
 import one.util.streamex.IntStreamEx;
 import one.util.streamex.StreamEx;
 
+import org.opendaylight.yangtools.yang.common.XMLNamespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -241,7 +242,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
                 tree node in the YANG context afterwards
             */
 
-            final var modules = this.yangContext.findModules(uri.toString()).iterator();
+            final var modules = this.yangContext.findModules(XMLNamespace.of(uri.toString())).iterator();
             if (!modules.hasNext()) {
                 continue;
             }
