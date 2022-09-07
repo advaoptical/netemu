@@ -1,9 +1,11 @@
 package com.adva.netemu.gradle
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+
 import javax.annotation.Nonnull
 import javax.annotation.Nullable
 
-import com.google.common.io.Files
 import org.apache.maven.project.MavenProject
 import org.codehaus.plexus.util.FileUtils
 
@@ -16,6 +18,7 @@ import org.opendaylight.yangtools.yang2sources.plugin.NetEmuYangToSourcesProcess
 import org.opendaylight.mdsal.binding.spec.naming.BindingMapping
 
 import org.opendaylight.mdsal.binding.java.api.generator.NetEmuFileGenerator
+
 // import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator
 
 
@@ -46,7 +49,7 @@ class NetEmuPlugin implements Plugin<Project> {
             @Nonnull final netEmuOutputPath = buildRoot.resolve extension.yangToSources.netEmuOutputDir
 
             @Nonnull final netEmuMdSalMergingPath = netEmuOutputPath.resolve "mdsal"
-            Files.createParentDirs(netEmuMdSalMergingPath.toFile())
+            Files.createDirectories netEmuMdSalMergingPath
 
             @Nonnull final yangMetaPath = resourcesPath.resolve "META-INF/yang"
             yangMetaPath.eachDir {
@@ -54,8 +57,25 @@ class NetEmuPlugin implements Plugin<Project> {
                 @Nonnull final yangPackageName = it.fileName.toString()
 
                 new NetEmuYangToSourcesProcessor(resourcesPath, mdSalOutputPath, yangPackageName, mavenProject).execute()
-                FileUtils.copyDirectoryStructure javaFileGeneratorOutputPath.toFile(), netEmuMdSalMergingPath.toFile()
-                FileUtils.copyDirectoryStructure it.toFile(), yangMetaPath.toFile()
+
+                // FileUtils.copyDirectoryStructure javaFileGeneratorOutputPath.toFile(), netEmuMdSalMergingPath.toFile()
+                Files.walk javaFileGeneratorOutputPath forEach {
+                    @Nonnull final destination = netEmuMdSalMergingPath.resolve javaFileGeneratorOutputPath.relativize(it)
+                    if (Files.notExists destination) {
+                        Files.createDirectories destination.parent
+                        Files.copy it, destination
+                    }
+                }
+
+                // FileUtils.copyDirectoryStructure it.toFile(), yangMetaPath.toFile()
+                @Nonnull final yangPackageMetaPath = it
+                yangFileNames.forEach {
+                    @Nonnull final destination = yangMetaPath.resolve it
+                    if (Files.notExists destination) {
+                        Files.copy yangPackageMetaPath.resolve(it), destination
+                    }
+                }
+
 
             @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile
             @Nullable pythonYangModelsFilePath = null
@@ -67,7 +87,7 @@ class NetEmuPlugin implements Plugin<Project> {
             @Nonnull final yangPackagePath = netEmuOutputPath.resolve yangPackageName.replace('.', '/')
 
             @Nonnull final classFile = yangPackagePath.resolve "${CONTEXT_CLASS_NAME}.java"
-            Files.createParentDirs classFile.toFile()
+            Files.createDirectories classFile.parent
             classFile.write """
             package ${yangPackageName};
 
@@ -150,6 +170,11 @@ class NetEmuPlugin implements Plugin<Project> {
 
             FileUtils.copyDirectoryStructure netEmuMdSalMergingPath.toFile(), mdSalOutputPath.toFile()
             FileUtils.deleteDirectory netEmuMdSalMergingPath.toFile()
+
+            Files.walk mdSalOutputPath filter { path -> (path.fileName as String).endsWith '.java' } forEach {
+                javaFile -> javaFile.text = javaFile.getText(StandardCharsets.ISO_8859_1 as String)
+                    .replaceAll "^\\P{ASCII}+", ""
+            }
 
             @Nonnull final javaConvention = project.convention.plugins['java'] as JavaPluginConvention
             javaConvention.sourceSets['main'].java.srcDirs += [mdSalOutputPath.toString(), netEmuOutputPath.toString()]
