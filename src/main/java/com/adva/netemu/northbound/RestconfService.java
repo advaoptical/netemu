@@ -77,7 +77,9 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
             return;
         }
 
-        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var domSchemaService = FixedDOMSchemaService.of(super.yangPool());
+        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var domSchemaService = FixedDOMSchemaService
+                .of(super.yangPool(), super.yangPool());
+
         @Nonnull final var schemaContext = domSchemaService.getGlobalContext();
 
         @Nonnull final var domMountPointServiceHandler = /*new DOMMountPointServiceHandler(*/new DOMMountPointServiceImpl();
