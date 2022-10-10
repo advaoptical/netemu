@@ -1,5 +1,7 @@
 package com.adva.netemu.annotation;
 
+import com.sun.tools.javac.code.Type;
+
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 
@@ -33,6 +35,8 @@ import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.helper.StringHelpers;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 
+import org.opendaylight.yangtools.yang.binding.Augmentation;
+import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.QNameModule;
@@ -41,7 +45,7 @@ import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
 // import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
-import org.opendaylight.mdsal.binding.generator.BindingGeneratorUtil;
+// import org.opendaylight.mdsal.binding.generator.BindingGeneratorUtil;
 import org.opendaylight.mdsal.binding.spec.naming.BindingMapping;
 
 import com.adva.netemu.YangBound;
@@ -237,6 +241,31 @@ public class YangBoundProcessor extends AbstractProcessor {
 
                 BindingMapping.getClassName(yangPath.getLastComponent()));
 
+
+        @Nonnull final var elementUtils = super.processingEnv.getElementUtils();
+        @Nonnull final var typeUtils = super.processingEnv.getTypeUtils();
+
+        @Nonnull final var declaredTypeAugmentation = typeUtils.getDeclaredType(elementUtils
+                .getTypeElement(Augmentation.class.getName()));
+
+        @Nonnull final var declaredTypeChildOf = typeUtils.getDeclaredType(elementUtils
+                .getTypeElement(ChildOf.class.getName()));
+
+        @Nullable final var yangParentAugmentationType = StreamEx
+                .of(elementUtils.getTypeElement(yangClassName.canonicalName()).getInterfaces())
+                .map(Type.ClassType.class::cast)
+                // .map(typeMirror -> (TypeElement) typeUtils.asElement(typeMirror))
+                .findFirst(interfaceType -> typeUtils.getDeclaredType((TypeElement) typeUtils.asElement(interfaceType))
+                        .equals(declaredTypeChildOf))
+
+                .map(interfaceType -> interfaceType.getTypeArguments().get(0))
+                .filter(parentType -> StreamEx.of(((TypeElement) typeUtils.asElement(parentType)).getInterfaces())
+                        .findAny(parentInterfaceType -> typeUtils
+                                .getDeclaredType((TypeElement) typeUtils.asElement(parentInterfaceType))
+                                .equals(declaredTypeAugmentation))
+
+                        .isPresent());
+
         return Optional.of(Map.of(
                 "package", className.packageName(),
                 "class", className.simpleName(),
@@ -244,8 +273,12 @@ public class YangBoundProcessor extends AbstractProcessor {
                 "yangPackage", yangClassName.packageName(),
                 "yangClass", yangClassName.simpleName(),
 
+                "yangParentAugmentationClass", yangParentAugmentationType.map(type -> ClassName.get(type).toString())
+                        .orElse(""),
+
                 "bindingClassSuffix", this.provideBindingClassSuffix(),
                 "utilityClassSuffix", this.provideUtilityClassSuffix(),
+
                 "providerAnnotation", this.provideBindingClassAnnotationName()));
     }
 

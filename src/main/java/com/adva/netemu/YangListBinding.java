@@ -35,7 +35,10 @@ public abstract class YangListBinding
             return InstanceIdentifier.builder(this.getDataClass(), this.getKey());
         }
 
-        return this.owner.getIidBuilder().child(this.getDataClass(), this.getKey());
+        return this.getParentAugmentationClass().map(augmentationClass ->
+                this.owner.getIidBuilder().augmentation(augmentationClass).child(this.getDataClass(), this.getKey())
+
+        ).orElseGet(() -> this.owner.getIidBuilder().child(this.getDataClass(), this.getKey()));
     }
 
     @Nonnull

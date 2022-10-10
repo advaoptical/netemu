@@ -2,7 +2,13 @@ package com.adva.netemu;
 
 import java.lang.reflect.InvocationTargetException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -18,13 +24,14 @@ import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
-
 import one.util.streamex.StreamEx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.concepts.Builder;
+import org.opendaylight.yangtools.yang.binding.Augmentation;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
+import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.Identifiable;
 import org.opendaylight.yangtools.yang.binding.Identifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -185,6 +192,16 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         }
     }
 
+    @Nonnull
+    public Optional<Class<? extends DataObject>> getParentDataClass() {
+        return Optional.empty();
+    }
+
+    @Nonnull
+    public Optional<Class<? extends Augmentation>> getParentAugmentationClass() {
+        return Optional.empty();
+    }
+
     @Nonnull @SuppressWarnings({"UnstableApiUsage", "unchecked"})
     public Class<Y> getDataClass() {
         return (Class<Y>) (new TypeToken<Y>(this.getClass()) {}).getRawType();
@@ -203,7 +220,10 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
             return InstanceIdentifier.builder(this.getDataClass());
         }
 
-        return this.owner.getIidBuilder().child(this.getDataClass());
+        return this.getParentAugmentationClass().map(augmentationClass ->
+                this.owner.getIidBuilder().augmentation(augmentationClass).child(this.getDataClass())
+
+        ).orElseGet(() -> this.owner.getIidBuilder().child(this.getDataClass()));
     }
 
     @Nonnull
