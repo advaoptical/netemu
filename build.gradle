@@ -151,6 +151,9 @@ compileJava {
     options.fork = true
 
     for (final javacPackage in ['code', 'util']) {
+
+        /*  Adapted from https://github.com/projectlombok/lombok/issues/2681#issuecomment-805252645
+        */
         options.forkOptions.jvmArgs += ['--add-opens', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"
                 as String] // GString not supported as JVM fork argument
 
