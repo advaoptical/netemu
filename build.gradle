@@ -19,8 +19,8 @@ apply plugin: 'maven-publish'
 group = "com.adva"
 version = "0.1.0-SNAPSHOT"
 
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
 
 
 final def operatingSystem = DefaultNativePlatform.currentOperatingSystem
@@ -147,6 +147,18 @@ publishing {
 }
 
 
+compileJava {
+    options.fork = true
+
+    for (final javacPackage in ['code', 'util']) {
+        options.forkOptions.jvmArgs += ['--add-opens', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"
+                as String] // GString not supported as JVM fork argument
+
+        options.compilerArgs += ['--add-exports', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"]
+    }
+}
+
+
 task mvnInstallYangModelUtil(type: Exec) {
     workingDir rootDir
     commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-model-util.groovy", "install"]
@@ -219,16 +231,6 @@ task mvnInstallOpenDaylightModules {
     dependsOn mvnInstallNetconfTestTool
 }
 
-
-compileJava {
-    // options.deprecation = true
-    // options.warnings = true
-
-    options.compilerArgs += [
-            '--add-exports', 'jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED',
-            '--add-exports', 'jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED']
-
-}
 
 gradlePlugin {
     plugins {
