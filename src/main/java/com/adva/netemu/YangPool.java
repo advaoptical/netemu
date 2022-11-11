@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -653,7 +654,10 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
         @Nonnull final XMLStreamReader xmlReader;
         try {
-            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(stream, encoding.name());
+            /*  W/o InputStreamReader wrapper, the following can happen (especially w/resource streams) - e.g. due to BOMs:
+                com.sun.org.apache.xerces.internal.xni.XNIException: Content is not allowed in prolog.
+                */
+            xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new InputStreamReader(stream, encoding));
 
         } catch (final XMLStreamException e) {
             LOG.error("While using stream for loading XML Configuration: ", e);
