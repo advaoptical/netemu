@@ -16,6 +16,11 @@ import com.google.common.util.concurrent.Futures;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import org.opendaylight.netconf.util.NetconfUtil;
+import org.opendaylight.yangtools.yang.common.Empty;
+import org.opendaylight.yangtools.yang.common.QName;
+import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableChoiceNodeBuilder;
+import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableLeafNodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -190,7 +195,17 @@ public class NetconfDriver extends EmuDriver {
         @Nonnull final var message = this.transformer.toRpcRequest(
                 NetconfMessageTransformUtil.NETCONF_GET_CONFIG_QNAME,
                 ImmutableContainerNodeBuilder.create().withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_CONFIG_NODEID)
-                        .build());
+                        .withChild(ImmutableContainerNodeBuilder.create()
+                                .withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_SOURCE_NODEID)
+                                .withChild(ImmutableChoiceNodeBuilder.create()
+                                        .withNodeIdentifier(YangInstanceIdentifier.NodeIdentifier.create(
+                                                QName.create(NetconfUtil.NETCONF_QNAME, "config-source")))
+
+                                        .withChild(ImmutableLeafNodeBuilder.createNode(
+                                                YangInstanceIdentifier.NodeIdentifier.create(
+                                                        NetconfMessageTransformUtil.NETCONF_RUNNING_QNAME),
+
+                                                Empty.value())).build()).build()).build());
 
         @Nonnull final var response = this.request(message);
 
