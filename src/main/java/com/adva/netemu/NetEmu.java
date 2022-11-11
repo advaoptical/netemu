@@ -22,7 +22,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -31,12 +30,17 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.io.PatternFilenameFilter;
+import io.github.classgraph.ClassGraph;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 import net.jodah.typetools.TypeResolver;
 import one.util.streamex.StreamEx;
 import org.apache.commons.lang3.ArrayUtils;
+
+/*
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
+*/
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +56,9 @@ public class NetEmu {
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(NetEmu.class);
+
+    @Nonnull
+    private static final ClassGraph CLASS_GRAPH = new ClassGraph();
 
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
@@ -374,8 +381,8 @@ public class NetEmu {
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public CompletableFuture<List<CommitInfo>> loadConfigurationFromResources() {
-        @Nonnull final var reflections = new Reflections(
-                String.format("EMU-INF/config/%s", this.pool.id()),
+        /*
+        @Nonnull final var reflections = new Reflections(String.format("EMU-INF/config/%s", this.pool.id()),
                 new ResourcesScanner());
 
         @Nonnull final var configResources = reflections.getResources(Pattern.compile(".*\\.xml$"));
@@ -383,9 +390,26 @@ public class NetEmu {
             LOG.info("Found no config resources for YangPool {}", this.pool.id());
             return CompletableFuture.completedFuture(List.of());
         }
+        */
 
-        LOG.info("Found config resources for YangPool {}: {}", this.pool.id(), configResources);
+        @Nonnull final List<CompletableFuture<List<CommitInfo>>> futures = new ArrayList<>();
+        try (@Nonnull final var scanResult = CLASS_GRAPH.acceptPaths(String.format("EMU-INF/config/%s", this.pool.id()))
+                .scan()) {
 
+            @Nonnull final var configResources = scanResult.getResourcesWithExtension("xml");
+            LOG.info("Found config resources for YangPool {}: {}", this.pool.id(), configResources);
+
+            try {
+                configResources.forEachInputStreamThrowingIOException(((resource, inputStream) -> {
+                    futures.add(this.pool.loadConfigurationFromXml(inputStream));
+                }));
+
+            } catch (final IOException e) {
+                throw new IllegalStateException(String.format("Cannot access resource found by %s", scanResult), e);
+            }
+        }
+
+        /*
         @Nonnull final var futures = StreamEx.of(configResources)
                 .map(configResource -> this.pool.loadConfigurationFromXml(Optional
                         .ofNullable(Thread.currentThread().getContextClassLoader().getResourceAsStream(configResource))
@@ -393,6 +417,7 @@ public class NetEmu {
                                 "Cannot access resource %s although found by %s", configResource, reflections)))))
 
                 .toImmutableList();
+        */
 
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenApply(ignoredVoid -> StreamEx.of(futures)
                 .flatMap(futureCommitInfos -> StreamEx.of(futureCommitInfos.join()))
