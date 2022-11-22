@@ -25,12 +25,11 @@ import javax.xml.stream.util.StreamReaderDelegate;
 import one.util.streamex.EntryStream;
 import one.util.streamex.IntStreamEx;
 import one.util.streamex.StreamEx;
-
-import org.opendaylight.yangtools.yang.common.XMLNamespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.yang.common.QName;
+import org.opendaylight.yangtools.yang.common.XMLNamespace;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
@@ -138,6 +137,8 @@ public class YangXmlDataInput extends StreamReaderDelegate {
             @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
 
         super(xmlReader);
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
+
         this.yangContext = yangContext;
         this.elementTagProcessors = elementTagProcessors;
         this.elementNamespaceProcessors = elementNamespaceProcessors;

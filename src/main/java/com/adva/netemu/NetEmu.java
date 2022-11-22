@@ -270,6 +270,7 @@ public class NetEmu {
     }
 
     protected NetEmu(@Nonnull final YangPool pool) {
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
         this.pool = pool;
     }
 

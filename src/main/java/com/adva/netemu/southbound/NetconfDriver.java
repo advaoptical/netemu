@@ -16,18 +16,19 @@ import com.google.common.util.concurrent.Futures;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import org.opendaylight.netconf.util.NetconfUtil;
-import org.opendaylight.yangtools.yang.common.Empty;
-import org.opendaylight.yangtools.yang.common.QName;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableChoiceNodeBuilder;
-import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableLeafNodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
+import org.opendaylight.yangtools.yang.common.Empty;
+import org.opendaylight.yangtools.yang.common.QName;
+
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
+import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableChoiceNodeBuilder;
+import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableLeafNodeBuilder;
+
 import org.opendaylight.yangtools.yang.parser.api.YangParserException;
 import org.opendaylight.yangtools.yang.parser.api.YangParserFactory;
 import org.opendaylight.yangtools.yang.parser.impl.DefaultYangParserFactory;
@@ -47,6 +48,7 @@ import org.opendaylight.netconf.nettyutil.handler.ssh.authentication.LoginPasswo
 import org.opendaylight.netconf.sal.connect.netconf.schema.mapping.DefaultBaseNetconfSchemas;
 import org.opendaylight.netconf.sal.connect.netconf.schema.mapping.NetconfMessageTransformer;
 import org.opendaylight.netconf.sal.connect.netconf.util.NetconfMessageTransformUtil;
+import org.opendaylight.netconf.util.NetconfUtil;
 
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangPool;
@@ -146,6 +148,7 @@ public class NetconfDriver extends EmuDriver {
 
     public NetconfDriver(@Nonnull final YangPool pool, @Nonnull final EmuDriver.Settings<NetconfDriver> settings) {
         super(pool, settings);
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
 
         @Nonnull final var netconfSettings = (Settings) settings;
         this.address = new InetSocketAddress(netconfSettings.getHost(), netconfSettings.getPort());

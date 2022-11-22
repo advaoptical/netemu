@@ -313,6 +313,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     public YangPool(@Nonnull final String id, @Nonnull final Collection<YangModuleInfo> modules) {
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
+
         this.id = Objects.requireNonNull(id);
         this.modules = Set.copyOf(Objects.requireNonNull(modules));
         this.context = BindingRuntimeHelpers.createEffectiveModel(this.modules);

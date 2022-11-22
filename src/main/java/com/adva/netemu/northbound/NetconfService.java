@@ -108,6 +108,8 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
 
     public NetconfService(@Nonnull final YangPool yangPool, @Nonnull final Settings settings) {
         super(yangPool, settings);
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
+
         this.netconfState = NetconfState.from(yangPool.getEffectiveModelContext());
     }
 
