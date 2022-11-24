@@ -127,6 +127,9 @@ public class NetconfDriver extends EmuDriver {
 
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
+    static {
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
+    }
 
     @Nonnull
     private static final YangParserFactory YANG_PARSER_FACTORY = new DefaultYangParserFactory();
@@ -148,7 +151,6 @@ public class NetconfDriver extends EmuDriver {
 
     public NetconfDriver(@Nonnull final YangPool pool, @Nonnull final EmuDriver.Settings<NetconfDriver> settings) {
         super(pool, settings);
-        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
 
         @Nonnull final var netconfSettings = (Settings) settings;
         this.address = new InetSocketAddress(netconfSettings.getHost(), netconfSettings.getPort());

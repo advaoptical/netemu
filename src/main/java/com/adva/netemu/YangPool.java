@@ -113,6 +113,9 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
       */
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
+    static {
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
+    }
 
     /** Default executor for asynchronous OpenDaylight operations.
      */
@@ -313,8 +316,6 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     public YangPool(@Nonnull final String id, @Nonnull final Collection<YangModuleInfo> modules) {
-        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
-
         this.id = Objects.requireNonNull(id);
         this.modules = Set.copyOf(Objects.requireNonNull(modules));
         this.context = BindingRuntimeHelpers.createEffectiveModel(this.modules);

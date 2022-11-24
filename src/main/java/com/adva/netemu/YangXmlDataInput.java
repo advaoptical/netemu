@@ -87,6 +87,9 @@ public class YangXmlDataInput extends StreamReaderDelegate {
 
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
+    static {
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
+    }
 
     @Nonnull
     private final SchemaContext yangContext;
@@ -137,7 +140,6 @@ public class YangXmlDataInput extends StreamReaderDelegate {
             @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
 
         super(xmlReader);
-        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
 
         this.yangContext = yangContext;
         this.elementTagProcessors = elementTagProcessors;
@@ -276,17 +278,16 @@ public class YangXmlDataInput extends StreamReaderDelegate {
         } else {
             tagType = super.nextTag();
             switch (tagType) {
-                case START_ELEMENT:
-                    this.tagStack.push(this.getName());
-                    break;
+                case START_ELEMENT -> this.tagStack.push(this.getName());
 
-                case END_ELEMENT:
+                case END_ELEMENT -> {
                     this.tagStack.pop();
                     if (super.getName().equals(this.treeTag)) {
                         this.finishedTree = true;
 
                         LOG.info("Reached end of YANG Data tree: {}", this.yangTreeNode);
                     }
+                }
             }
         }
 

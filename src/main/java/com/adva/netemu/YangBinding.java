@@ -101,17 +101,13 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
             for (@Nonnull final var change : changes) {
                 @Nonnull final var node = change.getRootNode();
                 switch (node.getModificationType()) {
-                    case WRITE:
-                        this.object.applyData(this.storeType, node.getDataAfter());
-                        continue;
+                    case WRITE -> this.object.applyData(this.storeType, node.getDataAfter());
 
-                    case SUBTREE_MODIFIED:
-                        // TODO: Different application method (?)
-                        this.object.applyData(this.storeType, node.getDataAfter());
-                        continue;
+                    // TODO: Different application method (?)
+                    case SUBTREE_MODIFIED -> this.object.applyData(this.storeType, node.getDataAfter());
 
-                    case DELETE:
-                        // TODO!
+                    // TODO!
+                    case DELETE -> {}
                 }
             }
         }
@@ -396,15 +392,14 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     private FluentFuture<Boolean> applyData(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangData<Y> data) {
-        switch (storeType) {
-            case OPERATIONAL:
-                return this.applyOperationalData(data);
+        return switch (storeType) {
+            case OPERATIONAL -> this.applyOperationalData(data);
 
-            case CONFIGURATION:
+            case CONFIGURATION -> {
                 this.applyConfigurationData(data);
-        }
-
-        return FluentFuture.from(Futures.immediateFuture(false));
+                yield FluentFuture.from(Futures.immediateFuture(false));
+            }
+        };
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})

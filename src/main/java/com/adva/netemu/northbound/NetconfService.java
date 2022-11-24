@@ -71,6 +71,9 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
 
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
+    static {
+        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
+    }
 
     @Nonnull
     private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newFactory();
@@ -109,8 +112,6 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
 
     public NetconfService(@Nonnull final YangPool yangPool, @Nonnull final Settings settings) {
         super(yangPool, settings);
-        XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
-
         this.netconfState = NetconfState.from(yangPool.getEffectiveModelContext());
     }
 
@@ -161,61 +162,49 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
         }
 
         @Nonnull final var response = RESPONSE_BUILDER.newDocument();
-        @Nonnull final var root = response.createElementNS(namespace, "rpc-reply");
-        response.appendChild(root);
-        root.setAttribute(XmlNetconfConstants.MESSAGE_ID, id);
+        @Nonnull final var replyElement = response.createElementNS(namespace, "rpc-reply");
+        response.appendChild(replyElement);
+        replyElement.setAttribute(XmlNetconfConstants.MESSAGE_ID, id);
 
-        @Nonnull final CompletableFuture<Optional<Element>> futureData;
-        switch (request.getName()) {
-            case "get":
-                futureData = this.applyGetRequest(request);
-                break;
+        return Optional.ofNullable(switch (request.getName()) {
+            case "get" -> this.applyGetRequest(request);
+            case "get-config" -> this.applyGetConfigRequest(request);
+            case "get-schema" -> this.applyGetSchemaRequest(request);
+            case "edit-config" -> this.applyEditConfigRequest(request);
 
-            case "get-config":
-                futureData = this.applyGetConfigRequest(request);
-                break;
+            default -> null;
 
-            case "get-schema":
-                futureData = this.applyGetSchemaRequest(request);
-                break;
+        }).map(futureResponseData -> {
+            try {
+                futureResponseData.get().ifPresent(element -> replyElement.appendChild(response.importNode(element, true)));
 
-            case "edit-config":
-                futureData = this.applyEditConfigRequest(request);
-                break;
+            } catch (final InterruptedException | ExecutionException e) {
+                LOG.error("Request failed", e);
 
-            default:
-                return Optional.empty();
-        }
+                @Nonnull final var rpcErrorElement = response.createElementNS(namespace, "rpc-error");
+                replyElement.appendChild(rpcErrorElement);
 
-        try {
-            futureData.get().ifPresent(element -> root.appendChild(response.importNode(element, true)));
+                @Nonnull final var errorTypeElement = response.createElementNS(namespace, "error-type");
+                errorTypeElement.setTextContent("application");
+                rpcErrorElement.appendChild(errorTypeElement);
 
-        } catch (final InterruptedException | ExecutionException e) {
-            LOG.error("Request failed", e);
+                @Nonnull final var errorTagElement = response.createElementNS(namespace, "error-tag");
+                errorTagElement.setTextContent("operation-failed");
+                rpcErrorElement.appendChild(errorTagElement);
 
-            @Nonnull final var rpcErrorElement = response.createElementNS(namespace, "rpc-error");
-            root.appendChild(rpcErrorElement);
+                @Nonnull final var errorSeverityElement = response.createElementNS(namespace, "error-severity");
+                errorSeverityElement.setTextContent("error");
+                rpcErrorElement.appendChild(errorSeverityElement);
 
-            @Nonnull final var errorTypeElement = response.createElementNS(namespace, "error-type");
-            errorTypeElement.setTextContent("application");
-            rpcErrorElement.appendChild(errorTypeElement);
+                @Nonnull final var errorMessageElement = response.createElementNS(namespace, "error-message");
+                errorMessageElement.setTextContent(e.getMessage());
+                rpcErrorElement.appendChild(errorMessageElement);
 
-            @Nonnull final var errorTagElement = response.createElementNS(namespace, "error-tag");
-            errorTagElement.setTextContent("operation-failed");
-            rpcErrorElement.appendChild(errorTagElement);
+                LOG.info("Sending <rpc-error> response:\n{}", XmlUtil.toString(response));
+            }
 
-            @Nonnull final var errorSeverityElement = response.createElementNS(namespace, "error-severity");
-            errorSeverityElement.setTextContent("error");
-            rpcErrorElement.appendChild(errorSeverityElement);
-
-            @Nonnull final var errorMessageElement = response.createElementNS(namespace, "error-message");
-            errorMessageElement.setTextContent(e.getMessage());
-            rpcErrorElement.appendChild(errorMessageElement);
-
-            LOG.info("Sending <rpc-error> response");
-        }
-
-        return Optional.of(response);
+            return response;
+        });
     }
 
     @Nonnull
