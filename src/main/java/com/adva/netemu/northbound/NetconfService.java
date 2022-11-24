@@ -52,6 +52,7 @@ import org.opendaylight.netconf.api.DocumentedException;
 import org.opendaylight.netconf.api.xml.MissingNameSpaceException;
 import org.opendaylight.netconf.api.xml.XmlElement;
 import org.opendaylight.netconf.api.xml.XmlNetconfConstants;
+import org.opendaylight.netconf.api.xml.XmlUtil;
 
 import org.opendaylight.netconf.test.tool.NetconfDeviceSimulator;
 import org.opendaylight.netconf.test.tool.config.ConfigurationBuilder;
@@ -147,7 +148,8 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
             return Optional.empty();
         }
 
-        LOG.info("Received <{}> request with {}: {}", request.getName(), XmlNetconfConstants.MESSAGE_ID, id);
+        LOG.info("Received <{}> request with {}: {}\n{}", request.getName(), XmlNetconfConstants.MESSAGE_ID, id,
+                XmlUtil.toString(request));
 
         @Nonnull final String namespace;
         try {
