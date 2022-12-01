@@ -321,6 +321,18 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
             return this;
         }
 
+        @Nonnull
+        public final <T> {{{../builderName}}} set{{{@key}}}(
+                @Nonnull final CompletableFuture<? extends Collection<T>> futureArguments,
+                @Nonnull final BiFunction<T, {{{builderName}}}, {{{builderName}}}> provider) {
+
+            this.future{{{@key}}} = futureArguments.thenApplyAsync(arguments -> StreamEx.of(arguments)
+                .map(argument -> provider.apply(argument, new {{{builderName}}}()).build())
+                .toImmutableList());
+
+            return this;
+        }
+
         {{else}}
         @Nonnull
         public {{{../builderName}}} set{{{@key}}}(@Nonnull final Function<{{{builderName}}}, {{{builderName}}}> provider) {
