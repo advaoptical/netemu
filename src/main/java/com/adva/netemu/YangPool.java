@@ -52,6 +52,7 @@ import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 // import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
 
@@ -273,13 +274,15 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
                             .orElseGet(() -> Futures.immediateFuture(List.of())), this.yangPool.executor);
 
+            @Nonnull final var yangBindingRegistry = this.yangPool.yangBindingRegistry;
             try {
-                synchronized (this.yangPool.yangBindingRegistry) {
-                    LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.OPERATIONAL);
+                synchronized (yangBindingRegistry) {
+                    LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.OPERATIONAL,
+                            yangBindingRegistry.size());
 
                     Futures.transformAsync(updatingFuture, /* ignoredCommitInfos -> Futures.allAsList(
                             StreamEx.of(this.yangPool.yangBindingRegistry).map(this.yangPool::writeOperationalDataFrom) */
-                            ignoredCommitInfos -> this.yangPool.writeOperationalDataFrom(this.yangPool.yangBindingRegistry),
+                            ignoredCommitInfos -> this.yangPool.writeOperationalDataFrom(yangBindingRegistry),
                             this.yangPool.executor
 
                     ).get();
@@ -549,9 +552,10 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public CompletableFuture</*? extends List<*/? extends CommitInfo> updateConfigurationData() {
-        LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.CONFIGURATION);
-
         synchronized (this.yangBindingRegistry) {
+            LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.CONFIGURATION,
+                    this.yangBindingRegistry.size());
+
             return FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(this.yangBindingRegistry));
             /* Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
                     .map(this::writeConfigurationDataFrom))); */
@@ -560,9 +564,10 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public CompletableFuture</*? extends List<*/? extends CommitInfo> updateOperationalData() {
-        LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.OPERATIONAL);
-
         synchronized (this.yangBindingRegistry) {
+            LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.OPERATIONAL,
+                    this.yangBindingRegistry.size());
+
             return FutureConverter.toCompletableFuture(this.writeOperationalDataFrom(this.yangBindingRegistry));
             /* Futures.allAsList(StreamEx.of(this.yangBindingRegistry)
                     .map(this::writeOperationalDataFrom))); */
@@ -596,7 +601,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
             }, this.executor).transformAsync(ignoredCommitInfo -> {
                 synchronized (this.yangBindingRegistry) {
                     // return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeOperationalDataFrom));
-                    LOG.info("Updating {} Datastore from all registered bindings", storeType);
+                    LOG.info("Updating {} Datastore from {} registered bindings", storeType, this.yangBindingRegistry.size());
 
                     return this.writeOperationalDataFrom(this.yangBindingRegistry);
                 }
@@ -608,7 +613,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                     ignoredRegisteredBinding -> {
                         synchronized (this.yangBindingRegistry) {
                             // return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
-                            LOG.info("Updating {} Datastore from all registered bindings", LogicalDatastoreType.CONFIGURATION);
+                            LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.CONFIGURATION,
+                                    this.yangBindingRegistry.size());
 
                             return this.writeConfigurationDataFrom(this.yangBindingRegistry);
                         }
@@ -764,7 +770,10 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
                             }).toImmutableList();
 
-                    LOG.info("Writing to {} Datastore: {}", storeType, yangPaths);
+                    LOG.info("Writing {} {} instances to {} Datastore", yangPaths.size(), NormalizedNode.class.getName(),
+                            storeType);
+
+                    LOG.debug("Writing to {} Datastore: {}", storeType, yangPaths);
 
                     @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var committingFuture = txn.commit();
                     committingFuture.addCallback(this.datastore.injectWriting().of(storeType, yangPaths).futureCallback,
@@ -821,7 +830,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                 .keys().toImmutableList();
 
         @Nonnull final var writing = this.datastore.injectModeledWriting().of(storeType, yangModeledPaths);
-        LOG.info("Writing to {} Datastore: {}", storeType, yangModeledPaths);
+        LOG.info("Writing {} {} instances to {} Datastore", yangModeledPaths.size(), DataObject.class.getName(), storeType);
+        LOG.debug("Writing to {} Datastore: {}", storeType, yangModeledPaths);
 
         @Nonnull final var future = txn.commit();
         future.addCallback(writing.futureCallback, this.loggingCallbackExecutor);
