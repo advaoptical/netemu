@@ -4,8 +4,17 @@
             super(key);
         }
 
+        private ListKey(@Nonnull final {{{yangClass}}}Key key) {
+            super(key);
+        }
+
         @Nonnull
         public static ListKey from(@Nonnull final {{{keyClass}}} key) {
+            return new ListKey(key);
+        }
+
+        @Nonnull
+        public static ListKey from(@Nonnull final {{{yangClass}}}Key key) {
             return new ListKey(key);
         }
     }
