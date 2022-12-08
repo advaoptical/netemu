@@ -110,8 +110,9 @@ dependencies {
     api 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.600'
 
     api 'org.opendaylight.yangtools:rfc7952-data-util:7.0.17'
+    api 'org.opendaylight.yangtools:yang-data-api:7.0.17_1-ADVA'
     api 'org.opendaylight.yangtools:yang-data-codec-gson:7.0.17'
-    api 'org.opendaylight.yangtools:yang-data-codec-xml:7.0.17_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-codec-xml:7.0.17_2-ADVA'
     api 'org.opendaylight.yangtools:yang-data-impl:7.0.17_1-ADVA'
     api 'org.opendaylight.yangtools:yang-data-util:7.0.17_1-ADVA'
     api 'org.opendaylight.yangtools:yang-maven-plugin:7.0.17'
@@ -168,15 +169,25 @@ task mvnInstallYangModelUtil(type: Exec) {
     commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-model-util.groovy", "install"]
 }
 
+task mvnInstallYangDataApi(type: Exec) {
+    dependsOn mvnInstallYangModelUtil
+
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-api.groovy", "install"]
+}
+
 task mvnInstallYangDataUtil(type: Exec) {
     dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataApi
 
     workingDir rootDir
     commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-util.groovy", "install"]
 }
 
+
 task mvnInstallYangDataImpl(type: Exec) {
     dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataApi
     dependsOn mvnInstallYangDataUtil
 
     workingDir rootDir
@@ -185,6 +196,7 @@ task mvnInstallYangDataImpl(type: Exec) {
 
 task mvnInstallYangDataCodecXml(type: Exec) {
     dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataApi
     dependsOn mvnInstallYangDataUtil
     dependsOn mvnInstallYangDataImpl
 
@@ -194,6 +206,7 @@ task mvnInstallYangDataCodecXml(type: Exec) {
 
 task mvnInstallMdsalBindingDomCodec(type: Exec) {
     dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataApi
     dependsOn mvnInstallYangDataUtil
     dependsOn mvnInstallYangDataImpl
     dependsOn mvnInstallYangDataCodecXml
@@ -204,6 +217,7 @@ task mvnInstallMdsalBindingDomCodec(type: Exec) {
 
 task mvnInstallNetconfNettyUtil(type: Exec) {
     dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataApi
     dependsOn mvnInstallYangDataUtil
     dependsOn mvnInstallYangDataImpl
     dependsOn mvnInstallYangDataCodecXml
@@ -215,6 +229,7 @@ task mvnInstallNetconfNettyUtil(type: Exec) {
 
 task mvnInstallNetconfTestTool(type: Exec) {
     dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataApi
     dependsOn mvnInstallYangDataUtil
     dependsOn mvnInstallYangDataImpl
     dependsOn mvnInstallYangDataCodecXml
@@ -227,6 +242,7 @@ task mvnInstallNetconfTestTool(type: Exec) {
 
 task mvnInstallOpenDaylightModules {
     dependsOn mvnInstallYangModelUtil
+    dependsOn mvnInstallYangDataApi
     dependsOn mvnInstallYangDataUtil
     dependsOn mvnInstallYangDataImpl
     dependsOn mvnInstallYangDataCodecXml
