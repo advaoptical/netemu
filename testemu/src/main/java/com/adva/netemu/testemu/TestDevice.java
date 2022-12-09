@@ -3,6 +3,7 @@ package com.adva.netemu.testemu;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -35,7 +36,7 @@ public class TestDevice implements YangBindable {
     }
 
     @Nonnull
-    private final List<String> interfaceIndexRegistry = new ArrayList<>();
+    private final List<String> interfaceIndexRegistry = Collections.synchronizedList(new ArrayList<>());
 
     @Nonnegative
     private int getInterfaceIndexForName(@Nonnull final String interfaceName) {
