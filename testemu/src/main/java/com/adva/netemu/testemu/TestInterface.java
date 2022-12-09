@@ -74,9 +74,6 @@ public class TestInterface implements YangListBindable {
                 .appliesConfigurationDataUsing(data -> {
                     data.getEnabled().ifPresent(this.enabled::set);
 
-                }).appliesOperationalDataUsing(data -> {
-                    data.getEnabled().ifPresent(this.enabled::set);
-
                 }).providesConfigurationDataUsing(builder -> builder
                         .setType(IETF_INTERFACE_TYPE)
                         .setName(adapter.getName())

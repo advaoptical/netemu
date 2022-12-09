@@ -74,17 +74,6 @@ public class TestDevice implements YangBindable {
 
             LOG.info("New interfaces: {}", newInterfaces);
 
-        }).appliesOperationalDataUsing(data -> {
-            synchronized (this.interfaces) {
-                for (@Nonnull final var interfaceData : data.streamInterface().map(TestInterface_Yang.Data::from)) {
-                    TestInterface_Yang.bindingStreamOf(this.interfaces)
-                            .findFirst(binding -> interfaceData.requireName().equals(binding.getKey().getName()))
-                            .ifPresent(binding -> {
-                                binding.applyOperationalData(interfaceData);
-                            });
-                }
-            }
-
         }).providesConfigurationDataUsing(builder -> {
             @Nonnull final List<TestInterface> newInterfaces;
             try {
