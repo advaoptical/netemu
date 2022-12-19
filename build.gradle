@@ -109,28 +109,28 @@ dependencies {
     api 'com.google.code.findbugs:findbugs-annotations:3.0.1'
     api 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.600'
 
-    api 'org.opendaylight.yangtools:rfc7952-data-util:7.0.17'
-    api 'org.opendaylight.yangtools:yang-data-api:7.0.17_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-codec-gson:7.0.17'
-    api 'org.opendaylight.yangtools:yang-data-codec-xml:7.0.17_2-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-impl:7.0.17_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-util:7.0.17_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-maven-plugin:7.0.17'
+    api 'org.opendaylight.yangtools:rfc7952-data-util:8.0.9'
+    api 'org.opendaylight.yangtools:yang-data-api:8.0.9_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-codec-gson:8.0.9'
+    api 'org.opendaylight.yangtools:yang-data-codec-xml:8.0.9_2-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-impl:8.0.9_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-data-util:8.0.9_1-ADVA'
+    api 'org.opendaylight.yangtools:yang-maven-plugin:8.0.9'
 
-    // api 'org.opendaylight.mdsal:maven-sal-api-gen-plugin:8.0.15'
-    api 'org.opendaylight.mdsal:mdsal-binding-dom-adapter:8.0.15'
-    api 'org.opendaylight.mdsal:mdsal-binding-dom-codec:8.0.15_1-ADVA'
-    api 'org.opendaylight.mdsal:mdsal-binding-java-api-generator:8.0.15'
-    api 'org.opendaylight.mdsal:mdsal-dom-inmemory-datastore:8.0.15'
-    api 'org.opendaylight.mdsal:yang-binding:8.0.15'
+    // api 'org.opendaylight.mdsal:maven-sal-api-gen-plugin:9.0.7'
+    api 'org.opendaylight.mdsal:mdsal-binding-dom-adapter:9.0.7'
+    api 'org.opendaylight.mdsal:mdsal-binding-dom-codec:9.0.7_1-ADVA'
+    api 'org.opendaylight.mdsal:mdsal-binding-java-api-generator:9.0.7'
+    api 'org.opendaylight.mdsal:mdsal-dom-inmemory-datastore:9.0.7'
+    api 'org.opendaylight.mdsal:yang-binding:9.0.7'
 
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
 
-    api 'org.opendaylight.netconf:netconf-client:2.0.16'
-    api 'org.opendaylight.netconf:netconf-netty-util:2.0.16_1-ADVA'
-    api 'org.opendaylight.netconf:netconf-testtool:2.0.16_1-ADVA'
-    api 'org.opendaylight.netconf:restconf-nb-rfc8040:2.0.16'
+    api 'org.opendaylight.netconf:netconf-client:3.0.8'
+    api 'org.opendaylight.netconf:netconf-netty-util:3.0.8_1-ADVA'
+    api 'org.opendaylight.netconf:netconf-testtool:3.0.8_1-ADVA'
+    api 'org.opendaylight.netconf:restconf-nb-rfc8040:3.0.8'
 
     // implementation ":netconf-testtool-1.7.0-executable"
 

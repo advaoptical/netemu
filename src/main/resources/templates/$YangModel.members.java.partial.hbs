@@ -55,22 +55,22 @@
         {{#if this.valueHasBuilder}}
 
     @Nonnull
-    public Optional<List<Data.{{{@key}}}Data>> get{{{@key}}}() {
+    public Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<Data.{{{@key}}}Data>> get{{{@key}}}() {
         return this.data.get().get{{{@key}}}();
     }
 
     @Nonnull
     public StreamEx<Data.{{{@key}}}Data> stream{{{@key}}}() {
-        return StreamEx.of(this.get{{{@key}}}().orElse(List.of()));
+        return this.get{{{@key}}}().map(StreamEx::of).orElseGet(() -> StreamEx.empty());
     }
 
     @Nonnull
     public List<Data.{{{@key}}}Data> list{{{@key}}}() {
-        return this.stream{{{@key}}}().toImmutableList();
+        return this.get{{{@key}}}(){{#if this.valueIsSet}}.map(List::copyOf){{/if}}.orElseGet(() -> List.of());
     }
 
     @Nonnull
-    public FluentFuture<Optional<List<Data.{{{@key}}}Data>>> update{{{@key}}}() {
+    public FluentFuture<Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<Data.{{{@key}}}Data>>> update{{{@key}}}() {
         return this.update().transform(Data::get{{{@key}}}, this.executor);
     }
 
@@ -88,12 +88,14 @@
             {{else}}
 
     protected void set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> value) {
-        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(List.copyOf(value)).build()));
+        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get())
+                .set{{{@key}}}({{#if this.valueIsSet}}Set{{else}}List{{/if}}.copyOf(value))
+                .build()));
     }
 
     protected void set{{{@key}}}(@Nullable final Stream<{{{this.valueClass}}}> value) {
         this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get())
-                .set{{{@key}}}(StreamEx.of(value).toImmutableList())
+                .set{{{@key}}}(StreamEx.of(value).toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}())
                 .build()));
     }
 
@@ -101,32 +103,34 @@
         {{else}}
 
     @Nonnull
-    public Optional<List<{{{this.valueClass}}}>> get{{{@key}}}() {
+    public Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<{{{this.valueClass}}}>> get{{{@key}}}() {
         return this.data.get().get{{{@key}}}();
     }
 
     @Nonnull
     public StreamEx<{{{this.valueClass}}}> stream{{{@key}}}() {
-        return StreamEx.of(this.get{{{@key}}}().orElse(List.of()));
+        return this.get{{{@key}}}().map(StreamEx::of).orElseGet(() -> StreamEx.empty());
     }
 
     @Nonnull
     public List<{{{this.valueClass}}}> list{{{@key}}}() {
-        return this.stream{{{@key}}}().toImmutableList();
+        return this.get{{{@key}}}(){{#if this.valueIsSet}}.map(List::copyOf){{/if}}.orElseGet(() -> List.of());
     }
 
     @Nonnull
-    public FluentFuture<Optional<List<{{{this.valueClass}}}>>> update{{{@key}}}() {
+    public FluentFuture<Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<{{{this.valueClass}}}>>> update{{{@key}}}() {
         return this.update().transform(Data::get{{{@key}}}, this.executor);
     }
 
     protected void set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> value) {
-        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get()).set{{{@key}}}(List.copyOf(value)).build()));
+        this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get())
+                .set{{{@key}}}({{#if this.valueIsSet}}Set{{else}}List{{/if}}.copyOf(value))
+                .build()));
     }
 
     protected void set{{{@key}}}(@Nullable final Stream<{{{this.valueClass}}}> value) {
         this.data.set(Data.of(new {{{yangClass}}}Builder(this.data.get().get())
-                .set{{{@key}}}(StreamEx.of(value).toImmutableList())
+                .set{{{@key}}}(StreamEx.of(value).toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}())
                 .build()));
     }
 

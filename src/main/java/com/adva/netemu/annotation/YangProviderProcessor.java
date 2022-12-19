@@ -137,6 +137,7 @@ public class YangProviderProcessor extends AbstractProcessor {
 
                             final boolean valueIsMap;
                             final boolean valueIsList;
+                            final boolean valueIsSet;
                             final boolean valueIsEnum;
                             final boolean valueHasBuilder;
                             @Nullable final TypeElement valueClass;
@@ -148,6 +149,7 @@ public class YangProviderProcessor extends AbstractProcessor {
 
                                 valueIsMap = false;
                                 valueIsList = false;
+                                valueIsSet = false;
                                 valueIsEnum = false;
                                 valueHasBuilder = false;
                                 valueClass = null;
@@ -160,13 +162,21 @@ public class YangProviderProcessor extends AbstractProcessor {
                                 if (valueIsMap) {
                                     valueType = (DeclaredType) valueType.getTypeArguments().get(1);
                                     valueIsList = true;
+                                    valueIsSet = true;
 
                                 } else if (valueTypeName.equals(List.class.getCanonicalName())) {
                                     valueType = (DeclaredType) valueType.getTypeArguments().get(0);
                                     valueIsList = true;
+                                    valueIsSet = false;
+
+                                } else if (valueTypeName.equals(Set.class.getCanonicalName())) {
+                                    valueType = (DeclaredType) valueType.getTypeArguments().get(0);
+                                    valueIsList = true;
+                                    valueIsSet = true;
 
                                 } else {
                                     valueIsList = false;
+                                    valueIsSet = false;
                                 }
 
                                 valueClass = (TypeElement) valueType.asElement();
@@ -184,10 +194,11 @@ public class YangProviderProcessor extends AbstractProcessor {
                                                 StreamEx.of(valueTypeArguments).map(Object::toString))));
                             }
 
-                            return new SimpleImmutableEntry<>(name.replaceFirst("^(get|is)", ""), Map.of(
+                            return new SimpleImmutableEntry<>(name.replaceFirst("^(get|is)", ""), EntryStream.of(Map.of(
                                     "valueClass", valueTypeName,
 
                                     "valueIsEnum", valueIsEnum,
+                                    "valueIsSet", valueIsSet,
                                     "valueIsList", valueIsList,
                                     "valueIsMap", valueIsMap,
                                     "valueHasBuilder", valueHasBuilder,
@@ -203,10 +214,10 @@ public class YangProviderProcessor extends AbstractProcessor {
                                             ? Collections.unmodifiableMap(this.provideYangDataGettersFrom(valueClass)
                                             // .toImmutableMap() is missing overload w/mergeFunction
                                             .toMap((ignoredBaseGetter, overriddenGetter) -> overriddenGetter))
-                                            : Map.of(),
+                                            : Map.of())
 
-                                    "pythonName", name.replaceFirst("^(get|is)", "").replaceAll("[A-Z]", "_$0").toLowerCase()
-                                            .substring(1)));
+                            ).append("pythonName", name.replaceFirst("^(get|is)", "").replaceAll("[A-Z]", "_$0").toLowerCase()
+                                    .substring(1)).toImmutableMap());
                         }));
     }
 

@@ -48,8 +48,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-import org.opendaylight.yangtools.concepts.Builder;
-import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
+// import org.opendaylight.yangtools.concepts.Builder;
+// import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 // import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -59,6 +59,7 @@ import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.ContainerNode;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
+import org.opendaylight.yangtools.yang.data.codec.xml.XmlCodecFactory;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
@@ -67,9 +68,10 @@ import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContextProvider;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceProvider;
 import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
 import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
-import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceProvider;
+import org.opendaylight.yangtools.yang.model.util.SchemaInferenceStack;
 
 import org.opendaylight.mdsal.binding.api.DataBroker;
 import org.opendaylight.mdsal.binding.api.WriteTransaction;
@@ -227,6 +229,9 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         */
     }
 
+    @Nonnull
+    private final XmlCodecFactory xmlCodecFactory;
+
     /** Datastore of this YANG pool.
       */
     @Nonnull
@@ -324,6 +329,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         this.context = BindingRuntimeHelpers.createEffectiveModel(this.modules);
         // this.context.addModuleInfos(this.modules);
 
+        this.xmlCodecFactory = XmlCodecFactory.create(this.context);
+
         this.configurationStore = new InMemoryDOMDataStore(
                 String.format("netemu-%s-configuration", id),
                 LogicalDatastoreType.CONFIGURATION,
@@ -386,7 +393,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull @SuppressWarnings({"UnusedReturnValue"})
-    public <T extends YangBinding<Y, B>, Y extends ChildOf<?>, B extends Builder<Y>>
+    public <T extends YangBinding<Y, B>, Y extends ChildOf<?>, B extends YangBuilder<Y>>
     CompletableFuture<T> registerYangBinding(@Nonnull final T binding) {
         binding.setYangPool(this);
 
@@ -705,8 +712,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
                 @Nonnull final var nodeWriter = ImmutableNormalizedNodeStreamWriter.from(nodeResult);
 
                 @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var parser = XmlParserStream.create(
-                        nodeWriter, new EmptyMountPointContext(this.context), input.getYangTreeNode().getPath().asAbsolute(),
-                        false); // TODO: Add strictParsing to method params
+                        nodeWriter, this.xmlCodecFactory, SchemaInferenceStack.Inference.ofDataTreePath(this.context,
+                                input.getYangTreeNode().getQName()), false); // TODO: Add strictParsing to method params
 
                 parser.parse(input);
                 dataNodes.add(nodeResult.getResult());
@@ -839,7 +846,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
 
     @Nonnull
-    private <Y extends ChildOf<?>, B extends Builder<Y>>
+    private <Y extends ChildOf<?>, B extends YangBuilder<Y>>
     YangData<Y> mergeBindingDataIntoWriteTransaction(@Nonnull final WriteTransaction txn, @Nonnull final LogicalDatastoreType storeType, @Nonnull final YangBinding<Y, B> binding) {
         @Nonnull final var futureData = (storeType == LogicalDatastoreType.CONFIGURATION) ?
                 binding.provideConfigurationData() : binding.provideOperationalData();
@@ -901,18 +908,18 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     }
     */
 
-    public <Y extends ChildOf<?>, B extends Builder<Y>>
+    public <Y extends ChildOf<?>, B extends YangBuilder<Y>>
     void deleteOperationalDataOf(@Nonnull final YangBinding<Y, B> object) {
         this.deleteData(LogicalDatastoreType.OPERATIONAL, object);
     }
 
-    public <Y extends ChildOf<?>, B extends Builder<Y>>
+    public <Y extends ChildOf<?>, B extends YangBuilder<Y>>
     void deleteConfigurationDataOf(@Nonnull final YangBinding<Y, B> object) {
         this.deleteData(LogicalDatastoreType.CONFIGURATION, object);
     }
 
     @SuppressWarnings({"UnstableApiUsage"})
-    public <Y extends ChildOf<?>, B extends Builder<Y>>
+    public <Y extends ChildOf<?>, B extends YangBuilder<Y>>
     void deleteData(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangBinding<Y, B> object) {
         @Nonnull final var iid = object.getIidBuilder().build();
         @Nonnull final var txn = this.broker.newWriteOnlyTransaction();

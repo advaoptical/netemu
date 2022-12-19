@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 import javax.annotation.Nonnull;
 
-import org.opendaylight.yangtools.concepts.Builder;
+// import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.Identifier;
 
@@ -25,7 +25,7 @@ public @interface YangListModelProvider {
     Class<? extends Identifier<?>> key();
 
     @Nonnull
-    Class<? extends Builder<?>> builder();
+    Class<?/* extends YangBuilder<?>*/> builder();
 
     @Nonnull
     Class<?> pythonizer();

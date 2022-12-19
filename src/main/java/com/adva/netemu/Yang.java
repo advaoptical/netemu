@@ -13,7 +13,7 @@ import com.google.common.util.concurrent.Futures;
 import one.util.streamex.StreamEx;
 import org.apache.commons.lang3.StringUtils;
 
-import org.opendaylight.yangtools.concepts.Builder;
+// import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.model.api.SchemaContext;
@@ -65,7 +65,7 @@ public final class Yang {
     }
 
     @Nonnull
-    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
+    public static <T extends YangBinding<Y, ? extends YangBuilder<Y>>, Y extends ChildOf<?>>
     YangData<Y> operationalDataFrom(@Nonnull final T object) {
         try {
             return object.provideOperationalData().get();
@@ -76,13 +76,13 @@ public final class Yang {
     }
 
     @Nonnull
-    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
+    public static <T extends YangBinding<Y, ? extends YangBuilder<Y>>, Y extends ChildOf<?>>
     StreamEx<Y> streamOperationalDataFrom(@Nonnull final Collection<T> objects) {
         return streamOperationalDataFrom(objects.stream());
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
+    public static <T extends YangBinding<Y, ? extends YangBuilder<Y>>, Y extends ChildOf<?>>
     StreamEx<Y> streamOperationalDataFrom(@Nonnull final Stream<T> objects) {
         try {
             return StreamEx.of(Futures.allAsList(StreamEx.of(objects).map(YangBinding::provideOperationalData)).get())
@@ -94,13 +94,13 @@ public final class Yang {
     }
 
     @Nonnull
-    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
+    public static <T extends YangBinding<Y, ? extends YangBuilder<Y>>, Y extends ChildOf<?>>
     List<Y> listOperationalDataFrom(@Nonnull final Collection<T> objects) {
         return streamOperationalDataFrom(objects).toImmutableList();
     }
 
     @Nonnull
-    public static <T extends YangBinding<Y, ? extends Builder<Y>>, Y extends ChildOf<?>>
+    public static <T extends YangBinding<Y, ? extends YangBuilder<Y>>, Y extends ChildOf<?>>
     List<Y> listOperationalDataFrom(@Nonnull final Stream<T> objects) {
         return streamOperationalDataFrom(objects).toImmutableList();
     }

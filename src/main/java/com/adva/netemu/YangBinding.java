@@ -28,7 +28,7 @@ import one.util.streamex.StreamEx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.opendaylight.yangtools.concepts.Builder;
+// import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.Augmentation;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.DataObject;
@@ -44,7 +44,7 @@ import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import com.adva.netemu.driver.EmuDriver;
 
 
-public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TODO: ChildOf<?>
+public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> // TODO: ChildOf<?>
         implements YangBindable, AutoCloseable {
 
     @Nonnull
@@ -137,7 +137,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         return new OperationalDatastoreBinding(this);
     }
 
-    public static abstract class ChildBinding<C_Y extends ChildOf, C_B extends Builder<C_Y>> extends YangBinding<C_Y, C_B> {
+    public static abstract class ChildBinding<C_Y extends ChildOf, C_B extends YangBuilder<C_Y>> extends YangBinding<C_Y, C_B> {
 
         @Nonnull
         private final YangBinding<?, ?> parentBinding;
@@ -147,7 +147,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
             return this.parentBinding;
         }
 
-        protected <P_Y extends ChildOf, P_B extends Builder<P_Y>> ChildBinding(
+        protected <P_Y extends ChildOf, P_B extends YangBuilder<P_Y>> ChildBinding(
                 @Nonnull final Class<C_Y> dataClass,
                 @Nonnull final Class<C_B> builderClass,
                 @Nonnull final YangBinding<P_Y, P_B> parentBinding) {
@@ -157,7 +157,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
     }
 
     public static abstract class ChildListBinding
-            <C_Y extends ChildOf & Identifiable<C_K>, C_K extends Identifier<C_Y>, C_B extends Builder<C_Y>>
+            <C_Y extends ChildOf & Identifiable<C_K>, C_K extends Identifier<C_Y>, C_B extends YangBuilder<C_Y>>
             extends YangListBinding<C_Y, C_K, C_B> {
 
         @Nonnull
@@ -171,7 +171,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends Builder<Y>> // TO
         @Nonnull
         private final C_K listKey;
 
-        protected <P_Y extends ChildOf, P_B extends Builder<P_Y>> ChildListBinding(
+        protected <P_Y extends ChildOf, P_B extends YangBuilder<P_Y>> ChildListBinding(
                 @Nonnull final Class<C_Y> dataClass,
                 @Nonnull final Class<C_K> listKeyClass,
                 @Nonnull final Class<C_B> builderClass,

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -71,7 +72,8 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 
         @Nonnull
         public static {{{yangName}}}Data from(
-                @Nonnull final org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> builder) {
+                // @Nonnull final org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> builder) {
+                @Nonnull final com.adva.netemu.YangBuilder<{{{yangClass}}}> builder) {
 
             return new {{{yangName}}}Data(builder.build());
         }
@@ -92,42 +94,43 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
             {{> yangData yangClass=this.valueClass yangName=@key yangDataGetters=this.builderClassYangDataGetters}}
 
         @Nonnull
-        public Optional<List<{{{@key}}}Data>> get{{{@key}}}() {
+        public Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<{{{@key}}}Data>> get{{{@key}}}() {
             return super.map({{{yangClass}}}::get{{{@key}}}).map(items -> StreamEx.of(items
             {{#if this.valueIsMap}}
                     .values()
 
-            {{/if}}).map({{{@key}}}Data::of).toImmutableList());
+            {{/if}}).map({{{@key}}}Data::of).toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}());
         }
 
         @Nonnull
         public List<{{{@key}}}Data> list{{{@key}}}() {
-            return this.get{{{@key}}}().orElseGet(() -> List.of());
+            return this.get{{{@key}}}(){{#if this.valueIsSet}}.map(List::copyOf){{/if}}.orElseGet(() -> List.of());
         }
 
         @Nonnull
         public StreamEx<{{{@key}}}Data> stream{{{@key}}}() {
-            return StreamEx.of(this.list{{{@key}}}());
+            return this.get{{{@key}}}().map(StreamEx::of).orElseGet(() -> StreamEx.empty());
         }
 
         {{else}}
 
         @Nonnull
-        public Optional<List<{{{this.valueClass}}}>> get{{{@key}}}() {
+        public Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<{{{this.valueClass}}}>>
+        get{{{@key}}}() {
             return super.map({{{yangClass}}}::get{{{@key}}})
         {{#if this.valueIsMap}}
-                .map(items -> List.copyOf(items.values()))
+                    .map(items -> Set.copyOf(items.values()))
         {{/if}};
         }
 
         @Nonnull
         public List<{{{this.valueClass}}}> list{{{@key}}}() {
-            return this.get{{{@key}}}().orElseGet(() -> List.of());
+            return this.get{{{@key}}}().map(List::copyOf).orElseGet(() -> List.of());
         }
 
         @Nonnull
         public StreamEx<{{{this.valueClass}}}> stream{{{@key}}}() {
-            return StreamEx.of(this.list{{{@key}}}());
+            return this.get{{{@key}}}().map(StreamEx::of).orElseGet(() -> StreamEx.empty());
         }
 
         /*
@@ -177,7 +180,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 {{> yangData}}
 
 {{#*inline "yangBuilder"}}
-    public static final class {{{builderName}}} implements org.opendaylight.yangtools.concepts.Builder<{{{yangClass}}}> {
+    public static final class {{{builderName}}} implements com.adva.netemu.YangBuilder<{{{yangClass}}}> {
 
         @Nonnull
         private final Map<Class<? extends Augmentation<{{{yangClass}}}>>, Augmentation<{{{yangClass}}}>> augmentations
@@ -194,36 +197,46 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 
         @Nonnull
         public <A extends Augmentation<{{{yangClass}}}>> // & DataObject>
-        {{{builderName}}} addAugmentation(@Nonnull final org.opendaylight.yangtools.concepts.Builder<A> augmentationBuilder) {
+        // {{{builderName}}} addAugmentation(@Nonnull final org.opendaylight.yangtools.concepts.Builder<A> augmentationBuilder) {
+        {{{builderName}}} addAugmentation(@Nonnull final com.adva.netemu.YangBuilder<A> augmentationBuilder) {
             return this.addAugmentation(augmentationBuilder.build());
         }
 
 {{#each yangDataGetters}}
     {{#if this.valueIsList}}
         @Nullable
-        private CompletableFuture<List<{{{this.valueClass}}}>> future{{{@key}}} = null;
+            private CompletableFuture<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<{{{this.valueClass}}}>>
+            future{{{@key}}} = null;
 
         @Nonnull
         public {{{../builderName}}} set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> values) {
-            this.future{{{@key}}} = (values != null) ? CompletableFuture.completedFuture(List.copyOf(values)) : null;
+            this.future{{{@key}}} = (values != null) ? CompletableFuture.completedFuture(
+                    {{#if this.valueIsSet}}Set{{else}}List{{/if}}.copyOf(values)) : null;
+
             return this;
         }
 
         @Nonnull
         public {{{../builderName}}} set{{{@key}}}(@Nonnull final {{{this.valueClass}}} ...values) {
-            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(values).toImmutableList());
+            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(values)
+                    .toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}());
+
             return this;
         }
 
         @Nonnull
         public {{{../builderName}}} set{{{@key}}}(@Nonnull final Stream<{{{this.valueClass}}}> values) {
-            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(values).toImmutableList());
+            this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(values)
+                    .toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}());
+
             return this;
         }
 
         @Nonnull
         public {{{../builderName}}} set{{{@key}}}(@Nonnull final Optional<? extends Collection<{{{this.valueClass}}}>> values) {
-            this.future{{{@key}}} = values.map(List::copyOf).map(CompletableFuture::completedFuture).orElse(null);
+            this.future{{{@key}}} = values.map({{#if this.valueIsSet}}Set{{else}}List{{/if}}::copyOf)
+                    .map(CompletableFuture::completedFuture).orElse(null);
+
             return this;
         }
 
@@ -231,7 +244,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         public {{{../builderName}}} set{{{@key}}}(
                 @Nonnull final CompletableFuture<? extends Collection<{{{this.valueClass}}}>> futureValues) {
 
-            this.future{{{@key}}} = futureValues.thenApply(List::copyOf);
+            this.future{{{@key}}} = futureValues.thenApply({{#if this.valueIsSet}}Set{{else}}List{{/if}}::copyOf);
             return this;
         }
 
@@ -296,7 +309,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 
             this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(providers)
                     .map(provider -> provider.apply(new {{{builderName}}}()).build())
-                    .toImmutableList());
+                    .toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}());
 
             return this;
         }
@@ -316,7 +329,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 
             this.future{{{@key}}} = CompletableFuture.completedFuture(StreamEx.of(arguments)
                     .map(argument -> provider.apply(argument, new {{{builderName}}}()).build())
-                    .toImmutableList());
+                    .toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}());
 
             return this;
         }
@@ -328,7 +341,7 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
 
             this.future{{{@key}}} = futureArguments.thenApplyAsync(arguments -> StreamEx.of(arguments)
                 .map(argument -> provider.apply(argument, new {{{builderName}}}()).build())
-                .toImmutableList());
+                .toImmutable{{#if this.valueIsSet}}Set{{else}}List{{/if}}());
 
             return this;
         }

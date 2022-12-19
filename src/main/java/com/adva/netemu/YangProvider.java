@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 import javax.annotation.Nonnull;
 
-import org.opendaylight.yangtools.concepts.Builder;
+// import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 
 
@@ -21,5 +21,5 @@ public @interface YangProvider {
     Class<? extends DataObject> value();
 
     @Nonnull
-    Class<? extends Builder<?>> builder();
+    Class<?/* extends YangBuilder<?>*/> builder();
 }

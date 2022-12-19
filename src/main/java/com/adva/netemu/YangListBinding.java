@@ -6,7 +6,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.reflect.TypeToken;
 
-import org.opendaylight.yangtools.concepts.Builder;
+// import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.Identifiable;
 import org.opendaylight.yangtools.yang.binding.Identifier;
@@ -14,7 +14,7 @@ import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 
 
 public abstract class YangListBinding
-        <Y extends ChildOf & Identifiable<K>, K extends Identifier<Y>, B extends Builder<Y>> // TODO: ChildOf<?>
+        <Y extends ChildOf & Identifiable<K>, K extends Identifier<Y>, B extends YangBuilder<Y>> // TODO: ChildOf<?>
         extends YangBinding<Y, B> implements YangListBindable {
 
     @Nonnull @Override
