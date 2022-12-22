@@ -10,26 +10,26 @@ import javax.xml.namespace.NamespaceContext;
 import one.util.streamex.StreamEx;
 
 import org.opendaylight.yangtools.yang.common.XMLNamespace;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.Module;
-import org.opendaylight.yangtools.yang.model.api.SchemaContext;
 
 
 public class YangNamespaceMap extends AbstractMap<String, XMLNamespace> implements NamespaceContext {
 
     @Nonnull
-    private final SchemaContext yangContext;
+    private final EffectiveModelContext yangContext;
 
     @Nonnull
-    public SchemaContext yangContext() {
+    public EffectiveModelContext yangContext() {
         return this.yangContext;
     }
 
-    private YangNamespaceMap(@Nonnull final SchemaContext yangContext) {
+    private YangNamespaceMap(@Nonnull final EffectiveModelContext yangContext) {
         this.yangContext = yangContext;
     }
 
     @Nonnull
-    public static YangNamespaceMap from(@Nonnull final SchemaContext yangContext) {
+    public static YangNamespaceMap from(@Nonnull final EffectiveModelContext yangContext) {
         return new YangNamespaceMap(yangContext);
     }
 

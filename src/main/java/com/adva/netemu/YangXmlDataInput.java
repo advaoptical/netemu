@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.XMLNamespace;
 import org.opendaylight.yangtools.yang.model.api.DataSchemaNode;
-import org.opendaylight.yangtools.yang.model.api.SchemaContext;
-import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
+import org.opendaylight.yangtools.yang.model.api.stmt.SchemaNodeIdentifier;
 
 
 public class YangXmlDataInput extends StreamReaderDelegate {
@@ -92,7 +92,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
     }
 
     @Nonnull
-    private final SchemaContext yangContext;
+    private final EffectiveModelContext yangContext;
 
     private int nextTagType = -1;
 
@@ -117,27 +117,31 @@ public class YangXmlDataInput extends StreamReaderDelegate {
 
     @Nonnull
     private final
-    Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors;
+    Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName>>
+            elementTagProcessors;
 
     @Nonnull
     private final
-    Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
-    elementNamespaceProcessors;
+    Map<SchemaNodeIdentifier,
+            BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+            > elementNamespaceProcessors;
 
     @Nonnull
-    private final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors;
+    private final Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, String, String>> elementTextProcessors;
 
     private YangXmlDataInput(
             @Nonnull final XMLStreamReader xmlReader,
-            @Nonnull final SchemaContext yangContext,
+            @Nonnull final EffectiveModelContext yangContext,
             @Nonnull final
-            Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors,
+            Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName>>
+                    elementTagProcessors,
 
             @Nonnull final
-            Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
-            elementNamespaceProcessors,
+            Map<SchemaNodeIdentifier,
+                    BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+                    > elementNamespaceProcessors,
 
-            @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
+            @Nonnull final Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, String, String>> elementTextProcessors) {
 
         super(xmlReader);
 
@@ -150,37 +154,42 @@ public class YangXmlDataInput extends StreamReaderDelegate {
     @Nonnull
     public static YangXmlDataInput using(
             @Nonnull final XMLStreamReader xmlReader,
-            @Nonnull final SchemaContext yangContext,
+            @Nonnull final EffectiveModelContext yangContext,
             @Nonnull final
-            Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors,
+            Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName>>
+                    elementTagProcessors,
 
             @Nonnull final
-            Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
-            elementNamespaceProcessors,
+            Map<SchemaNodeIdentifier,
+                    BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+                    > elementNamespaceProcessors,
 
-            @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors) {
+            @Nonnull final Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, String, String>> elementTextProcessors) {
 
         return new YangXmlDataInput(
                 xmlReader, yangContext, elementTagProcessors, elementNamespaceProcessors, elementTextProcessors);
     }
 
     @Nonnull
-    public static YangXmlDataInput using(@Nonnull final XMLStreamReader xmlReader, @Nonnull final SchemaContext yangContext) {
+    public static YangXmlDataInput using(
+            @Nonnull final XMLStreamReader xmlReader, @Nonnull final EffectiveModelContext yangContext) {
+
         return using(xmlReader, yangContext, Map.of(), Map.of(), Map.of());
     }
 
     @Nonnull
     public static YangXmlDataInput using(
             @Nonnull final Reader reader,
-            @Nonnull final SchemaContext yangContext,
-            @Nonnull final
-            Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>> elementTagProcessors,
+            @Nonnull final EffectiveModelContext yangContext,
+            @Nonnull final Map<SchemaNodeIdentifier,
+                    BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName>
+                    > elementTagProcessors,
 
-            @Nonnull final
-            Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
-            elementNamespaceProcessors,
+            @Nonnull final Map<SchemaNodeIdentifier,
+                    BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+                    > elementNamespaceProcessors,
 
-            @Nonnull final Map<SchemaPath, BiFunction<SchemaPath, String, String>> elementTextProcessors)
+            @Nonnull final Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, String, String>> elementTextProcessors)
 
             throws XMLStreamException {
 
@@ -190,7 +199,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
     }
 
     @Nonnull
-    public static YangXmlDataInput using(@Nonnull final Reader reader, @Nonnull final SchemaContext yangContext)
+    public static YangXmlDataInput using(@Nonnull final Reader reader, @Nonnull final EffectiveModelContext yangContext)
             throws XMLStreamException {
 
         return using(reader, yangContext, Map.of(), Map.of(), Map.of());
@@ -305,7 +314,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
             return superXmlQName;
         }
 
-        @Nullable final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
+        @Nullable final var yangPath = SchemaNodeIdentifier.Absolute.of(StreamEx.of(this.tagStack)
                 .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
                 .toArray(new QName[0]));
 
@@ -328,7 +337,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
     }
 
     private void updateNamespaceEntries() {
-        @Nonnull final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
+        @Nonnull final var yangPath = SchemaNodeIdentifier.Absolute.of(StreamEx.of(this.tagStack)
                 .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
                 .toArray(new QName[0]));
 
@@ -392,7 +401,7 @@ public class YangXmlDataInput extends StreamReaderDelegate {
 
     @Nullable @Override
     public String getElementText() throws XMLStreamException {
-        @Nullable final var yangPath = SchemaPath.create(/* absolute = */ true, StreamEx.of(this.tagStack)
+        @Nullable final var yangPath = SchemaNodeIdentifier.Absolute.of(StreamEx.of(this.tagStack)
                 .map(xmlQName -> QName.create(xmlQName.getNamespaceURI(), xmlQName.getLocalPart()))
                 .toArray(new QName[0]));
 

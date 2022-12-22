@@ -41,7 +41,7 @@ import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.QNameModule;
 import org.opendaylight.yangtools.yang.common.XMLNamespace;
-import org.opendaylight.yangtools.yang.model.api.SchemaContext;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 
 // import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
@@ -100,7 +100,8 @@ public class YangBoundProcessor extends AbstractProcessor {
             .registerHelpers(StringHelpers.class);
 
     @Nonnull @SuppressWarnings({"unused"})
-    private static final Map<TypeElement, SchemaContext> YANG_CONTEXT_CACHE = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<TypeElement, EffectiveModelContext> YANG_CONTEXT_CACHE
+            = Collections.synchronizedMap(new HashMap<>());
 
     @Nonnull
     private final Class<? extends Annotation> annotationClass;

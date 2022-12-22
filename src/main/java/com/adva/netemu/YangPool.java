@@ -66,8 +66,7 @@ import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContextProvider;
-import org.opendaylight.yangtools.yang.model.api.SchemaContext;
-import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.model.api.stmt.SchemaNodeIdentifier;
 import org.opendaylight.yangtools.yang.model.repo.spi.SchemaSourceProvider;
 import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
 import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
@@ -211,7 +210,7 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
     private final EffectiveModelContext context;
 
     @Deprecated @Nonnull
-    public SchemaContext getYangContext() {
+    public EffectiveModelContext getYangContext() {
         return this.context; // .getSchemaContext();
     }
 
@@ -453,98 +452,103 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
     @Nonnull
     private final
-    Map<SchemaPath, BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName>>
+    Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName>>
     xmlDataInputElementTagProcessorRegistry =
 
             Collections.synchronizedMap(new HashMap<>());
 
     public void registerXmlDataInputElementTagProcessor(
             @Nonnull final String yangPath,
-            @Nonnull final BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
+            @Nonnull final BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
 
         this.xmlDataInputElementTagProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementTagProcessor(
             @Nonnull final String[] yangPath,
-            @Nonnull final BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
+            @Nonnull final BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
 
         this.xmlDataInputElementTagProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementTagProcessor(
             @Nonnull final QName[] yangPath,
-            @Nonnull final BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
+            @Nonnull final BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
 
         this.xmlDataInputElementTagProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementTagProcessor(
-            @Nonnull final SchemaPath yangPath,
-            @Nonnull final BiFunction<SchemaPath, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
+            @Nonnull final SchemaNodeIdentifier yangPath,
+            @Nonnull final BiFunction<SchemaNodeIdentifier, javax.xml.namespace.QName, javax.xml.namespace.QName> processor) {
 
         this.xmlDataInputElementTagProcessorRegistry.put(yangPath, processor);
     }
 
     @Nonnull
     private final
-    Map<SchemaPath, BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
+    Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>>
     xmlDataInputElementNamespaceProcessorRegistry =
 
             Collections.synchronizedMap(new HashMap<>());
 
     public void registerXmlDataInputElementNamespaceProcessor(
             @Nonnull final String yangPath,
-            @Nonnull final BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>> processor) {
+            @Nonnull final BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+                    processor) {
 
         this.xmlDataInputElementNamespaceProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementNamespaceProcessor(
             @Nonnull final String[] yangPath,
-            @Nonnull final BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>> processor) {
+            @Nonnull final BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+                    processor) {
 
         this.xmlDataInputElementNamespaceProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementNamespaceProcessor(
             @Nonnull final QName[] yangPath,
-            @Nonnull final BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>> processor) {
+            @Nonnull final BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+                    processor) {
 
         this.xmlDataInputElementNamespaceProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementNamespaceProcessor(
-            @Nonnull final SchemaPath yangPath,
-            @Nonnull final BiFunction<SchemaPath, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>> processor) {
+            @Nonnull final SchemaNodeIdentifier yangPath,
+            @Nonnull final BiFunction<SchemaNodeIdentifier, List<Map.Entry<String, String>>, List<Map.Entry<String, String>>>
+                    processor) {
 
         this.xmlDataInputElementNamespaceProcessorRegistry.put(yangPath, processor);
     }
 
     @Nonnull
-    private final Map<SchemaPath, BiFunction<SchemaPath, String, String>> xmlDataInputElementTextProcessorRegistry =
-            Collections.synchronizedMap(new HashMap<>());
+    private final Map<SchemaNodeIdentifier, BiFunction<SchemaNodeIdentifier, String, String>>
+            xmlDataInputElementTextProcessorRegistry = Collections.synchronizedMap(new HashMap<>());
 
     public void registerXmlDataInputElementTextProcessor(
-            @Nonnull final String yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+            @Nonnull final String yangPath, @Nonnull final BiFunction<SchemaNodeIdentifier, String, String> processor) {
 
         this.xmlDataInputElementTextProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementTextProcessor(
-            @Nonnull final String[] yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+            @Nonnull final String[] yangPath, @Nonnull final BiFunction<SchemaNodeIdentifier, String, String> processor) {
 
         this.xmlDataInputElementTextProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementTextProcessor(
-            @Nonnull final QName[] yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+            @Nonnull final QName[] yangPath, @Nonnull final BiFunction<SchemaNodeIdentifier, String, String> processor) {
 
         this.xmlDataInputElementTextProcessorRegistry.put(Yang.absolutePathFrom(this.getYangContext(), yangPath), processor);
     }
 
     public void registerXmlDataInputElementTextProcessor(
-            @Nonnull final SchemaPath yangPath, @Nonnull final BiFunction<SchemaPath, String, String> processor) {
+            @Nonnull final SchemaNodeIdentifier yangPath, @Nonnull final BiFunction<SchemaNodeIdentifier, String, String>
+            processor) {
 
         this.xmlDataInputElementTextProcessorRegistry.put(yangPath, processor);
     }

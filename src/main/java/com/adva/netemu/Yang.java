@@ -16,8 +16,8 @@ import org.apache.commons.lang3.StringUtils;
 // import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.common.QName;
-import org.opendaylight.yangtools.yang.model.api.SchemaContext;
-import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
+import org.opendaylight.yangtools.yang.model.api.stmt.SchemaNodeIdentifier;
 
 
 public final class Yang {
@@ -27,7 +27,9 @@ public final class Yang {
     }
 
     @Nonnull
-    public static SchemaPath absolutePathFrom(@Nonnull final SchemaContext yangContext, @Nonnull final String... path) {
+    public static SchemaNodeIdentifier absolutePathFrom(
+            @Nonnull final EffectiveModelContext yangContext, @Nonnull final String... path) {
+
         @Nonnull final var namespaceMap = YangNamespaceMap.from(yangContext);
         @Nullable String namespace = null;
 
@@ -49,11 +51,14 @@ public final class Yang {
             }
         }
 
-        return SchemaPath.create(/* absolute = */ true, qnames.toArray(new QName[0]));
+        return SchemaNodeIdentifier.Absolute.of(qnames);
     }
 
+
     @Nonnull
-    public static SchemaPath absolutePathFrom(@Nonnull final SchemaContext yangContext, @Nonnull final QName... path) {
+    public static SchemaNodeIdentifier absolutePathFrom(
+            @Nonnull final EffectiveModelContext yangContext, @Nonnull final QName... path) {
+
         @Nonnull final var namespaceMap = YangNamespaceMap.from(yangContext);
         for (@Nonnull final var qname : path) {
             if (!namespaceMap.containsValue(qname.getNamespace())) {
@@ -61,7 +66,7 @@ public final class Yang {
             }
         }
 
-        return SchemaPath.create(/* absolute = */ true, path);
+        return SchemaNodeIdentifier.Absolute.of(path);
     }
 
     @Nonnull
