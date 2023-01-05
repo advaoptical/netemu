@@ -186,9 +186,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
       * }</pre>
 
       * @param identifier
-            A unique YANG module identification by name and optional revision. Default implementations are
-            {@link org.opendaylight.yangtools.yang.model.repo.api.RevisionSourceIdentifier} and
-            {@link org.opendaylight.yangtools.yang.model.repo.api.SemVerSourceIdentifier}
+            A unique YANG module identification by name and optional revision. Default implementations is
+            {@link org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier}
 
       * @return
             The readable YANG module source. This is an asynchronous result!
@@ -198,7 +197,8 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
 
         return Futures.submit(() -> StreamEx.of(this.modules).findFirst(module -> {
             @Nonnull final var qName = module.getName();
-            return qName.getLocalName().equals(identifier.getName()) && qName.getRevision().equals(identifier.getRevision());
+            return qName.getLocalName().equals(identifier.name().getLocalName())
+                    && qName.getRevision().equals(Optional.ofNullable(identifier.revision()));
 
         }).map(module -> YangTextSchemaSource.delegateForByteSource(identifier, module.getYangTextByteSource())).orElseThrow(() ->
                 new NoSuchElementException(identifier.toString())), this.executor);

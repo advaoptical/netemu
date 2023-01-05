@@ -273,8 +273,8 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
         {{#if this.valueIsEnum}}
         @Nonnull
         public {{{../builderName}}} set{{{@key}}}(@Nonnull final String value) {
-            this.future{{{@key}}} = {{{this.valueClass}}}.forName(value).map(CompletableFuture::completedFuture).orElseThrow(() ->
-                    new IllegalArgumentException(value));
+            this.future{{{@key}}} = Optional.ofNullable({{{this.valueClass}}}.forName(value))
+                    .map(CompletableFuture::completedFuture).orElseThrow(() -> new IllegalArgumentException(value));
 
             return this;
         }

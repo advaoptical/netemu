@@ -46,7 +46,7 @@ import org.xml.sax.SAXException;
 import org.opendaylight.yangtools.yang.common.Revision;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.codec.xml.XMLStreamNormalizedNodeStreamWriter;
-import org.opendaylight.yangtools.yang.model.repo.api.RevisionSourceIdentifier;
+import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
 
 import org.opendaylight.netconf.api.DocumentedException;
 import org.opendaylight.netconf.api.xml.MissingNameSpaceException;
@@ -317,7 +317,7 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
                 throw new IllegalArgumentException(String.format("Unsupported schema format: %s", format));
             }
 
-            return RevisionSourceIdentifier.create(identifier, Revision.of(version));
+            return new SourceIdentifier(identifier, Revision.of(version));
 
         }).thenCompose(sourceIdentifier -> FutureConverter.toCompletableFuture(super.yangPool().getSource(sourceIdentifier))
                 .thenApplyAsync(yangByteSource -> {

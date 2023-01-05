@@ -28,7 +28,7 @@ import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.
 public class TestInterface implements YangListBindable {
 
     @Nonnull
-    private static final Class<? extends InterfaceType> IETF_INTERFACE_TYPE = EthernetCsmacd.class;
+    private static final InterfaceType IETF_INTERFACE_TYPE = EthernetCsmacd.VALUE;
 
     @Nonnull
     private final TestInterface_YangBinding yangBinding;

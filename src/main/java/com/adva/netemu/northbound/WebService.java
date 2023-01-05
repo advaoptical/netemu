@@ -4,7 +4,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
-import io.jooby.Jooby;
+// import io.jooby.Jooby;
 
 import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
@@ -25,6 +25,7 @@ public class WebService extends EmuService<WebService.Settings> {
 
     public static class Settings implements EmuService.Settings<WebService> {}
 
+    /*
     private static class App extends Jooby implements Supplier<Jooby> {
 
         @Nonnull
@@ -42,6 +43,7 @@ public class WebService extends EmuService<WebService.Settings> {
             return this;
         }
     }
+    */
 
     public WebService(@Nonnull final YangPool pool, @Nonnull final Settings settings) {
         super(pool, settings);
@@ -49,6 +51,6 @@ public class WebService extends EmuService<WebService.Settings> {
 
     @Override
     public void run() {
-        Jooby.runApp(new String[]{}, new App(this.yangPool()));
+        // Jooby.runApp(new String[]{}, new App(this.yangPool()));
     }
 }
