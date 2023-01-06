@@ -122,7 +122,10 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
         }
 
         @Nonnull final var netconf = new NetconfDeviceSimulator(super.settings()
-                .setCapabilities(Set.of("urn:ietf:params:netconf:base:1.0", "urn:ietf:params:netconf:base:1.1"))
+                .setCapabilities(Set.of(
+                        XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0,
+                        XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_1))
+
                 .setModels(Set.copyOf(super.yangPool().getModules()))
                 .setRpcMapping(this)
                 .setDeviceCount(1)
