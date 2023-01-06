@@ -164,91 +164,36 @@ compileJava {
 }
 
 
-task mvnInstallYangModelUtil(type: Exec) {
+tasks.register 'mvnInstallYangtools', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-model-util.groovy", "install"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
+            "groovy", "mvn-yangtools.groovy", "--projects=-karaf", "install", "-DskipTests",
+            "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
 }
 
-task mvnInstallYangDataApi(type: Exec) {
-    dependsOn mvnInstallYangModelUtil
+tasks.register 'mvnInstallMdsal', Exec, {
+    dependsOn mvnInstallYangtools
 
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-api.groovy", "install"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
+            "groovy", "mvn-mdsal.groovy", "install", "-DskipTests",
+            "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
 }
 
-task mvnInstallYangDataUtil(type: Exec) {
-    dependsOn mvnInstallYangModelUtil
-    dependsOn mvnInstallYangDataApi
+tasks.register 'mvnInstallNetconf', Exec, {
+    dependsOn mvnInstallYangtools
+    dependsOn mvnInstallMdsal
 
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-util.groovy", "install"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
+            "groovy", "mvn-netconf.groovy", "install", "-DskipTests",
+            "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
 }
 
-
-task mvnInstallYangDataImpl(type: Exec) {
-    dependsOn mvnInstallYangModelUtil
-    dependsOn mvnInstallYangDataApi
-    dependsOn mvnInstallYangDataUtil
-
-    workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-impl.groovy", "install"]
-}
-
-task mvnInstallYangDataCodecXml(type: Exec) {
-    dependsOn mvnInstallYangModelUtil
-    dependsOn mvnInstallYangDataApi
-    dependsOn mvnInstallYangDataUtil
-    dependsOn mvnInstallYangDataImpl
-
-    workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yang-data-codec-xml.groovy", "install"]
-}
-
-task mvnInstallMdsalBindingDomCodec(type: Exec) {
-    dependsOn mvnInstallYangModelUtil
-    dependsOn mvnInstallYangDataApi
-    dependsOn mvnInstallYangDataUtil
-    dependsOn mvnInstallYangDataImpl
-    dependsOn mvnInstallYangDataCodecXml
-
-    workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-mdsal-binding-dom-codec.groovy", "install"]
-}
-
-task mvnInstallNetconfNettyUtil(type: Exec) {
-    dependsOn mvnInstallYangModelUtil
-    dependsOn mvnInstallYangDataApi
-    dependsOn mvnInstallYangDataUtil
-    dependsOn mvnInstallYangDataImpl
-    dependsOn mvnInstallYangDataCodecXml
-    dependsOn mvnInstallMdsalBindingDomCodec
-
-    workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf-netty-util.groovy", "install"]
-}
-
-task mvnInstallNetconfTestTool(type: Exec) {
-    dependsOn mvnInstallYangModelUtil
-    dependsOn mvnInstallYangDataApi
-    dependsOn mvnInstallYangDataUtil
-    dependsOn mvnInstallYangDataImpl
-    dependsOn mvnInstallYangDataCodecXml
-    dependsOn mvnInstallMdsalBindingDomCodec
-    dependsOn mvnInstallNetconfNettyUtil
-
-    workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf-testtool.groovy", "install"]
-}
-
-task mvnInstallOpenDaylightModules {
-    dependsOn mvnInstallYangModelUtil
-    dependsOn mvnInstallYangDataApi
-    dependsOn mvnInstallYangDataUtil
-    dependsOn mvnInstallYangDataImpl
-    dependsOn mvnInstallYangDataCodecXml
-    dependsOn mvnInstallMdsalBindingDomCodec
-    dependsOn mvnInstallNetconfNettyUtil
-    dependsOn mvnInstallNetconfTestTool
+tasks.register 'mvnInstallOpenDaylightModules', {
+    dependsOn mvnInstallYangtools
+    dependsOn mvnInstallMdsal
+    dependsOn mvnInstallNetconf
 }
 
 
