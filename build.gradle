@@ -197,6 +197,28 @@ tasks.register 'mvnInstallOpenDaylightModules', {
 }
 
 
+tasks.register 'mvnCleanYangtools', Exec, {
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yangtools.groovy", "clean"]
+}
+
+tasks.register 'mvnCleanMdsal', Exec, {
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-mdsal.groovy", "clean"]
+}
+
+tasks.register 'mvnCleanNetconf', Exec, {
+    workingDir rootDir
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf.groovy", "clean"]
+}
+
+tasks.register 'mvnCleanOpenDaylightModules', {
+    dependsOn mvnCleanYangtools
+    dependsOn mvnCleanMdsal
+    dependsOn mvnCleanNetconf
+}
+
+
 gradlePlugin {
     plugins {
         netEmuPlugin {
