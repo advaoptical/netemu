@@ -31,8 +31,8 @@ application {
     mainClassName = "emu.skeleton.renameIt.Main"
 }
 
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
 
 
 apply plugin: "com.adva.netemu"
@@ -61,12 +61,28 @@ repositories {
 }
 
 dependencies {
+    gradleApi()
     localGroovy()
 
     implementation "com.adva:netemu:0.1.0-SNAPSHOT"
     annotationProcessor "com.adva:netemu:0.1.0-SNAPSHOT"
 
     testImplementation "org.spockframework:spock-core:2.0-M4-groovy-3.0"
+}
+
+
+compileJava {
+    options.fork = true
+
+    for (final javacPackage in ['code', 'util']) {
+
+        /*  Adapted from https://github.com/projectlombok/lombok/issues/2681#issuecomment-805252645
+        */
+        options.forkOptions.jvmArgs += ['--add-opens', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"
+                as String] // GString not supported as JVM fork argument
+
+        options.compilerArgs += ['--add-exports', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"]
+    }
 }
 
 
@@ -81,5 +97,13 @@ test {
 jar {
     manifest {
         attributes 'Main-Class': "emu.skeleton.renameIt.Main"
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
     }
 }

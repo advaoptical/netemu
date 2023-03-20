@@ -104,7 +104,7 @@ public class NetworkInterface implements YangListBindable {
                 .setName(this.name)
                 .setDescription(this.getDescription())
 
-                .setType(EthernetCsmacd.class)
+                .setType(EthernetCsmacd.VALUE)
                 .setEnabled(this.enabled.get())
 
         ).providesOperationalDataUsing(builder -> builder

@@ -52,7 +52,7 @@ public class Network implements YangBindable {
         }).appliesConfigurationDataUsing(data -> {
             @Nonnull final var newInterfaces = this.interfaces.mergeAll(
                     data.streamInterface().map(interfaceData -> NetworkInterface
-                            .fromConfiguration(NetworkInterface_Yang.Data.of(interfaceData))),
+                            .fromConfiguration(NetworkInterface_Yang.Data.from(interfaceData))),
 
                     (existingItem, item) -> {
                         item.getAdapter().ifPresent(adapter -> {
