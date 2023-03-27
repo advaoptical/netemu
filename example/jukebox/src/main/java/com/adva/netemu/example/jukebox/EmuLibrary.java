@@ -10,7 +10,7 @@ import one.util.streamex.StreamEx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wrapper.spotify.model_objects.specification.Album;
+import se.michaelthelin.spotify.model_objects.specification.Album;
 
 import org.opendaylight.yangtools.yang.common.Uint32;
 

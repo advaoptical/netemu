@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 
 import org.opendaylight.yangtools.yang.common.Uint32;
 

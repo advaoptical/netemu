@@ -13,13 +13,12 @@ plugins {
     id 'application'
     id 'groovy'
     id 'java'
-
-    id "com.github.node-gradle.node" version "2.2.3"
 }
 
 apply plugin: 'application'
 apply plugin: 'groovy'
 apply plugin: 'java'
+
 
 group = "com.adva.netemu.example"
 version = "0.1.0-SNAPSHOT"
@@ -28,16 +27,9 @@ application {
     mainClassName = "com.adva.netemu.example.jukebox.Main"
 }
 
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
 
-node {
-    version "13.8.0"
-    npmVersion "6.13.7"
-    yarnVersion "1.22.0"
-
-    download true
-}
 
 apply plugin: "com.adva.netemu"
 
@@ -47,11 +39,13 @@ netEmu {
         // generateIn "build"
     }
 
-    definesContextInPackage "com.adva.netemu.example.jukebox"
+    // definesContextInPackage "com.adva.netemu.example.jukebox"
 
+    /*
     pythonizer {
         appendsYangModelsToFile "emu_jukebox/yang_models.py"
     }
+    */
 }
 
 sourceSets {
@@ -61,30 +55,56 @@ sourceSets {
     ]
 }
 
+/*
 ext.jepDir = [
         "c:\\tools\\miniconda3\\envs\\yang\\python", "-c", "print(__import__('os').path.dirname(__import__('importlib.util').util.find_spec('jep').origin))"
 
 ].execute().text.trim()
+*/
+
 
 repositories {
     mavenLocal()
     mavenCentral()
 
+    /*
     flatDir {
         dirs jepDir
     }
+    */
 }
 
 dependencies {
-    localGroovy()
+    gradleApi()
+    // localGroovy()
+    implementation "org.apache.groovy:groovy:4.0.10"
 
     implementation "com.adva:netemu:0.1.0-SNAPSHOT"
     annotationProcessor "com.adva:netemu:0.1.0-SNAPSHOT"
 
-    implementation "se.michaelthelin.spotify:spotify-web-api-java:6.5.4"
+    implementation "io.jooby:jooby-netty:3.0.0.M4"
+    annotationProcessor 'io.jooby:jooby-apt:3.0.0.M4'
 
-    testImplementation "org.spockframework:spock-core:2.0-M4-groovy-3.0"
+    implementation "se.michaelthelin.spotify:spotify-web-api-java:8.0.0"
+
+    testImplementation "org.spockframework:spock-core:2.4-M1-groovy-4.0"
 }
+
+
+compileJava {
+    options.fork = true
+
+    for (final javacPackage in ['code', 'util']) {
+
+        /*  Adapted from https://github.com/projectlombok/lombok/issues/2681#issuecomment-805252645
+        */
+        options.forkOptions.jvmArgs += ['--add-opens', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"
+                as String] // GString not supported as JVM fork argument
+
+        options.compilerArgs += ['--add-exports', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"]
+    }
+}
+
 
 test {
     useJUnitPlatform()
@@ -93,16 +113,16 @@ test {
     }
 }
 
+
+/*
 run {
     environment "PATH", String.join(File.pathSeparator, [
 
-            /*
             "C:\\Miniconda3\\envs\\netemu",
             "C:\\Miniconda3\\envs\\netemu\\Library\\mingw-w64\\bin",
             "C:\\Miniconda3\\envs\\netemu\\Library\\usr\\bin",
             "C:\\Miniconda3\\envs\\netemu\\Library\\bin",
             "C:\\Miniconda3\\envs\\netemu\\Scripts",
-            */
 
             jepDir,
             System.getenv('PATH')])
@@ -112,6 +132,8 @@ run {
 
     ].execute().text.trim()
 }
+*/
+
 
 jar {
     manifest {
@@ -119,7 +141,7 @@ jar {
     }
 }
 
-task('uberJar', type: Jar) {
+tasks.register 'uberJar', Jar, {
     with jar
     archiveClassifier.set 'uber'
 
@@ -133,6 +155,7 @@ task('uberJar', type: Jar) {
     */
 
     dependsOn configurations.runtimeClasspath
-    from { configurations.runtimeClasspath.filter { File file -> file.name.endsWith ".jar" }.collect { zipTree it }
+    from {
+        configurations.runtimeClasspath.filter { File file -> file.name.endsWith ".jar" }.collect { zipTree it }
     }
 }

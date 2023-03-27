@@ -11,12 +11,11 @@ import org.slf4j.LoggerFactory;
 
 import io.jooby.Jooby;
 
-import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.SpotifyHttpManager;
-import com.wrapper.spotify.model_objects.specification.SavedAlbum;
+import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.SpotifyHttpManager;
+import se.michaelthelin.spotify.model_objects.specification.SavedAlbum;
 
 import com.adva.netemu.NetEmu;
-import com.adva.netemu.YangPool;
 import com.adva.netemu.northbound.NetconfService;
 import com.adva.netemu.northbound.RestconfService;
 
@@ -94,23 +93,24 @@ public class Main {
             return SPOTIFY.getCurrentUsersSavedAlbums().build().executeAsync();
 
         }).thenComposeAsync(savedSpotifyAlbums -> {
-            @Nonnull final var jukeboxYangPool = new YangPool("example-jukebox", NetEmuDefined.YANG_MODULE_INFOS);
+            @Nonnull final var jukeboxEmu = NetEmu.withId("example-jukebox")
+                    .fromYangModuleInfos(NetEmuDefined.YANG_MODULE_INFOS);
+
+            @Nonnull final var jukeboxYangPool = jukeboxEmu.getYangPool();
             jukeboxYangPool.registerYangBindable(EmuJukebox.createSingletonUsingSpotify(SPOTIFY,
                     StreamEx.of(savedSpotifyAlbums.getItems()).map(SavedAlbum::getAlbum).toImmutableSet()));
 
-            return jukeboxYangPool.updateConfigurationData().thenComposeAsync(ignoredUpdateInfos -> {
+            return jukeboxYangPool.updateConfigurationData().thenComposeAsync(ignoredUpdateInfos -> jukeboxEmu
+                    .loadConfiguration()
+                    .thenAcceptAsync(ignoredCommitInfos -> {
+                        jukeboxEmu.registerService(NetconfService.class)
+                                .setStartingPort(17830);
 
-                @Nonnull final var jukeboxEmu = new NetEmu(jukeboxYangPool);
-                return jukeboxEmu.loadConfiguration().thenAcceptAsync(ignoredCommitInfos -> {
-                    jukeboxEmu.registerService(NetconfService.class, (NetconfService.Settings) new NetconfService.Settings()
-                            .setStartingPort(17830));
+                        jukeboxEmu.registerService(RestconfService.class)
+                                .setPort(17888);
 
-                    jukeboxEmu.registerService(RestconfService.class, new RestconfService.Settings()
-                            .setPort(17888));
-
-                    jukeboxEmu.start();
-                });
-            });
+                        jukeboxEmu.start();
+                    }));
         });
     }
 }

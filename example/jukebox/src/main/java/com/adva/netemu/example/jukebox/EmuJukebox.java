@@ -1,6 +1,7 @@
 package com.adva.netemu.example.jukebox;
 
-import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,8 +17,10 @@ import one.util.streamex.StreamEx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.model_objects.specification.Album;
+import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.model_objects.specification.Album;
+
+import org.opendaylight.yangtools.yang.common.Decimal64;
 
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangBinding;
@@ -107,13 +110,13 @@ public class EmuJukebox implements YangBindable {
         this.library = this.yangBinding.registerChild(EmuLibrary.fromSpotifyAlbums(spotifyAlbums));
 
         this.yangBinding.appliesConfigurationDataUsing(data -> {
-            data.getPlayer().flatMap(player -> Optional.ofNullable(player.getGap())).ifPresent(gap -> {
+            data.getPlayer().getGap().ifPresent(gap -> {
                 this.playerGap = gap.doubleValue() / 10.0;
                 LOG.info("Player gap set to {} seconds", this.playerGap);
             });
 
             @Nonnull final var playlists = data.streamPlaylist()
-                    .map(playlistData -> EmuPlaylist.fromConfiguration(EmuPlaylist_Yang.Data.of(playlistData)))
+                    .map(playlistData -> EmuPlaylist.fromConfiguration(EmuPlaylist_Yang.Data.from(playlistData)))
                     .toImmutableSet();
 
             if (playlists.size() > 0) {
@@ -129,7 +132,7 @@ public class EmuJukebox implements YangBindable {
                 .setPlaylist(EmuPlaylist_Yang.listOperationalDataFrom(this.playlists))
 
                 .setPlayer(playerBuilder -> playerBuilder
-                        .setGap(BigDecimal.valueOf(this.playerGap * 10.0))));
+                        .setGap(Decimal64.valueOf(this.playerGap * 10.0, RoundingMode.HALF_EVEN))));
     }
 
     /** Creates the jukebox singleton instance.

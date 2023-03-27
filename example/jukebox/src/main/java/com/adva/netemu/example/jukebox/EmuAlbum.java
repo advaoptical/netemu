@@ -7,7 +7,7 @@ import javax.annotation.Nonnull;
 
 import one.util.streamex.StreamEx;
 
-import com.wrapper.spotify.model_objects.specification.Album;
+import se.michaelthelin.spotify.model_objects.specification.Album;
 
 import com.adva.netemu.YangListBindable;
 import com.adva.netemu.YangListBinding;
