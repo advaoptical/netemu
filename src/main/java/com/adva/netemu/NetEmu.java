@@ -44,6 +44,9 @@ import org.reflections.scanners.ResourcesScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.Tab;
+
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
@@ -52,7 +55,7 @@ import com.adva.netemu.driver.EmuDriver;
 import com.adva.netemu.service.EmuService;
 
 
-public class NetEmu {
+public class NetEmu extends VerticalLayout {
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(NetEmu.class);
@@ -77,6 +80,30 @@ public class NetEmu {
     @Nonnull
     public String id() {
         return this.getYangPool().id();
+    }
+
+    public static class UiTab extends Tab {
+
+        @Nonnull
+        private final NetEmu netEmu;
+
+        @Nonnull
+        public NetEmu netEmu() {
+            return this.netEmu;
+        }
+
+        private UiTab(@Nonnull final NetEmu netEmu) {
+            this.netEmu = netEmu;
+            super.add(netEmu.id());
+        }
+    }
+
+    @Nonnull
+    private final UiTab uiDrawerTab;
+
+    @Nonnull
+    public UiTab uiDrawerTab() {
+        return this.uiDrawerTab;
     }
 
     public static final class RegisteredDriver<D extends EmuDriver> {
@@ -274,6 +301,10 @@ public class NetEmu {
 
     protected NetEmu(@Nonnull final YangPool pool) {
         this.pool = pool;
+        super.add(pool);
+        super.setSizeFull();
+
+        this.uiDrawerTab = new UiTab(this);
     }
 
     @Nonnull

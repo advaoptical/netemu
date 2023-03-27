@@ -48,6 +48,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.splitlayout.SplitLayout;
+import com.vaadin.flow.component.treegrid.TreeGrid;
+
 // import org.opendaylight.yangtools.concepts.Builder;
 // import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
@@ -104,7 +109,8 @@ import com.adva.netemu.datastore.YangDatastore;
 
 /** Manages datastores, transactions, and data-bindings for a set of YANG modules.
   */
-public class YangPool implements EffectiveModelContextProvider, SchemaSourceProvider<YangTextSchemaSource> {
+public class YangPool extends SplitLayout implements EffectiveModelContextProvider,
+        SchemaSourceProvider<YangTextSchemaSource> {
 
     /** Default logger for this class.
       */
@@ -380,6 +386,21 @@ public class YangPool implements EffectiveModelContextProvider, SchemaSourceProv
         */
 
         // @Nonnull final var rpcService = new BindingDOMRpcProviderServiceAdapter(adapterContext, )
+
+        super.setOrientation(Orientation.HORIZONTAL);
+        super.setSizeFull();
+
+        @Nonnull final var configurationDataUiTreeGrid = new TreeGrid<NormalizedNode>();
+        configurationDataUiTreeGrid.setSizeFull();
+
+        @Nonnull final var operationalDataUiTreeGrid = new TreeGrid<NormalizedNode>();
+        operationalDataUiTreeGrid.setSizeFull();
+
+        @Nonnull final var uiRefreshButton = new Button("Refresh");
+
+        @Nonnull final var uiToolBar = new HorizontalLayout();
+
+        super.addToPrimary(configurationDataUiTreeGrid);
     }
 
     @Nonnull

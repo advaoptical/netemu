@@ -7,6 +7,9 @@ plugins {
     id 'java-library'
     id 'java-gradle-plugin'
     id 'maven-publish'
+
+    // id 'com.vaadin'
+    // id 'io.spring.dependency-management' version '1.1.0'
 }
 
 apply plugin: 'groovy'
@@ -36,6 +39,11 @@ ext.jepDir = [
 repositories {
     mavenLocal()
     mavenCentral()
+
+    maven {
+        url = 'https://vaadin.com/nexus/content/repositories/vaadin-addons'
+    }
+
     // maven("https://repo.spring.io/plugins-release")
 
     // jcenter()
@@ -59,9 +67,19 @@ repositories {
     */
 }
 
+/*
+dependencyManagement {
+    imports {
+        mavenBom "com.vaadin:vaadin-bom:${project.vaadinVersion}"
+    }
+}
+*/
+
 dependencies {
     implementation gradleApi()
     implementation localGroovy()
+
+    api "com.vaadin:vaadin-core:${project.vaadinVersion}"
 
     implementation 'io.github.classgraph:classgraph:4.8.154'
     // implementation 'org.reflections:reflections:0.10.2'
