@@ -161,8 +161,8 @@ public class NetconfDriver extends EmuDriver {
                         .withProtocol(NetconfClientConfiguration.NetconfClientProtocol.SSH)
                         .withAddress(this.address)
                         .withAuthHandler(this.authentication)
-                                .withReconnectStrategy(new TimedReconnectStrategyFactory(EVENT_EXECUTOR, 5L, 0, BigDecimal.ONE)
-                                        .createReconnectStrategy())
+                        .withReconnectStrategy(new TimedReconnectStrategyFactory(EVENT_EXECUTOR, 5L, 0, BigDecimal.ONE)
+                                .createReconnectStrategy())
 
                         // .withReconnectStrategy(new ReconnectImmediatelyStrategy(EVENT_EXECUTOR, 0))
                         .withSessionListener(this.listener)
