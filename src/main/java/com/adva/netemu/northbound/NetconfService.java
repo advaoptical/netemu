@@ -173,6 +173,8 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
             case "get" -> this.applyGetRequest(request);
             case "get-config" -> this.applyGetConfigRequest(request);
             case "get-schema" -> this.applyGetSchemaRequest(request);
+
+            case "edit" -> this.applyEditRequest(request);
             case "edit-config" -> this.applyEditConfigRequest(request);
 
             default -> null;
@@ -387,6 +389,55 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
             return xmlReader;
 
         }).thenCompose(xmlReader -> FutureConverter.toCompletableFuture(super.yangPool().writeConfigurationDataFrom(xmlReader))
+                .thenApply(ignoredCommitInfos -> Optional.empty()));
+    }
+
+    @Nonnull
+    CompletableFuture<Optional<Element>> applyEditRequest(@Nonnull final XmlElement request) {
+        return CompletableFuture.supplyAsync(() -> {
+            // @Nonnull final XmlElement target;
+            try {
+                request.getOnlyChildElement("target").getOnlyChildElement();
+
+            } catch (final DocumentedException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final XmlElement data;
+            try {
+                data = request.getOnlyChildElement("data");
+
+            } catch (final DocumentedException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final Transformer xmlTransformer;
+            try {
+                xmlTransformer = XML_TRANSFORMER_FACTORY.newTransformer();
+
+            } catch (final TransformerConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final StringWriter dataWriter = new StringWriter();
+            try {
+                xmlTransformer.transform(new DOMSource(data.getDomElement()), new StreamResult(dataWriter));
+
+            } catch (final TransformerException e) {
+                throw new RuntimeException(e);
+            }
+
+            @Nonnull final XMLStreamReader xmlReader;
+            try {
+                xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(dataWriter.toString()));
+
+            } catch (final XMLStreamException e) {
+                throw new RuntimeException(e);
+            }
+
+            return xmlReader;
+
+        }).thenCompose(xmlReader -> FutureConverter.toCompletableFuture(super.yangPool().writeOperationalDataFrom(xmlReader))
                 .thenApply(ignoredCommitInfos -> Optional.empty()));
     }
 }
