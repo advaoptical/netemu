@@ -290,8 +290,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                     LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.OPERATIONAL,
                             yangBindingRegistry.size());
 
-                    Futures.transformAsync(updatingFuture, /* ignoredCommitInfos -> Futures.allAsList(
-                            StreamEx.of(this.yangPool.yangBindingRegistry).map(this.yangPool::writeOperationalDataFrom) */
+                    Futures.transformAsync(updatingFuture,
                             ignoredCommitInfos -> this.yangPool.writeOperationalDataFrom(yangBindingRegistry),
                             this.yangPool.executor
 
@@ -644,7 +643,6 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             updatingFuture = Futures.transformAsync(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()),
                     ignoredRegisteredBinding -> {
                         synchronized (this.yangBindingRegistry) {
-                            // return Futures.allAsList(StreamEx.of(this.yangBindingRegistry).map(this::writeConfigurationDataFrom));
                             LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.CONFIGURATION,
                                     this.yangBindingRegistry.size());
 
@@ -656,8 +654,8 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
         return FluentFuture.from(updatingFuture).transformAsync(ignoredCommitInfos -> {
             @Nonnull final var txn = this.getNormalizedNodeBroker().newReadOnlyTransaction();
-            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var readingFuture =
-                    txn.read(storeType, YangInstanceIdentifier.empty());
+            @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var readingFuture = txn
+                    .read(storeType, YangInstanceIdentifier.empty());
 
             LOG.info("Reading from {} Datastore", storeType);
             readingFuture.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.loggingCallbackExecutor);
