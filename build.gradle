@@ -109,6 +109,9 @@ dependencies {
     annotationProcessor 'com.google.dagger:dagger-compiler:2.44.2'
     annotationProcessor 'com.squareup.inject:assisted-inject-processor-dagger2:0.8.1'
 
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+
     api "javax.xml:jsr173:1.0"
     // api "com.bea.xml:jsr173-ri:1.0"
     // api "com.ea.async:ea-async:1.2.3"
