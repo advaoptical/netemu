@@ -62,8 +62,10 @@ public abstract class EmuDriver {
         return this.settings;
     }
 
+    /*
     @Nonnull
     protected final Executor executor = new ScheduledThreadPoolExecutor(0);
+    */
 
     protected EmuDriver(@Nonnull final YangPool pool, @Nonnull final Settings<? extends EmuDriver> settings) {
         this.yangPool = pool;

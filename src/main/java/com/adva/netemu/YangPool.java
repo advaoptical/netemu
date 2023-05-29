@@ -127,15 +127,22 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
     @NonNull
     private final ScheduledExecutorService executor;
 
+    @NonNull
+    public Executor executor() {
+        return this.executor;
+    }
+
     /** Default executor for asynchronous OpenDaylight datastore transactions.
       */
+    /*
     @NonNull
     private final ScheduledExecutorService transactionExecutor;
+    */
 
     /** Default executor for logging results of asynchronous OpenDaylight datastore transactions.
      */
-    @NonNull
-    private final Executor loggingCallbackExecutor = MoreExecutors.directExecutor();
+    // @NonNull
+    // private final Executor loggingCallbackExecutor = MoreExecutors.directExecutor();
 
     /** Unique ID of this YANG pool.
       */
@@ -263,7 +270,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                     LogicalDatastoreType.CONFIGURATION, yangPool.configurationStore,
                     LogicalDatastoreType.OPERATIONAL, yangPool.operationalStore
 
-            ), MoreExecutors.listeningDecorator(yangPool.transactionExecutor));
+            ), MoreExecutors.listeningDecorator(yangPool.executor));
 
             this.yangPool = yangPool;
         }
@@ -324,13 +331,16 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         this.context = BindingRuntimeHelpers.createEffectiveModel(this.modules);
         // this.context.addModuleInfos(this.modules);
 
+        // Custom thread naming via factory was adapted from https://stackoverflow.com/a/9748697
         this.executor = new ScheduledThreadPoolExecutor(1, new ThreadFactoryBuilder()
                 .setNameFormat(id + "-thread-%d")
                 .build());
 
+        /*
         this.transactionExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactoryBuilder()
                 .setNameFormat(id + "-transaction-thread-%d")
                 .build());
+        */
 
         this.xmlCodecFactory = XmlCodecFactory.create(this.context);
 
@@ -367,11 +377,13 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         @NonNull final var runtimeContext = BindingRuntimeHelpers.createRuntimeContext(
                 StreamEx.of(this.modules).map(YangModuleInfo::getClass).toArray(Class[]::new));
 
+
+        @NonNull final var adapterSerializer = new CurrentAdapterSerializer(new BindingCodecContext(runtimeContext));
         @NonNull final var adapterContext = new AdapterContext() {
 
             @NonNull @Override
             public CurrentAdapterSerializer currentSerializer() {
-                return new CurrentAdapterSerializer(new BindingCodecContext(runtimeContext));
+                return adapterSerializer;
             }
         };
 
@@ -655,7 +667,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             @NonNull final var readingFuture = txn.read(storeType, YangInstanceIdentifier.empty());
 
             log.info("Reading from {} Datastore", storeType);
-            readingFuture.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.loggingCallbackExecutor);
+            readingFuture.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.executor);
             return readingFuture;
 
         }, this.executor);
@@ -805,7 +817,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
                     @NonNull final var committingFuture = txn.commit();
                     committingFuture.addCallback(this.datastore.injectWriting().of(storeType, yangPaths).futureCallback,
-                            this.loggingCallbackExecutor);
+                            this.executor);
 
                     return committingFuture;
 
@@ -862,7 +874,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         log.debug("Writing to {} Datastore: {}", storeType, yangModeledPaths);
 
         @NonNull final var future = txn.commit();
-        future.addCallback(writing.futureCallback, this.loggingCallbackExecutor);
+        future.addCallback(writing.futureCallback, this.executor);
         return future;
     }
 
@@ -959,6 +971,6 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                 log.error("Failed deleting from {} Datastore: {}", storeType, iid);
             }
 
-        }, this.loggingCallbackExecutor);
+        }, this.executor);
     }
 }
