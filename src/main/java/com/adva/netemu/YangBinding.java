@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -51,7 +52,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
     protected static final Logger LOG = LoggerFactory.getLogger(YangBinding.class);
 
     @Nonnull
-    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(0); // 0 -> no idle threads
+    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
 
     @Nonnull
     private final AtomicReference<YangPool> yangPool = new AtomicReference<>();
@@ -59,6 +60,18 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
     @Nonnull
     public Optional<YangPool> getYangPool() {
         return Optional.ofNullable(this.yangPool.get());
+    }
+
+    @Nonnull
+    public YangPool requireYangPool() {
+        return this.getYangPool().orElseThrow(() -> new IllegalStateException(String.format(
+                "%s was not yet registered to any %s instance", this, YangPool.class)));
+    }
+
+    @Nonnull
+    public Executor executor() {
+        return this.executor;
+        // return this.requireYangPool().executor();
     }
 
     @Nonnull @Override

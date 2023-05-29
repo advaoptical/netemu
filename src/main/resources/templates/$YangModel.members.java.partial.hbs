@@ -26,8 +26,10 @@
         this.driverSession.set(session);
     }
 
+    /*
     @Nonnull
     private final ListeningExecutorService executor = MoreExecutors.listeningDecorator(new ScheduledThreadPoolExecutor(0));
+    */
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<Data> update() {
@@ -44,7 +46,7 @@
                 LOG.info("Exposing updated OPERATIONAL Data");
                 return this.data.get();
 
-            }, this.executor);
+            }, this.yangBinding.executor());
         }
 
         return FluentFuture.from(Futures.immediateFuture(this.data.get()));
@@ -71,7 +73,7 @@
 
     @Nonnull
     public FluentFuture<Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<Data.{{{@key}}}Data>>> update{{{@key}}}() {
-        return this.update().transform(Data::get{{{@key}}}, this.executor);
+        return this.update().transform(Data::get{{{@key}}}, this.yangBinding.executor());
     }
 
             {{#if this.valueIsMap}}
@@ -119,7 +121,7 @@
 
     @Nonnull
     public FluentFuture<Optional<{{#if this.valueIsSet}}Set{{else}}List{{/if}}<{{{this.valueClass}}}>>> update{{{@key}}}() {
-        return this.update().transform(Data::get{{{@key}}}, this.executor);
+        return this.update().transform(Data::get{{{@key}}}, this.yangBinding.executor());
     }
 
     protected void set{{{@key}}}(@Nullable final Collection<{{{this.valueClass}}}> value) {
@@ -146,7 +148,7 @@
 
     @Nonnull
     public FluentFuture<YangData<{{{this.valueClass}}}>> update{{{@key}}}() {
-        return this.update().transform(Data::get{{{@key}}}, this.executor);
+        return this.update().transform(Data::get{{{@key}}}, this.yangBinding.executor());
     }
 
         {{else}}
@@ -158,7 +160,7 @@
 
     @Nonnull
     public FluentFuture<Optional<{{{this.valueClass}}}>> update{{{@key}}}() {
-        return this.update().transform(Data::get{{{@key}}}, this.executor);
+        return this.update().transform(Data::get{{{@key}}}, this.yangBinding.executor());
     }
 
         {{/if}}
