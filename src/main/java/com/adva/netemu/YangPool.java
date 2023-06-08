@@ -23,9 +23,12 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+// import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
+
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -122,10 +125,10 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
     }
 
-    /** Default executor for asynchronous OpenDaylight operations.
+    /** Default executor for asynchronous operations, including OpenDaylight datastore transactions.
      */
     @NonNull
-    private final ScheduledExecutorService executor;
+    private final Executor executor;
 
     @NonNull
     public Executor executor() {
@@ -134,10 +137,8 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
     /** Default executor for asynchronous OpenDaylight datastore transactions.
       */
-    /*
     @NonNull
-    private final ScheduledExecutorService transactionExecutor;
-    */
+    private final ExecutorService transactionExecutor;
 
     /** Default executor for logging results of asynchronous OpenDaylight datastore transactions.
      */
@@ -178,7 +179,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
       * This is an asynchronous operation!
 
-      * <p> NETEMU prefers {@link CompletableFuture} over the {@link ListenableFuture} returned by this overriden OpenDaylight
+      * <p> NETEMU prefers {@link CompletableFuture} over the {@link ListenableFuture} returned by this overridden OpenDaylight
         method from {@link SchemaSourceProvider}. For a consistent coding style,
         {@link FutureConverter#toCompletableFuture(ListenableFuture)} should be applied.
 
@@ -270,7 +271,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                     LogicalDatastoreType.CONFIGURATION, yangPool.configurationStore,
                     LogicalDatastoreType.OPERATIONAL, yangPool.operationalStore
 
-            ), MoreExecutors.listeningDecorator(yangPool.executor));
+            ), MoreExecutors.listeningDecorator(yangPool.transactionExecutor));
 
             this.yangPool = yangPool;
         }
@@ -332,15 +333,11 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         // this.context.addModuleInfos(this.modules);
 
         // Custom thread naming via factory was adapted from https://stackoverflow.com/a/9748697
-        this.executor = new ScheduledThreadPoolExecutor(1, new ThreadFactoryBuilder()
-                .setNameFormat(id + "-thread-%d")
-                .build());
+        this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(id + "-thread-%d").build());
 
-        /*
         this.transactionExecutor = new ScheduledThreadPoolExecutor(1, new ThreadFactoryBuilder()
                 .setNameFormat(id + "-transaction-thread-%d")
                 .build());
-        */
 
         this.xmlCodecFactory = XmlCodecFactory.create(this.context);
 
@@ -442,7 +439,8 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
                         this.yangBindingRegistry.add(binding);
                         return binding;
-                    });
+
+                    }, this.executor);
 
             this.yangBindingRegisteringFuture.set(futureBinding);
             return futureBinding;
