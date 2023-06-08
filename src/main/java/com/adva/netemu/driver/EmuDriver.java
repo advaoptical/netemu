@@ -2,9 +2,6 @@ package com.adva.netemu.driver;
 
 import java.util.List;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.reflect.TypeToken;
