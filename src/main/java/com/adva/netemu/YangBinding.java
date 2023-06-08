@@ -12,7 +12,7 @@ import java.util.Optional;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -23,9 +23,11 @@ import javax.annotation.Nullable;
 import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
+// import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 import one.util.streamex.StreamEx;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +54,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
     protected static final Logger LOG = LoggerFactory.getLogger(YangBinding.class);
 
     @Nonnull
-    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+    private final Executor executor; // = new ScheduledThreadPoolExecutor(1);
 
     @Nonnull
     private final AtomicReference<YangPool> yangPool = new AtomicReference<>();
@@ -77,6 +79,12 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
     @Nonnull @Override
     public Optional<YangBinding<?, ?>> getYangBinding() {
         return Optional.of(this);
+    }
+
+    protected YangBinding() {
+        this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                .setNameFormat(this.getDataClass().getSimpleName() + "-thread-%d")
+                .build());
     }
 
     public abstract class DatastoreBinding implements DataTreeChangeListener<Y> {
@@ -400,7 +408,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
             return this.applyOperationalData(YangData.of(data));
         }
 
-        return this.dataApplyingFuture.get().transform(applied -> false, MoreExecutors.directExecutor());
+        return this.dataApplyingFuture.get().transform(applied -> false, this.executor);
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
@@ -442,30 +450,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
     public synchronized FluentFuture<YangData<Y>> provideConfigurationData() {
         @Nullable final var provider = this.configurationDataProvider;
         if (provider == null) {
-            return this.dataApplyingFuture.get().transform(applied -> YangData.empty(), MoreExecutors.directExecutor());
-        }
-
-        return this.dataApplyingFuture.get().transform(applied -> {
-            @Nonnull final B builder;
-            try {
-                builder = this.getBuilderClass().getDeclaredConstructor().newInstance();
-
-            } catch (final
-            NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
-
-                throw new Error(e);
-            }
-
-            return YangData.of(provider.apply(builder).build());
-
-        }, this.executor);
-    }
-
-    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public synchronized FluentFuture<YangData<Y>> provideOperationalData() {
-        @Nullable final var provider = this.operationalDataProvider;
-        if (provider == null) {
-            return this.dataApplyingFuture.get().transform(applied -> YangData.empty(), MoreExecutors.directExecutor());
+            return this.dataApplyingFuture.get().transform(applied -> YangData.empty(), this.executor);
         }
 
         return this.dataApplyingFuture.get().transform(applied -> {
@@ -476,10 +461,41 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
             } catch (final
                     NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
 
-                throw new Error(e);
+                LOG.error("Failed instantiating {}\n:", this.getBuilderClass(), e);
+                // throw new Error(e);
+
+                return YangData.empty();
             }
 
-            return YangData.of(provider.apply(builder).build());
+            return Optional.ofNullable(provider.apply(builder)).map(returnedBuilder -> YangData.of(returnedBuilder.build()))
+                    .orElseGet(YangData::empty);
+
+        }, this.executor);
+    }
+
+    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    public synchronized FluentFuture<YangData<Y>> provideOperationalData() {
+        @Nullable final var provider = this.operationalDataProvider;
+        if (provider == null) {
+            return this.dataApplyingFuture.get().transform(applied -> YangData.empty(), this.executor);
+        }
+
+        return this.dataApplyingFuture.get().transform(applied -> {
+            @Nonnull final B builder;
+            try {
+                builder = this.getBuilderClass().getDeclaredConstructor().newInstance();
+
+            } catch (final
+                    NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
+
+                LOG.error("Failed instantiating {}\n:", this.getBuilderClass(), e);
+                // throw new Error(e);
+
+                return YangData.empty();
+            }
+
+            return Optional.ofNullable(provider.apply(builder)).map(returnedBuilder -> YangData.of(returnedBuilder.build()))
+                    .orElseGet(YangData::empty);
 
         }, this.executor);
     }
