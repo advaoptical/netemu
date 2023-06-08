@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 import org.opendaylight.yangtools.yang.binding.Augmentation;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 
+import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
+
 import com.adva.netemu.YangBinding;
 
 import {{{yangPackage}}}.{{{yangClass}}};
@@ -380,7 +382,10 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
     {{/each}}
 
             } catch (final ExecutionException | InterruptedException e) {
-                throw new RuntimeException(e);
+                LOG.error("While building {} from {}:\n", {{{yangClass}}}.class, this, e.getCause());
+                // throw new RuntimeException(e.getCause());
+
+                return new {{{yangClass}}}Builder().build();
             }
 {{/unless}}
 
@@ -454,7 +459,11 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                     return provider.apply(builder).get();
 
                 } catch (final ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
+                    LOG.error("While providing {} Data from {}:\n", LogicalDatastoreType.CONFIGURATION, this, e.getCause());
+                    LOG.error("Failed providing {} Data from {}", LogicalDatastoreType.CONFIGURATION, this);
+                    // throw new RuntimeException(e.getCause());
+
+                    return null;
                 }
             });
         }
@@ -476,7 +485,11 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                     return provider.apply(builder).get();
 
                 } catch (final ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
+                    LOG.error("While providing {} Data from {}:\n", LogicalDatastoreType.OPERATIONAL, this, e.getCause());
+                    LOG.error("Failed providing {} Data from {}", LogicalDatastoreType.OPERATIONAL, this);
+                    // throw new RuntimeException(e.getCause());
+
+                    return null;
                 }
             });
         }
@@ -540,7 +553,11 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                     return provider.apply(builder).get();
 
                 } catch (final ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
+                    LOG.error("While providing {} Data from {}:\n", LogicalDatastoreType.CONFIGURATION, this, e.getCause());
+                    LOG.error("Failed providing {} Data from {}", LogicalDatastoreType.CONFIGURATION, this);
+                    // throw new RuntimeException(e.getCause());
+
+                    return null;
                 }
             });
         }
@@ -562,7 +579,11 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                     return provider.apply(builder).get();
 
                 } catch (final ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
+                    LOG.error("While providing {} Data from {}:\n", LogicalDatastoreType.OPERATIONAL, this, e.getCause());
+                    LOG.error("Failed providing {} Data from {}", LogicalDatastoreType.OPERATIONAL, this);
+                    // throw new RuntimeException(e.getCause());
+
+                    return null;
                 }
             });
         }
@@ -596,7 +617,10 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                 data = dataFuture.get().get();
 
             } catch (final InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e.getCause());
+                LOG.error("While getting {} Data from {}:\n", LogicalDatastoreType.CONFIGURATION, object, e.getCause());
+                // throw new RuntimeException(e.getCause());
+
+                return Data.empty();
             }
 
             if (data.isPresent()) {
@@ -616,7 +640,10 @@ public class {{{class}}}{{{utilityClassSuffix}}} {{{utilityClassBase}}} {
                 data = dataFuture.get().get();
 
             } catch (final InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e.getCause());
+                LOG.error("While getting {} Data from {}:\n", LogicalDatastoreType.OPERATIONAL, object, e.getCause());
+                // throw new RuntimeException(e.getCause());
+
+                return Data.empty();
             }
 
             if (data.isPresent()) {
