@@ -64,7 +64,12 @@ import com.adva.netemu.service.EmuService;
 
 public class NetconfService extends EmuService<NetconfService.Settings> implements RpcHandler {
 
-    public static class Settings extends ConfigurationBuilder implements EmuService.Settings<NetconfService> {}
+    public static class Settings extends ConfigurationBuilder implements EmuService.Settings<NetconfService> {
+
+        public Settings() {
+            super.setGetDefaultYangResources(Set.of());
+        }
+    }
 
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(NetconfService.class);
