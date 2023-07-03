@@ -182,6 +182,9 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
             case "edit" -> this.applyEditRequest(request);
             case "edit-config" -> this.applyEditConfigRequest(request);
 
+            case "lock" -> this.applyLockRequest(request);
+            case "unlock" -> this.applyUnlockRequest(request);
+
             default -> null;
 
         }).map(futureResponseData -> {
@@ -444,5 +447,17 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
 
         }).thenCompose(xmlReader -> FutureConverter.toCompletableFuture(super.yangPool().writeOperationalDataFrom(xmlReader))
                 .thenApply(ignoredCommitInfos -> Optional.empty()));
+    }
+
+    @Nonnull
+    CompletableFuture<Optional<Element>> applyLockRequest(@Nonnull final XmlElement request) {
+        return CompletableFuture.supplyAsync(() -> Optional.of(RESPONSE_BUILDER.newDocument()
+                .createElementNS(XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0, "ok")));
+    }
+
+    @Nonnull
+    CompletableFuture<Optional<Element>> applyUnlockRequest(@Nonnull final XmlElement request) {
+        return CompletableFuture.supplyAsync(() -> Optional.of(RESPONSE_BUILDER.newDocument()
+                .createElementNS(XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0, "ok")));
     }
 }
