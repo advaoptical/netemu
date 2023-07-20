@@ -254,10 +254,18 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
     private final InMemoryDOMDataStore operationalStore;
 
     @NonNull
+    private final CurrentAdapterSerializer serializer;
+
+    @NonNull
+    public CurrentAdapterSerializer serializer() {
+        return this.serializer;
+    }
+
+    @NonNull
     private final BindingDOMDataBrokerAdapter broker;
 
     @NonNull
-    public DataBroker getDataObjectBroker() {
+    public BindingDOMDataBrokerAdapter getDataObjectBroker() {
         return this.broker;
     }
 
@@ -322,6 +330,24 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
     @NonNull
     private final List<YangListBindable> yangListBindableRegistry = Collections.synchronizedList(new ArrayList<>());
 
+    @NonNull
+    private final AtomicReference<NetEmu> netEmu = new AtomicReference<>();
+
+    @NonNull
+    public Optional<NetEmu> getNetEmu() {
+        return Optional.ofNullable(this.netEmu.get());
+    }
+
+    @NonNull
+    public NetEmu requireNetEmu() {
+        return this.getNetEmu().orElseThrow(() -> new NoSuchElementException(String.format("%s has no %s instance attached",
+                this, NetEmu.class)));
+    }
+
+    public void setNetEmu(@NonNull final NetEmu netEmu) {
+        this.netEmu.set(netEmu);
+    }
+
     public YangPool(@NonNull final String id, @NonNull final YangModuleInfo... modules) {
         this(id, List.of(modules));
     }
@@ -374,8 +400,9 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         @NonNull final var runtimeContext = BindingRuntimeHelpers.createRuntimeContext(
                 StreamEx.of(this.modules).map(YangModuleInfo::getClass).toArray(Class[]::new));
 
+        @NonNull final var adapterSerializer = this.serializer = new CurrentAdapterSerializer(new BindingCodecContext(
+                runtimeContext));
 
-        @NonNull final var adapterSerializer = new CurrentAdapterSerializer(new BindingCodecContext(runtimeContext));
         @NonNull final var adapterContext = new AdapterContext() {
 
             @NonNull @Override

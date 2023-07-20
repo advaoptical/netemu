@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -73,13 +74,13 @@ public class NetEmu extends VerticalLayout {
     private final YangPool pool;
 
     @Nonnull
-    public YangPool getYangPool() {
+    public YangPool yangPool() {
         return this.pool;
     }
 
     @Nonnull
     public String id() {
-        return this.getYangPool().id();
+        return this.yangPool().id();
     }
 
     public static class UiTab extends Tab {
@@ -106,6 +107,24 @@ public class NetEmu extends VerticalLayout {
         return this.uiDrawerTab;
     }
 
+    @Nonnull
+    private final AtomicReference<EmuDriver> activeDriverSession = new AtomicReference<>();
+
+    @Nonnull
+    public Optional<EmuDriver> getActiveDriverSession() {
+        return Optional.ofNullable(this.activeDriverSession.get());
+    }
+
+    @Nonnull
+    public EmuDriver requireActiveDriverSession() {
+        return this.getActiveDriverSession().orElseThrow(() -> new NoSuchElementException(String
+                .format("%s has no active %s session", this, EmuDriver.class)));
+    }
+
+    public void setActiveDriverSession(@Nonnull final EmuDriver session) {
+        this.activeDriverSession.set(session);
+    }
+
     public static final class RegisteredDriver<D extends EmuDriver> {
 
         @Nonnull
@@ -121,15 +140,19 @@ public class NetEmu extends VerticalLayout {
 
         @Nonnull
         public D newSessionFrom(@Nonnull final EmuDriver.Settings<D> settings) {
+            @Nonnull final D session;
             try {
-                return driverClass.getDeclaredConstructor(YangPool.class, EmuDriver.Settings.class)
-                        .newInstance(this.netEmu.getYangPool(), settings);
+                session = driverClass.getDeclaredConstructor(YangPool.class, EmuDriver.Settings.class)
+                        .newInstance(this.netEmu.yangPool(), settings);
 
             } catch (final
                     NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
 
                 throw new RuntimeException(e);
             }
+
+            this.netEmu.setActiveDriverSession(session);
+            return session;
         }
     }
 
@@ -301,6 +324,8 @@ public class NetEmu extends VerticalLayout {
 
     protected NetEmu(@Nonnull final YangPool pool) {
         this.pool = pool;
+        pool.setNetEmu(this);
+
         super.add(pool);
         super.setSizeFull();
 
