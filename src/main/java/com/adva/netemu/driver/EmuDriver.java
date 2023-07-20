@@ -1,17 +1,22 @@
 package com.adva.netemu.driver;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.FluentFuture;
 
+import org.opendaylight.yangtools.yang.binding.DataObject;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.common.RpcError;
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
 import com.adva.netemu.YangBinding;
+import com.adva.netemu.YangData;
 import com.adva.netemu.YangPool;
 
 
@@ -84,4 +89,9 @@ public abstract class EmuDriver {
     public FluentFuture<List<CommitInfo>> fetchOperationalData() {
         return this.fetchOperationalData(YangInstanceIdentifier.empty());
     }
+
+    @Nonnull
+    public abstract <Y extends DataObject> CompletableFuture<RpcError> pushConfigurationData(
+            @Nonnull final InstanceIdentifier<Y> iid,
+            @Nonnull final YangData<Y> data);
 }
