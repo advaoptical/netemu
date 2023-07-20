@@ -6,7 +6,12 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 
 
-public interface YangListBindable {
+public interface YangListBindable extends YangBindable {
+
+    @Nonnull @Override
+    default Optional<YangBinding<?, ?>> getYangBinding() {
+        return this.getYangListBinding().map(YangBinding.class::cast);
+    }
 
     @Nonnull
     Optional<YangListBinding<?, ?, ?>> getYangListBinding();
