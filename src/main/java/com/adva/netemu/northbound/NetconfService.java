@@ -128,7 +128,7 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
 
         @Nonnull final var netconf = new NetconfDeviceSimulator(super.settings()
                 .setCapabilities(Set.of(
-                        XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0,
+                        // XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0,
                         XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_1))
 
                 .setModels(Set.copyOf(super.yangPool().getModules()))
@@ -175,15 +175,18 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
         replyElement.setAttribute(XmlNetconfConstants.MESSAGE_ID, id);
 
         return Optional.ofNullable(switch (request.getName()) {
-            case "get" -> this.applyGetRequest(request);
-            case "get-config" -> this.applyGetConfigRequest(request);
-            case "get-schema" -> this.applyGetSchemaRequest(request);
+            case "get" -> this.applyGetRequest(request, namespace);
+            case "get-config" -> this.applyGetConfigRequest(request, namespace);
+            case "get-schema" -> this.applyGetSchemaRequest(request, namespace);
 
-            case "edit" -> this.applyEditRequest(request);
-            case "edit-config" -> this.applyEditConfigRequest(request);
+            case "edit" -> this.applyEditRequest(request, namespace);
+            case "edit-config" -> this.applyEditConfigRequest(request, namespace);
 
-            case "lock" -> this.applyLockRequest(request);
-            case "unlock" -> this.applyUnlockRequest(request);
+            case "commit" -> this.applyCommitRequest(request, namespace);
+            case "discard-changes" -> this.applyDiscardChangesRequest(request, namespace);
+
+            case "lock" -> this.applyLockRequest(request, namespace);
+            case "unlock" -> this.applyUnlockRequest(request, namespace);
 
             default -> null;
 
@@ -221,7 +224,10 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
     }
 
     @Nonnull
-    CompletableFuture<Optional<Element>> applyGetConfigRequest(@Nonnull @SuppressWarnings({"unused"}) final XmlElement request) {
+    CompletableFuture<Optional<Element>> applyGetConfigRequest(
+            @Nonnull final XmlElement ignoredRequest,
+            @Nonnull final String ignoredReplyNamespace) {
+
         return FutureConverter.toCompletableFuture(super.yangPool().readConfigurationData()).thenApplyAsync(data ->
                 data.map(yangNode -> {
                     @Nonnull final var xmlByteStream = new ByteArrayOutputStream();
@@ -266,7 +272,10 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
     }
 
     @Nonnull
-    CompletableFuture<Optional<Element>> applyGetRequest(@Nonnull @SuppressWarnings({"unused"}) final XmlElement request) {
+    CompletableFuture<Optional<Element>> applyGetRequest(
+            @Nonnull final XmlElement ignoredRequest,
+            @Nonnull final String ignoredReplyNamespace) {
+
         return FutureConverter.toCompletableFuture(super.yangPool().readOperationalData()).thenApplyAsync(data ->
                 data.map(yangNode -> {
                     @Nonnull final var xmlByteStream = new ByteArrayOutputStream();
@@ -311,7 +320,10 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
     }
 
     @Nonnull
-    private CompletableFuture<Optional<Element>> applyGetSchemaRequest(@Nonnull final XmlElement request) {
+    private CompletableFuture<Optional<Element>> applyGetSchemaRequest(
+            @Nonnull final XmlElement request,
+            @Nonnull final String ignoredReplyNamespace) {
+
         return CompletableFuture.supplyAsync(() -> {
 
             @Nonnull final String identifier;
@@ -352,7 +364,10 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
     }
 
     @Nonnull
-    CompletableFuture<Optional<Element>> applyEditConfigRequest(@Nonnull final XmlElement request) {
+    CompletableFuture<Optional<Element>> applyEditConfigRequest(
+            @Nonnull final XmlElement request,
+            @Nonnull final String ignoredReplyNamespace) {
+
         return CompletableFuture.supplyAsync(() -> {
             // @Nonnull final XmlElement target;
             try {
@@ -401,7 +416,10 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
     }
 
     @Nonnull
-    CompletableFuture<Optional<Element>> applyEditRequest(@Nonnull final XmlElement request) {
+    CompletableFuture<Optional<Element>> applyEditRequest(
+            @Nonnull final XmlElement request,
+            @Nonnull final String ignoredReplyNamespace) {
+
         return CompletableFuture.supplyAsync(() -> {
             // @Nonnull final XmlElement target;
             try {
@@ -450,14 +468,38 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
     }
 
     @Nonnull
-    CompletableFuture<Optional<Element>> applyLockRequest(@Nonnull final XmlElement request) {
+    CompletableFuture<Optional<Element>> applyCommitRequest(
+            @Nonnull final XmlElement ignoredRequest,
+            @Nonnull final String replyNamespace) {
+
         return CompletableFuture.supplyAsync(() -> Optional.of(RESPONSE_BUILDER.newDocument()
-                .createElementNS(XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0, "ok")));
+                .createElementNS(replyNamespace, "ok")));
     }
 
     @Nonnull
-    CompletableFuture<Optional<Element>> applyUnlockRequest(@Nonnull final XmlElement request) {
+    CompletableFuture<Optional<Element>> applyDiscardChangesRequest(
+            @Nonnull final XmlElement ignoredRequest,
+            @Nonnull final String replyNamespace) {
+
         return CompletableFuture.supplyAsync(() -> Optional.of(RESPONSE_BUILDER.newDocument()
-                .createElementNS(XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0, "ok")));
+                .createElementNS(replyNamespace, "ok")));
+    }
+
+    @Nonnull
+    CompletableFuture<Optional<Element>> applyLockRequest(
+            @Nonnull final XmlElement ignoredRequest,
+            @Nonnull final String replyNamespace) {
+
+        return CompletableFuture.supplyAsync(() -> Optional.of(RESPONSE_BUILDER.newDocument()
+                .createElementNS(replyNamespace, "ok")));
+    }
+
+    @Nonnull
+    CompletableFuture<Optional<Element>> applyUnlockRequest(
+            @Nonnull final XmlElement ignoredRequest,
+            @Nonnull final String replyNamespace) {
+
+        return CompletableFuture.supplyAsync(() -> Optional.of(RESPONSE_BUILDER.newDocument()
+                .createElementNS(replyNamespace, "ok")));
     }
 }
