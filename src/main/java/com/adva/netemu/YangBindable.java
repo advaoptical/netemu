@@ -15,4 +15,24 @@ public interface YangBindable {
     default YangBinding<?, ?> requireYangBinding() {
         return this.getYangBinding().orElseThrow(() -> new NoSuchElementException(String.format("%s has no YANG binding", this)));
     }
+
+    @Nonnull
+    default Optional<YangPool> getYangPool() {
+        return this.getYangBinding().flatMap(YangBinding::getYangPool);
+    }
+
+    @Nonnull
+    default YangPool requireYangPool() {
+        return this.requireYangBinding().requireYangPool();
+    }
+
+    @Nonnull
+    default Optional<NetEmu> getNetEmu() {
+        return this.getYangPool().flatMap(YangPool::getNetEmu);
+    }
+
+    @Nonnull
+    default NetEmu requireNetEmu() {
+        return this.requireYangPool().requireNetEmu();
+    }
 }
