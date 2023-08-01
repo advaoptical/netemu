@@ -4,6 +4,7 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnegative;
@@ -20,6 +21,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
+
+import org.opendaylight.yangtools.yang.binding.DataObject;
+import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.common.RpcError;
 import org.opendaylight.yangtools.yang.common.Empty;
 import org.opendaylight.yangtools.yang.common.QName;
 
@@ -51,6 +56,7 @@ import org.opendaylight.netconf.sal.connect.netconf.util.NetconfMessageTransform
 import org.opendaylight.netconf.util.NetconfUtil;
 
 import com.adva.netemu.YangBindable;
+import com.adva.netemu.YangData;
 import com.adva.netemu.YangPool;
 import com.adva.netemu.driver.EmuDriver;
 
@@ -268,6 +274,22 @@ public class NetconfDriver extends EmuDriver {
         }, this.executor);
     }
     */
+
+    @Nonnull @Override
+    public <Y extends DataObject> CompletableFuture<RpcError> pushConfigurationData(
+            @Nonnull final InstanceIdentifier<Y> iid,
+            @Nonnull final YangData<Y> data) {
+
+        return CompletableFuture.supplyAsync(() -> data.map(dataObject -> {
+            @Nonnull final var yangNodeEntry = this.yangPool().serializer().toNormalizedNode(iid, dataObject);
+            @Nonnull final var response = this.request(this.transformer.toRpcRequest(
+                    NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_QNAME,
+                    yangNodeEntry.getValue()));
+
+            return (RpcError) null;
+
+        }).orElse(null));
+    }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final NormalizedNode data) {
