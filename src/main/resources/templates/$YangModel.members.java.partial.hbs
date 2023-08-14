@@ -52,6 +52,13 @@
         return FluentFuture.from(Futures.immediateFuture(this.data.get()));
     }
 
+    @Nonnull
+    public CompletableFuture<RpcError> pushConfigurationData(@Nonnull final Function<Builder, Builder> dataProvider) {
+
+        return this.requireNetEmu().requireActiveDriverSession().pushConfigurationData(this.yangBinding.getIid(), YangData
+            .of(dataProvider.apply(new Builder()).build()));
+    }
+
 {{~#each yangDataGetters}}
     {{#if this.valueIsList}}
         {{#if this.valueHasBuilder}}
