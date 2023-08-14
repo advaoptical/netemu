@@ -69,9 +69,17 @@ public abstract class EmuDriver {
     protected final Executor executor = new ScheduledThreadPoolExecutor(0);
     */
 
-    protected EmuDriver(@Nonnull final YangPool pool, @Nonnull final Settings<? extends EmuDriver> settings) {
+    protected final boolean dryRun;
+
+    protected EmuDriver(
+            @Nonnull final YangPool pool,
+            @Nonnull final Settings<? extends EmuDriver> settings,
+            @Nonnull final Boolean dryRun) {
+
         this.yangPool = pool;
         this.settings = settings;
+
+        this.dryRun = dryRun;
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})

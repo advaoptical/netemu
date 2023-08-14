@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 
@@ -140,23 +141,43 @@ public class NetconfDriver extends EmuDriver {
     @Nonnull
     private static final YangParserFactory YANG_PARSER_FACTORY = new DefaultYangParserFactory();
 
-    @Nonnull
+    @Nullable
     private final InetSocketAddress address;
 
-    @Nonnull
+    @Nullable
     private final AuthenticationHandler authentication;
 
     @Nonnull
     private final NetconfMessageTransformer transformer;
 
-    @Nonnull
+    @Nullable
     private final NetconfClientSession session;
 
     @Nonnull
     private final SimpleNetconfClientSessionListener listener = new SimpleNetconfClientSessionListener();
 
-    public NetconfDriver(@Nonnull final YangPool pool, @Nonnull final EmuDriver.Settings<NetconfDriver> settings) {
-        super(pool, settings);
+    public NetconfDriver(
+            @Nonnull final YangPool pool,
+            @Nonnull final EmuDriver.Settings<NetconfDriver> settings,
+            @Nonnull final Boolean dryRun) {
+
+        super(pool, settings, dryRun);
+
+        try {
+            this.transformer = new NetconfMessageTransformer(
+                    new EmptyMountPointContext(pool.getEffectiveModelContext()), true, // true -> strict message parsing
+                    new DefaultBaseNetconfSchemas(YANG_PARSER_FACTORY).getBaseSchemaWithNotifications());
+
+        } catch (final YangParserException e) {
+            throw new RuntimeException(String.format("Failed creating instance of %s", NetconfMessageTransformer.class), e);
+        }
+
+        if (dryRun) {
+            this.address = null;
+            this.authentication = null;
+            this.session = null;
+            return;
+        }
 
         @Nonnull final var netconfSettings = (Settings) settings;
         this.address = new InetSocketAddress(netconfSettings.getHost(), netconfSettings.getPort());
@@ -179,15 +200,6 @@ public class NetconfDriver extends EmuDriver {
 
         } catch (final InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
-        }
-
-        try {
-            this.transformer = new NetconfMessageTransformer(
-                    new EmptyMountPointContext(pool.getEffectiveModelContext()), true, // true -> strict message parsing
-                    new DefaultBaseNetconfSchemas(YANG_PARSER_FACTORY).getBaseSchemaWithNotifications());
-
-        } catch (final YangParserException e) {
-            throw new RuntimeException(String.format("Failed creating instance of %s", NetconfMessageTransformer.class), e);
         }
     }
 
@@ -220,6 +232,10 @@ public class NetconfDriver extends EmuDriver {
 
         @Nonnull final var response = this.request(message);
 
+        if (super.dryRun) {
+            return FluentFuture.from(Futures.immediateFuture(List.of()));
+        }
+
         LOG.info("Applying NETCONF response from {}@{}", this.authentication.getUsername(), this.address);
         try {
             return this.yangPool().writeConfigurationDataFrom(XML_INPUT_FACTORY.createXMLStreamReader(new StringReader(
@@ -250,6 +266,10 @@ public class NetconfDriver extends EmuDriver {
                         .build());
 
         @Nonnull final var response = this.request(message);
+
+        if (super.dryRun) {
+            return FluentFuture.from(Futures.immediateFuture(List.of()));
+        }
 
         LOG.info("Applying NETCONF response from {}@{}", this.authentication.getUsername(), this.address);
         try {
@@ -299,6 +319,11 @@ public class NetconfDriver extends EmuDriver {
 
     @Nonnull
     private NetconfMessage request(@Nonnull final NetconfMessage message) {
+        if (super.dryRun) {
+            LOG.info("Dry run NETCONF request to {}@{}:\n{}", this.authentication.getUsername(), this.address, message);
+            return new NetconfMessage();
+        }
+
         LOG.info("Sending NETCONF request to {}@{}:\n{}", this.authentication.getUsername(), this.address, message);
 
         @Nonnull final var futureResponse = this.listener.sendRequest(message);
