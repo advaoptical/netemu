@@ -142,11 +142,28 @@ public class NetEmu extends VerticalLayout {
         public D newSessionFrom(@Nonnull final EmuDriver.Settings<D> settings) {
             @Nonnull final D session;
             try {
-                session = driverClass.getDeclaredConstructor(YangPool.class, EmuDriver.Settings.class)
-                        .newInstance(this.netEmu.yangPool(), settings);
+                session = driverClass.getDeclaredConstructor(YangPool.class, EmuDriver.Settings.class, Boolean.class)
+                        .newInstance(this.netEmu.yangPool(), settings, /* dryRun = */ false);
 
             } catch (final
                     NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+
+                throw new RuntimeException(e);
+            }
+
+            this.netEmu.setActiveDriverSession(session);
+            return session;
+        }
+
+        @Nonnull
+        public D newDryRunSessionFrom(@Nonnull final EmuDriver.Settings<D> settings) {
+            @Nonnull final D session;
+            try {
+                session = driverClass.getDeclaredConstructor(YangPool.class, EmuDriver.Settings.class, Boolean.class)
+                        .newInstance(this.netEmu.yangPool(), settings, /* dryRun = */ true);
+
+            } catch (final
+            NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
 
                 throw new RuntimeException(e);
             }
