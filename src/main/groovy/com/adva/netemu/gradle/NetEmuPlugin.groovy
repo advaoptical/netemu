@@ -11,7 +11,7 @@ import org.codehaus.plexus.util.FileUtils
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.plugins.JavaPluginExtension
 
 import org.opendaylight.yangtools.yang2sources.plugin.NetEmuYangToSourcesProcessor
 
@@ -32,14 +32,25 @@ class NetEmuPlugin implements Plugin<Project> {
     void apply(@Nonnull final Project project) {
         @Nonnull final extension = project.extensions.create 'netEmu', NetEmuExtension
 
+        @Nonnull final buildDir = project.layout.buildDirectory.asFile.get()
+
+        /*  Updated to use JavaPluginExtension instead of Gradle 8+ deprecated JavaPluginConvention - according to:
+
+            https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#java_convention_deprecation
+            https://docs.gradle.org/8.4/dsl/org.gradle.api.plugins.JavaPluginExtension.html
+            */
+
+        @Nonnull final javaExtension = project.extensions['java'] as JavaPluginExtension
+        @Nonnull final javaSources = javaExtension.sourceSets.named 'main' get() java
+
         @Nonnull final mavenProject = new MavenProject()
         mavenProject.file = project.buildFile.canonicalFile
-        mavenProject.build.directory = project.buildDir as String
-        mavenProject.build.sourceDirectory = project.rootDir.toPath() resolve(
-                (project.sourceSets.main.java.source as List)[0] as String) toString()
+        mavenProject.build.directory = buildDir as String
+        mavenProject.build.sourceDirectory = /* project.rootDir.toPath() resolve */ javaSources.getAsPath() // toString()
+                // (project.sourceSets.main.java.source as List)[0] as String) toString()
 
-        @Nonnull final yangToSourcesTask = project.tasks.create('yangToSources').doFirst {
-            @Nonnull final buildRoot = project.buildDir.toPath()
+        @Nonnull final yangToSourcesTask = project.tasks.register('yangToSources') {
+            @Nonnull final buildRoot = buildDir.toPath()
             @Nonnull final resourcesPath = buildRoot.resolve "resources/main"
 
             @Nonnull final mavenGeneratedSourcesPath = buildRoot.resolve "generated-sources"
@@ -176,18 +187,17 @@ class NetEmuPlugin implements Plugin<Project> {
                     .replaceAll "^\\P{ASCII}+", ""
             }
 
-            @Nonnull final javaConvention = project.convention.plugins['java'] as JavaPluginConvention
-            javaConvention.sourceSets['main'].java.srcDirs += [mdSalOutputPath.toString(), netEmuOutputPath.toString()]
+            javaSources.srcDirs += [mdSalOutputPath.toString(), netEmuOutputPath.toString()]
 
-        }.dependsOn project.tasks['processResources']
+        } get() dependsOn (project.tasks.named 'processResources')
 
-        project.tasks['compileJava'].doFirst {
+        project.tasks.named 'compileJava' get() doFirst {
             @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile
             if (pythonYangModelsFile != null) {
                 @Nonnull final pythonYangModelsFilePath = project.rootDir.toPath().resolve pythonYangModelsFile.toPath()
                 pythonYangModelsFilePath.text = ""
             }
 
-        }.dependsOn yangToSourcesTask
+        } dependsOn yangToSourcesTask
     }
 }
