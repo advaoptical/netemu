@@ -1,54 +1,54 @@
 NETEMU
 ======
 
-![](https://www.adva.com/-/media/adva-main-site/logo)
+[![](Adtran.svg)](https://adtran.com)
 > **NE**tworking **T**echnologies' **E**nhanced **M**anagement **U**tilities
 
-[ADVAnced](https://adva.com) Java/YANG **Rapid Development Framework for Lightweight SDN Applications**, featuring:
+[Advanced](https://adtran.com/en/about-us/advanced-technology) Java/YANG **Rapid Development Framework** for **Lightweight SDN Applications**, featuring:
 
-* [OpenDaylight](https://www.opendaylight.org) libraries at its core
-* MD-SAL/ADVAnced code generation from YANG models using Java annotations
-* Clean, declarative, event-based, functional, asynchronous APIs for YANG-bound data flow
-* [CPython](https://www.python.org)-integration via [Jep](https://pypi.org/project/jep) for interactive data analysis and automation scripting, including support for [Jupyter](https://jupyter.org) notebooks
-* [React/Native](https://reactnative.dev)-integration with focus on [Expo](https://expo.io) for Android/iOS/Web cross-platform frontend development
+* [OpenDaylight](https://opendaylight.org)-libraries at its core
+* MD-SAL/Advanced code generation, defined by YANG models, controlled by Java annotations
+* Clean, declarative, event-based, functional, asynchronous Java APIs for `@YangBound` data flow
+* [CPython](https://python.org)-integration via [Jep](https://pypi.org/project/jep) for interactive data analysis and automation scripting, including support for [Jupyter](https://jupyter.org) notebooks
+* [React/Native](https://reactnative.dev)-integration, targeting [Expo](https://expo.io), for Android, iOS, and Web cross-platform frontend development
 * Completely [Gradle](https://gradle.org)-managed application life-cycles
 
 ### Prepare your development environment for NETEMU
 
-Make sure to have OpenJDK 11 or 13, Gradle 6.0+, [Groovy](https://groovy-lang.org) 3.0+, and [Maven](https://maven.apache.org) 3.6+ installed. Recommended installation sources are:
+Make sure to have JDK 17 or 19, Gradle 8.4+, [Groovy](https://groovy-lang.org) 4.0+, and [Maven](https://maven.apache.org) 3.8+ installed. Recommended installation sources are:
 
 * **GNU/Linux**: Your GNU/Linux distribution's package manager or [SDKMAN!](https://sdkman.io)
 * **Mac OSX**: [Homebrew](https://brew.sh) or [SDKMAN!](https://sdkman.io)
 * **Windows**: [Chocolatey](https://chocolatey.org)
 
-> NETEMU DOES NOT fully work with Java 15 yet
+> NETEMU DOES NOT fully work with Java 20+ yet
 
-[Intellij IDEA](https://www.jetbrains.com/idea) is NETEMU's preferred IDE. It has great Gradle integration, and its auto-completion works fast and smoothly with dynamic MD-SAL/ADVAnced code generation.
+[Intellij IDEA](https://jetbrains.com/idea) is NETEMU's preferred IDE. It has great Gradle integration, and its auto-completion works fast and smoothly with dynamic MD-SAL/Advanced code generation.
 
 > IF YOU PREFER OR PARALLELLY USE a terminal shell for managing your project, you should open a new terminal now and check your compiler and build tool versions again:
 
 * ```shell
   > java -version
-  openjdk 13.0.2 2020-01-14
+  openjdk version "17" ...
   ...
   ```
 
 * ```shell
   > gradle -version
   ------------------------------------------------------------
-  Gradle 6.2.1
+  Gradle 8.4
   ------------------------------------------------------------
   ...
   ```
 
 * ```shell
   > groovy -version
-  Groovy Version: 3.0.6 JVM: 13.0.2 Vendor: Oracle Corporation OS: Windows 10
+  Groovy Version: 4.0.15 ...
   ```
 
 * ```shell
   > mvn -version
-  Apache Maven 3.6.2 (40f52333136460af0dc0d7232c0dc0bcf0d9e117; 2019-08-27T17:06:16+02:00)
+  Apache Maven 3.9.5 ...
   ...
   ```
 
@@ -65,12 +65,13 @@ Clone NETEMU's Git repository including its Git submodules. This will automatica
 > IN A TERMINAL, this means running `git clone` with `--recurse-submodules` flag:
 
 * ```shell
-  > git clone git@gitlab.rd.advaoptical.com:AT/anden/netemu.git --recurse-submodules
+  > git clone git@github.com:advaoptical/netemu.git --recurse-submodules
   Cloning into 'netemu'...
   ...
   Cloning into '.../netemu/opendaylight-mdsal'...
   Cloning into '.../netemu/opendaylight-netconf'...
   Cloning into '.../netemu/opendaylight-yangtools'...
+  ...
   Submodule path 'opendaylight-mdsal': checked out '...'
   Submodule path 'opendaylight-netconf': checked out '...'
   Submodule path 'opendaylight-yangtools': checked out '...'
@@ -84,42 +85,42 @@ Clone NETEMU's Git repository including its Git submodules. This will automatica
   Cloning into '.../opendaylight-mdsal'...
   Cloning into '.../opendaylight-netconf'...
   Cloning into '.../opendaylight-yangtools'...
+  ...
   Submodule path 'opendaylight-mdsal': checked out '...'
   Submodule path 'opendaylight-netconf': checked out '...'
   Submodule path 'opendaylight-yangtools': checked out '...'
   ```
 
-NETEMU requires slight ADVAncements in some method implementations of a few OpenDaylight modules. Hence the forked repositories. These modules must be installed first, using convenient Gradle task `:mvnInstallOpenDaylightModules` (_shprtcut_ `mIODM`).
+NETEMU requires slight Advancements in some method implementations of a few OpenDaylight modules. Hence the forked repositories, which add `_x-ADVA` suffixes to their version numbers. These must be installed first, using Gradle task `:mvnInstallOpenDaylightModules` (_shortcut_ `mIODM`).
 
 > IN A TERMINAL, this must again be run from inside your `netemu` root directory:
 
 * ```shell
   path/to/netemu> gradle mvnInstallOpenDaylightModules
   ...
-  Task :mvnInstallYangDataUtil
+  Task :mvnInstallYangtools
   [INFO] Scanning for projects...
-  [INFO]
-  [INFO] ------------------------------------------------------------------------
-  [INFO] Building yang-data-util 5.0.7_1-ADVA
-  [INFO] ------------------------------------------------------------------------
+  ...
+  [INFO] Building yangtools-artifacts 9.0.5_1-ADVA
+  ...
+
+  Task :mvnInstallMdsal
+  [INFO] Scanning for projects...
   ...
   Task :mvnInstallYangDataCodecXml
   [INFO] Scanning for projects...
-  [INFO]
-  [INFO] ------------------------------------------------------------------------
-  [INFO] Building yang-data-codec-xml 5.0.7_1-ADVA
-  [INFO] ------------------------------------------------------------------------
   ...
-  Task :mvnInstallNetconfNettyUtil
+  [INFO] Building mdsal-artifacts 10.0.5_1-ADVA
+  ...
+
+  Task :mvnInstallNetconf
   [INFO] Scanning for projects...
-  [INFO]
-  [INFO] ------------------------------------------------------------------------
-  [INFO] Building netconf-netty-util 1.9.1_1-ADVA
-  [INFO] ------------------------------------------------------------------------
+  ...
+  [INFO] Building netconf-artifacts 4.0.4_1-ADVA
   ...
   ```
 
-Then, the NETEMU Java package itself can be installed using Gradle task `:publishToMavenLocal` (_shortcut_ `pTML`) from integrated [Maven Publish Plugin](https://docs.gradle.org/current/userguide/publishing_maven.html).
+Then, the main `com.adva:netemu` Java package is installable with Gradle task `:publishToMavenLocal` (_shortcut_ `pTML`) provided by [Maven Publish Plugin](https://docs.gradle.org/current/userguide/publishing_maven.html).
 
 > IN A TERMINAL, this means once more running `gradle` from inside your `netemu` root directory:
 
