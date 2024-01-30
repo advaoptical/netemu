@@ -83,7 +83,7 @@ dependencies {
     implementation "com.adva:netemu:0.1.0-SNAPSHOT"
     annotationProcessor "com.adva:netemu:0.1.0-SNAPSHOT"
 
-    testImplementation "org.spockframework:spock-core:2.0-M4-groovy-3.0"
+    testImplementation "org.spockframework:spock-core:2.4-M1-groovy-3.0"
 }
 
 compileJava {
@@ -103,7 +103,7 @@ compileJava {
 test {
     useJUnitPlatform()
     testLogging {
-        events "passed", "skipped", "failed"
+        events 'passed', 'skipped', 'failed'
     }
 }
 

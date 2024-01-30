@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets
 import javax.annotation.Nonnull
 
 import org.opendaylight.yangtools.yang.common.Revision
-import org.opendaylight.yangtools.yang.model.repo.api.RevisionSourceIdentifier
+import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier
 
 import org.opendaylight.netconf.api.xml.XmlNetconfConstants
 
@@ -13,85 +13,113 @@ import spock.lang.Specification
 
 import com.adva.netemu.testemu.NetEmuDefined
 
+import java.util.concurrent.ExecutionException
+
 
 class YangPoolSpec extends Specification {
 
     @Nonnull
-    def testYangPool = new YangPool("netemu-test", NetEmuDefined.YANG_MODULE_INFOS)
+    def testYangPool = new YangPool('netemu-test', NetEmuDefined.YANG_MODULE_INFOS)
 
-    def "Test .id() string"() {
+    def ".id() string equals construction parameter"() {
         expect:
-            this.testYangPool.id() == "netemu-test"
+        this.testYangPool.id() == 'netemu-test'
     }
 
-    def "Test elements of YANG .modules() set"() {
+    def "YANG .modules() set equals construction parameter"() {
         expect:
-            this.testYangPool.getModules() == NetEmuDefined.YANG_MODULE_INFOS
+        this.testYangPool.modules == NetEmuDefined.YANG_MODULE_INFOS
     }
 
-    def "Test immutability of YANG .modules() set by trying to add #module"() {
+    def "YANG .modules() are immutable; #module can't be added"() {
         when:
-            this.testYangPool.getModules().add module
+        this.testYangPool.modules.add module
 
         then:
-            thrown UnsupportedOperationException
+        thrown UnsupportedOperationException
 
         where:
-            module << [NetEmuDefined.YANG_MODULE_INFOS.first(), null]
+        module << [NetEmuDefined.YANG_MODULE_INFOS.first(), null]
     }
 
-    def "Test YANG module content from .getSource(#moduleName@#revisionString)"() {
+    def ".getSource(#moduleName@#revisionString) yields according YANG module content"() {
         given:
-            @Nonnull final identifier = RevisionSourceIdentifier.create(moduleName, Revision.of(revisionString))
-            @Nonnull final charset = StandardCharsets.US_ASCII
+        @Nonnull final identifier = new SourceIdentifier(moduleName, Revision.of(revisionString))
+        @Nonnull final charset = StandardCharsets.US_ASCII
 
         when:
-            @Nonnull final content = this.testYangPool.getSource(identifier).get().asCharSource(charset).read()
+        @Nonnull final content = this.testYangPool.getSource identifier get() asCharSource charset read()
 
         then:
-            content =~ /(?ms)^\s*module\s+${moduleName}\s+\{[\s\n]+.+\s+revision\s+${revisionString}\s+\{/
+        content =~ /(?ms)^\s*module\s+${moduleName}\s+\{[\s\n]+.+\s+revision\s+${revisionString}\s+\{/
 
         where:
-            moduleName        | revisionString
-            "iana-if-type"    | "2017-01-19"
-            "ietf-interfaces" | "2018-02-20"
-            "ietf-yang-types" | "2013-07-15"
+        moduleName        | revisionString
+        'iana-if-type'    | '2017-01-19'
+        'ietf-interfaces' | '2018-02-20'
+        'ietf-yang-types' | '2013-07-15'
     }
 
-    def "Test YANG modules from .getEffectiveModelContext()"() {
+    def ".getSource() throws when given YANG module not found"() {
         given:
-            @Nonnull final qNameModules = NetEmuDefined.YANG_MODULE_INFOS.collect { it.getName().getModule() } as Set
+        @Nonnull final identifier = new SourceIdentifier('unknown', Revision.of('2010-01-02'))
 
         when:
-            @Nonnull final modules = this.testYangPool.getEffectiveModelContext().getModules()
+        this.testYangPool.getSource identifier get()
 
         then:
-            modules.collect { it.getQNameModule() } as Set == qNameModules
+        final e = thrown ExecutionException
+        e.cause instanceof NoSuchElementException
     }
 
-    def "Test .readConfigurationData() from empty datastore"() {
+    def ".getSource() throws when YANG module revision is missing"() {
+        given:
+        @Nonnull final identifier = new SourceIdentifier('ietf-interfaces')
+
         when:
-            @Nonnull final data = this.testYangPool.readConfigurationData().get().get()
+        this.testYangPool.getSource identifier get()
 
         then:
-            @Nonnull final qName = data.getNodeType()
-            qName.getNamespace() as String == XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_NETCONF_BASE_1_0
-            qName.getLocalName() == "data"
-
-            @Nonnull final children = data.getValue() as Collection
-            children.isEmpty()
+        final e = thrown ExecutionException
+        e.cause instanceof NoSuchElementException
     }
 
-    def "Test .readOperationalData() from empty datastore"() {
+    def "YANG .modules from .effectiveModelContext match module infos from construction"() {
+        given:
+        @Nonnull final qNameModules = NetEmuDefined.YANG_MODULE_INFOS.collect { it.name.module } as Set
+
         when:
-            @Nonnull final data = this.testYangPool.readOperationalData().get().get()
+        @Nonnull final modules = this.testYangPool.effectiveModelContext.modules
 
         then:
-            @Nonnull final qName = data.getNodeType()
-            qName.getNamespace() as String == XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_NETCONF_BASE_1_0
-            qName.getLocalName() == "data"
+        modules.collect { it.QNameModule } as Set == qNameModules
+    }
 
-            @Nonnull final children = data.getValue() as Collection
-            children.isEmpty()
+    def ".readConfigurationData() from empty YANG datastore results in empty <data> node"() {
+        when:
+        @Nonnull final data = this.testYangPool.readConfigurationData().get().get()
+
+        then:
+        @Nonnull final qName = data.identifier.nodeType
+        qName.namespace as String == XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_NETCONF_BASE_1_0
+        qName.localName == 'data'
+
+        and:
+        @Nonnull final children = data.body() as Collection
+        children.empty
+    }
+
+    def ".readOperationalData() from empty YANG datastore results in empty <data> node"() {
+        when:
+        @Nonnull final data = this.testYangPool.readOperationalData().get().get()
+
+        then:
+        @Nonnull final qName = data.identifier.nodeType
+        qName.namespace as String == XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_NETCONF_BASE_1_0
+        qName.localName == 'data'
+
+        and:
+        @Nonnull final children = data.body() as Collection
+        children.empty
     }
 }

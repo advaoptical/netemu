@@ -83,8 +83,8 @@ dependencyManagement {
 
 dependencies {
     implementation gradleApi()
-    // implementation localGroovy()
-    implementation 'org.apache.groovy:groovy:4.0.15'
+    implementation localGroovy()
+    // implementation 'org.apache.groovy:groovy:4.0.17'
 
     api "com.vaadin:vaadin-core:${project.vaadinVersion}"
 
@@ -166,6 +166,9 @@ dependencies {
 
     // implementation "commons-io:commons-io:2.6"
     // testImplementation "junit", "junit", "4.12"
+
+    // testImplementation 'org.apache.groovy:groovy:4.0.17'
+    testImplementation 'org.spockframework:spock-core:2.4-M1-groovy-3.0'
 }
 
 publishing {
@@ -189,6 +192,11 @@ compileJava {
 
         options.compilerArgs += ['--add-exports', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"]
     }
+}
+
+
+test {
+    useJUnitPlatform()
 }
 
 

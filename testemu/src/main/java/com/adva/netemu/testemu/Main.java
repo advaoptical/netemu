@@ -13,7 +13,7 @@ public final class Main {
 
     public static void main(@Nonnull final String[] args) {
         @Nonnull final var testEmu = NetEmu.withId("testemu").fromYangModuleInfos(NetEmuDefined.YANG_MODULE_INFOS);
-        @Nonnull final var testYangPool = testEmu.getYangPool();
+        @Nonnull final var testYangPool = testEmu.yangPool();
 
         @Nonnull final var device = testYangPool.registerYangBindable(new TestDevice());
         // final var intf = device.getInterfaces().get(0);
