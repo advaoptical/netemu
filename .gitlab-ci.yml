@@ -1,0 +1,89 @@
+image: gitlab.rd.advaoptical.com:4567/at/anden/netemu/ci:latest
+
+
+variables:
+  GIT_CLEAN_FLAGS: none # ==> Intermediate files (build, test data, etc.) are kept across all jobs ==> No caching necessary
+
+
+before_script:
+  - echo "Activating Java ecosystem ..."
+  - source /root/.sdkman/bin/sdkman-init.sh
+
+  - export HOME="$(pwd)" ; echo $HOME
+  - export GRADLE_USER_HOME="$HOME/.gradle" ; echo $GRADLE_USER_HOME
+
+  - java -version
+  - gradle -version
+  - groovy -version
+  - mvn -version
+
+  # Git commands adapted from https://forum.gitlab.com/t/test-if-branch-is-behind-for-merge-request/73789
+  # and https://stackoverflow.com/a/65084420 ...
+  - >
+    if [ -n "$CI_COMMIT_BRANCH" ] ; then
+    echo "Switching from detached HEAD to actual branch, so Gradle plugin com.palantir.git-version can determine its name ..."
+    ; git switch $CI_COMMIT_BRANCH
+    ; git reset --hard '@{upstream}'
+    ; fi
+
+  # - gradle printVersion --quiet --stacktrace
+
+  - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
+  - mkdir -p /root/.m2 ; groovy .m2/settings.groovy > /root/.m2/settings.xml ; cat /root/.m2/settings.xml
+  - ls -x .m2/repository/
+
+
+Build/install ODL modules:
+  stage: .pre
+  tags:
+    - docker
+    - muc-vs-ae1
+
+  script:
+    - echo "Removing all untracked content from repository ..."
+    - git clean --force -dx
+
+    - echo "Checking out forked Jep & OpenDaylight submodules ..."
+    - git submodule update --init --recursive
+
+    - echo "Building and installing forked OpenDaylight submodules to Maven local repository ..."
+    - gradle mvnInstallOpenDaylightModules --info --stacktrace
+
+
+Build/install NETEMU:
+    stage: build
+    tags:
+      - docker
+      - muc-vs-ae1
+
+    script:
+      - echo "Building and installing NETEMU to Maven local repository ..."
+      - gradle publishToMavenLocal --build-cache --info --stacktrace
+
+
+Test NETEMU w/TESTEMU:
+  stage: test
+  tags:
+    - docker
+    - muc-vs-ae1
+
+  script:
+    - echo "Testing NETEMU using TESTEMU ..."
+    - cd testemu ; gradle test --build-cache --info --stacktrace
+
+
+Publish NETEMU to Artifactory:
+  stage: deploy
+  tags:
+    - docker
+    - muc-vs-ae1
+
+  script:
+    - >
+      if gradle properties --quiet --stacktrace | grep -P '^(release|snapshot):' ; then
+      echo "Publishing NETEMU ..."
+      ; gradle publish -PartifactoryToken="$ARTIFACTORY_TOKEN" --build-cache --info --stacktrace
+      ; echo "Application successfully deployed."
+      ; else
+      echo "Not publishing NETEMU, since it is neither marked as release nor snapshot!"
+      ; fi
