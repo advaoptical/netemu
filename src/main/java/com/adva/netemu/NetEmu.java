@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 
+import org.opendaylight.yangtools.concepts.Identifiable;
 import org.opendaylight.yangtools.yang.binding.YangModuleInfo;
 
 import org.opendaylight.mdsal.common.api.CommitInfo;
@@ -56,31 +57,52 @@ import com.adva.netemu.driver.EmuDriver;
 import com.adva.netemu.service.EmuService;
 
 
-public class NetEmu extends VerticalLayout {
+/** Manager of {@link YangPool} instances, attaching northbound services and southbound drivers. */
+public class NetEmu extends VerticalLayout implements Identifiable<String> {
 
+    /** Logger for {@link NetEmu} messages. */
     @Nonnull
     private static final Logger LOG = LoggerFactory.getLogger(NetEmu.class);
 
     @Nonnull
     private static final ClassGraph CLASS_GRAPH = new ClassGraph();
 
+    /** Provider of {@link XMLStreamReader} instances for loading YANG Data. */
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();
     static {
         XML_INPUT_FACTORY.setProperty(XMLInputFactory.IS_COALESCING, true);
     }
 
+    /** The managed {@link YangPool} instance. */
     @Nonnull
     private final YangPool pool;
 
+    /** Exposes managed {@link YangPool} instance.
+      *
+      * @return The pool instance.
+      */
     @Nonnull
     public YangPool yangPool() {
         return this.pool;
     }
 
+    /** Exposes the identifier of this instance.
+      *
+      * @return The unique, immutable identifier string.
+      */
     @Nonnull
     public String id() {
         return this.yangPool().id();
+    }
+
+    /** Exposes the identifier of this instance, according to {@link Identifiable}.
+      *
+      * @return The unique, immutable identifier string.
+      */
+    @Nonnull
+    public String getIdentifier() {
+        return this.id();
     }
 
     public static class UiTab extends Tab {
@@ -107,14 +129,24 @@ public class NetEmu extends VerticalLayout {
         return this.uiDrawerTab;
     }
 
+    /** The currently active {@link EmuDriver} session. */
     @Nonnull
     private final AtomicReference<EmuDriver> activeDriverSession = new AtomicReference<>();
 
+    /** Exposes the currently active {@link EmuDriver} session, if existing.
+      *
+      * @return The optional session instance.
+      */
     @Nonnull
     public Optional<EmuDriver> getActiveDriverSession() {
         return Optional.ofNullable(this.activeDriverSession.get());
     }
 
+    /** Exposes the currently active {@link EmuDriver} session, or throws if not existing.
+      *
+      * @return The session instance.
+      * @throws NoSuchElementException if no active session.
+      */
     @Nonnull
     public EmuDriver requireActiveDriverSession() {
         return this.getActiveDriverSession().orElseThrow(() -> new NoSuchElementException(String
