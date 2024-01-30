@@ -49,7 +49,7 @@ class NetEmuPlugin implements Plugin<Project> {
         mavenProject.build.sourceDirectory = /* project.rootDir.toPath() resolve */ javaSources.getAsPath() // toString()
                 // (project.sourceSets.main.java.source as List)[0] as String) toString()
 
-        @Nonnull final yangToSourcesTask = project.tasks.register('yangToSources') {
+        @Nonnull final yangToSourcesTask = project.tasks.register 'yangToSources' get() doLast {
             @Nonnull final buildRoot = buildDir.toPath()
             @Nonnull final resourcesPath = buildRoot.resolve "resources/main"
 
@@ -189,7 +189,7 @@ class NetEmuPlugin implements Plugin<Project> {
 
             javaSources.srcDirs += [mdSalOutputPath.toString(), netEmuOutputPath.toString()]
 
-        } get() dependsOn (project.tasks.named 'processResources')
+        } dependsOn (project.tasks.named 'processResources')
 
         project.tasks.named 'compileJava' get() doFirst {
             @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile
