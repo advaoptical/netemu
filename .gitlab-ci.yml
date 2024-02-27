@@ -60,6 +60,9 @@ Build/install NETEMU:
       - echo "Building and installing NETEMU to Maven local repository ..."
       - gradle publishToMavenLocal --build-cache --info --stacktrace
 
+      - echo "Removing bundled OpenDaylight modules from Maven local repository ..."
+      - rm --force --recursive .m2/repository/org/opendaylight
+
 
 Test NETEMU w/TESTEMU:
   stage: test

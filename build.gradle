@@ -32,7 +32,7 @@ java { /* Updated to use JavaPluginExtension instead of Gradle 8+ deprecated Jav
 }
 
 
-final def operatingSystem = DefaultNativePlatform.currentOperatingSystem
+final operatingSystem = DefaultNativePlatform.currentOperatingSystem
 
 /*
 ext.jepDir = [
@@ -80,6 +80,11 @@ dependencyManagement {
     }
 }
 */
+
+configurations.all { // Exclude transitive dependencies not available anymore and/or superceded by other modules ...
+
+    exclude group: 'com.bea.xml', module: 'jsr173-ri' // Superceded by javax.xml:jsr173
+}
 
 dependencies {
     implementation gradleApi()
@@ -133,32 +138,52 @@ dependencies {
     // api 'io.jooby:jooby-netty:2.16.1'
     // annotationProcessor 'io.jooby:jooby-apt:2.16.1'
 
-    // Needed by auto-generated MD-SAL Java code from YANG
+    // Needed by auto-generated MD-SAL Java code from YANG modules
     api 'com.google.code.findbugs:findbugs-annotations:3.0.1'
     api 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.2.700'
 
-    api 'org.opendaylight.yangtools:rfc7952-data-util:9.0.5_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-api:9.0.5_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-codec-gson:9.0.5_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-codec-xml:9.0.5_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-impl:9.0.5_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-data-util:9.0.5_1-ADVA'
-    api 'org.opendaylight.yangtools:yang-maven-plugin:9.0.5_1-ADVA'
+    /*  Add all transitive dependencies of customized OpenDaylight modules, so their *-ADVA releases can be bundled with NETEMU --
+        except when Gradle task :dependencies in executed, since its used to determine those transitive dependencies ...
+
+        (The check for executed task was adapted from https://discuss.gradle.org/t/how-to-get-current-tasks-info/24997/2)
+    */
+    if ('dependencies' !in project.gradle.startParameter.taskNames) {
+
+        // File is auto-created using ./opendaylight-dependencies.groovy
+        for (final line in (file 'opendaylight-dependencies.txt' readLines())) {
+            final dependency = line.trim(); if (dependency) {
+                api dependency
+            }
+        }
+    }
+
+    /*  And now define the customized OpenDaylight modules as mere compile dependencies, so during compilation & runtime of
+        NETEMU-dependent projects, those modules are not searched for in Maven repositories, but their contents (classes, etc.)
+        are simply accessed through NETEMU's own JAR (see :jar task configuration for details on bundling) ...
+    */
+
+    compileOnly 'org.opendaylight.yangtools:rfc7952-data-util:9.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.yangtools:yang-data-api:9.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.yangtools:yang-data-codec-gson:9.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.yangtools:yang-data-codec-xml:9.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.yangtools:yang-data-impl:9.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.yangtools:yang-data-util:9.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.yangtools:yang-maven-plugin:9.0.5_1-ADVA'
 
     // api 'org.opendaylight.mdsal:maven-sal-api-gen-plugin:10.0.5'
-    api 'org.opendaylight.mdsal:mdsal-binding-dom-adapter:10.0.5_1-ADVA'
-    api 'org.opendaylight.mdsal:mdsal-binding-dom-codec:10.0.5_1-ADVA'
-    api 'org.opendaylight.mdsal:mdsal-binding-java-api-generator:10.0.5_1-ADVA'
-    api 'org.opendaylight.mdsal:mdsal-dom-inmemory-datastore:10.0.5_1-ADVA'
-    api 'org.opendaylight.mdsal:yang-binding:10.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.mdsal:mdsal-binding-dom-adapter:10.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.mdsal:mdsal-binding-dom-codec:10.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.mdsal:mdsal-binding-java-api-generator:10.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.mdsal:mdsal-dom-inmemory-datastore:10.0.5_1-ADVA'
+    compileOnly 'org.opendaylight.mdsal:yang-binding:10.0.5_1-ADVA'
 
     // From ./opendaylight-mdsal/binding/yang-binding/target/
     // implementation ":yang-binding-3.0.3"
 
-    api 'org.opendaylight.netconf:netconf-client:4.0.4_1-ADVA'
-    api 'org.opendaylight.netconf:netconf-netty-util:4.0.4_1-ADVA'
-    api 'org.opendaylight.netconf:netconf-testtool:4.0.4_1-ADVA'
-    api 'org.opendaylight.netconf:restconf-nb:4.0.4_1-ADVA'
+    compileOnly 'org.opendaylight.netconf:netconf-client:4.0.4_1-ADVA'
+    compileOnly 'org.opendaylight.netconf:netconf-netty-util:4.0.4_1-ADVA'
+    compileOnly 'org.opendaylight.netconf:netconf-testtool:4.0.4_1-ADVA'
+    compileOnly 'org.opendaylight.netconf:restconf-nb:4.0.4_1-ADVA'
 
     // implementation ":netconf-testtool-1.7.0-executable"
 
@@ -169,6 +194,14 @@ dependencies {
 
     // testImplementation 'org.apache.groovy:groovy:4.0.17'
     testImplementation 'org.spockframework:spock-core:2.4-M1-groovy-3.0'
+}
+
+jar { // Bundle NETEMU's JAR with customized OpenDaylight modules -- technique adapted from https://stackoverflow.com/a/66910803
+    from {
+        configurations.compileClasspath.findAll { it.name.endsWith '-ADVA.jar' } collect { zipTree it }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 publishing {
@@ -203,7 +236,7 @@ test {
 tasks.register 'mvnInstallYangtools', Exec, {
     workingDir rootDir
     commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
-            "groovy", "mvn-yangtools.groovy", "--projects=-karaf", "install", "-DskipTests",
+            "groovy", "mvn-yangtools.groovy", "--batch-mode", "--projects=-karaf", "install", "-DskipTests",
             "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
 }
 
@@ -212,7 +245,7 @@ tasks.register 'mvnInstallMdsal', Exec, {
 
     workingDir rootDir
     commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
-            "groovy", "mvn-mdsal.groovy", "install", "-DskipTests",
+            "groovy", "mvn-mdsal.groovy", "--batch-mode", "install", "-DskipTests",
             "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
 }
 
@@ -222,7 +255,7 @@ tasks.register 'mvnInstallNetconf', Exec, {
 
     workingDir rootDir
     commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
-            "groovy", "mvn-netconf.groovy", "install", "-DskipTests",
+            "groovy", "mvn-netconf.groovy", "--batch-mode", "install", "-DskipTests",
             "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
 }
 
@@ -235,17 +268,17 @@ tasks.register 'mvnInstallOpenDaylightModules', {
 
 tasks.register 'mvnCleanYangtools', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yangtools.groovy", "clean"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yangtools.groovy", "--batch-mode", "clean"]
 }
 
 tasks.register 'mvnCleanMdsal', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-mdsal.groovy", "clean"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-mdsal.groovy", "--batch-mode", "clean"]
 }
 
 tasks.register 'mvnCleanNetconf', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf.groovy", "clean"]
+    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf.groovy", "--batch-mode", "clean"]
 }
 
 tasks.register 'mvnCleanOpenDaylightModules', {
