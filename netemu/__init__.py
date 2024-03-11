@@ -16,7 +16,7 @@
 
 from IPython import InteractiveShell
 
-from .pool import YANGPool
+# from .pool import YANGPool
 
 
 def load_ipython_extension(shell: InteractiveShell):
@@ -24,6 +24,12 @@ def load_ipython_extension(shell: InteractiveShell):
 
     shell.magics_manager.magics['line'].update({
         'emuconnect': magic.connect,
+        'emuedit': magic.edit,
         'emuget': magic.get,
+        'emureply': magic.reply,
         'emusave': magic.save,
+    })
+
+    shell.magics_manager.magics['cell'].update({
+        'emuedit': magic.edit,
     })
