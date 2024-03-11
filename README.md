@@ -97,7 +97,7 @@ NETEMU requires slight Advancements in some method implementations of a few Open
 
 * ```shell
   path/to/netemu> gradle mvnInstallOpenDaylightModules
-  ...
+
   Task :mvnInstallYangtools
   [INFO] Scanning for projects...
   ...
@@ -105,9 +105,6 @@ NETEMU requires slight Advancements in some method implementations of a few Open
   ...
 
   Task :mvnInstallMdsal
-  [INFO] Scanning for projects...
-  ...
-  Task :mvnInstallYangDataCodecXml
   [INFO] Scanning for projects...
   ...
   [INFO] Building mdsal-artifacts 10.0.5_1-ADVA
@@ -126,14 +123,18 @@ Then, the main `com.adva:netemu` Java package is installable with Gradle task `:
 
 * ```shell
   path/to/netmeu> gradle publishToMavenLocal
-  ...
+
   Task :compileJava
   ...
+
+  Task :publishPluginMavenPublicationToMavenLocal
+  ...
+
   BUILD SUCCESSFUL in ...
-  10 actionable tasks: 10 executed
+  13 actionable tasks: * executed, * up-to-date
   ```
 
-Everything is ready for starting your first EMU-Project or building, running, and contributing to existing EMU-Projects!
+Now, everything is ready for starting your first EMU-Project; or building, running, and contributing to existing EMU-Projects!
 
 ### Before you start coding... a quick NETMEU API overview
 
