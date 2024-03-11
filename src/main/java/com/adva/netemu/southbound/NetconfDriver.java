@@ -1,9 +1,12 @@
 package com.adva.netemu.southbound;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.InetSocketAddress;
+
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -12,6 +15,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
+import javax.xml.transform.dom.DOMResult;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -31,10 +35,16 @@ import org.opendaylight.yangtools.yang.common.QName;
 
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
+import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
+import org.opendaylight.yangtools.yang.data.api.schema.stream.YangInstanceIdentifierWriter;
+
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableChoiceNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableLeafNodeBuilder;
+import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
+import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 
+import org.opendaylight.yangtools.yang.model.api.SchemaPath;
 import org.opendaylight.yangtools.yang.parser.api.YangParserException;
 import org.opendaylight.yangtools.yang.parser.api.YangParserFactory;
 import org.opendaylight.yangtools.yang.parser.impl.DefaultYangParserFactory;
@@ -42,6 +52,9 @@ import org.opendaylight.yangtools.yang.parser.impl.DefaultYangParserFactory;
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
 import org.opendaylight.netconf.api.NetconfMessage;
+import org.opendaylight.netconf.api.util.NetconfConstants;
+import org.opendaylight.netconf.api.xml.XmlUtil;
+
 import org.opendaylight.netconf.client.NetconfClientDispatcherImpl;
 import org.opendaylight.netconf.client.NetconfClientSession;
 import org.opendaylight.netconf.client.SimpleNetconfClientSessionListener;
@@ -301,14 +314,76 @@ public class NetconfDriver extends EmuDriver {
             @Nonnull final YangData<Y> data) {
 
         return CompletableFuture.supplyAsync(() -> data.map(dataObject -> {
-            @Nonnull final var yangNodeEntry = this.yangPool().serializer().toNormalizedNode(iid, dataObject);
-            @Nonnull final var response = this.request(this.transformer.toRpcRequest(
+
+            @Nonnull final var netconfMessage = this.transformer.toRpcRequest(
                     NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_QNAME,
-                    yangNodeEntry.getValue()));
+                    ImmutableContainerNodeBuilder.create()
+                            .withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_CONFIG_NODEID)
+                            .build());
+
+            @Nonnull final var rpcDocument = netconfMessage.getDocument();
+            @Nonnull final var editConfigElement = rpcDocument.getDocumentElement().getFirstChild();
+
+            @Nonnull final var targetElement = XmlUtil.createElement(rpcDocument,
+                    NetconfMessageTransformUtil.NETCONF_TARGET_QNAME.getLocalName(),
+                    Optional.of(NetconfMessageTransformUtil.NETCONF_TARGET_QNAME.getNamespace().toString()));
+
+            targetElement.appendChild(XmlUtil.createElement(rpcDocument,
+                    NetconfMessageTransformUtil.NETCONF_RUNNING_QNAME.getLocalName(),
+                    Optional.of(NetconfMessageTransformUtil.NETCONF_RUNNING_QNAME.getNamespace().toString())));
+
+            @Nonnull final var configElement = XmlUtil.createElement(rpcDocument,
+                    NetconfMessageTransformUtil.NETCONF_CONFIG_QNAME.getLocalName(),
+                    Optional.of(NetconfMessageTransformUtil.NETCONF_CONFIG_QNAME.getNamespace().toString()));
+
+            @Nonnull final var yangContext = super.yangPool().getEffectiveModelContext();
+            @Nonnull final var yangSerializer = super.yangPool().serializer();
+
+            @Nonnull final var yangNodeEntry = yangSerializer.toNormalizedNode(iid, dataObject);
+            @Nonnull final var yangNodeResult = new NormalizedNodeResult();
+
+            try { /* Adapted from NetconfMessageTransformUtil.createEditConfigAnyxml()
+                    ... */
+
+                try (@Nonnull final var streamWriter = ImmutableNormalizedNodeStreamWriter.from(yangNodeResult)) {
+                    try (
+                            @Nonnull final var yangPathWriter = YangInstanceIdentifierWriter.open(streamWriter, yangContext,
+                                    yangSerializer.toYangInstanceIdentifier(iid).coerceParent());
+
+                            @Nonnull final var yangNodeWriter = NormalizedNodeWriter.forStreamWriter(streamWriter)) {
+
+                        yangNodeWriter.write(yangNodeEntry.getValue());
+                    }
+                }
+
+                NetconfUtil.writeNormalizedNode(yangNodeResult.getResult(), null, new DOMResult(configElement),
+                        SchemaPath.ROOT,
+                        yangContext);
+
+            } catch (final IOException | XMLStreamException e) {
+                throw new RuntimeException(e);
+            }
+
+            editConfigElement.appendChild(targetElement);
+            editConfigElement.appendChild(configElement);
+            @Nonnull final var response = this.request(netconfMessage);
+
+            if (!super.dryRun) {
+                LOG.info("NETCONF response from {}@{}: {}", this.authentication.getUsername(), this.address, response);
+            }
 
             return (RpcError) null;
 
-        }).orElse(null));
+        }).orElse(null)).exceptionallyAsync(e -> {
+            if (super.dryRun) {
+                LOG.error("Failed dry-run pushing CONFIGURATION Data: {}", iid, e);
+
+            } else {
+                LOG.error("Failed pushing CONFIGURATION Data to {}: {}", this.address, iid, e);
+            }
+
+            return (RpcError) null;
+        });
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
@@ -320,7 +395,7 @@ public class NetconfDriver extends EmuDriver {
     @Nonnull
     private NetconfMessage request(@Nonnull final NetconfMessage message) {
         if (super.dryRun) {
-            LOG.info("Dry run NETCONF request to {}@{}:\n{}", this.authentication.getUsername(), this.address, message);
+            LOG.info("Dry-run NETCONF request:\n{}", message);
             return new NetconfMessage();
         }
 
