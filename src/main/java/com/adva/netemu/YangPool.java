@@ -286,7 +286,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
         @NonNull @Override
         public DOMTransactionChain createTransactionChain(@NonNull final DOMTransactionChainListener listener) {
-            log.info("Updating {} Datastore from {} Datastore", LogicalDatastoreType.OPERATIONAL,
+            LOG.info("Updating {} Datastore from {} Datastore", LogicalDatastoreType.OPERATIONAL,
                     LogicalDatastoreType.CONFIGURATION);
 
             @NonNull final var updatingFuture = this.yangPool.readConfigurationData().transformAsync(config -> Futures
@@ -297,7 +297,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             @NonNull final var yangBindingRegistry = this.yangPool.yangBindingRegistry;
             try {
                 synchronized (yangBindingRegistry) {
-                    log.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.OPERATIONAL,
+                    LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.OPERATIONAL,
                             yangBindingRegistry.size());
 
                     updatingFuture.transformAsync(ignoredCommitInfos -> this.yangPool
@@ -305,7 +305,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                 }
 
             } catch (final InterruptedException | ExecutionException e) {
-                log.error("Failed updating {} Datastore from registered bindings", LogicalDatastoreType.OPERATIONAL,
+                LOG.error("Failed updating {} Datastore from registered bindings", LogicalDatastoreType.OPERATIONAL,
                         e.getCause());
             }
 
@@ -438,6 +438,18 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
     }
 
     @NonNull
+    private final Map<LogicalDatastoreType, Boolean> datastoreBindingsEnabled = Collections.synchronizedMap(new HashMap<>(Map
+            .of(LogicalDatastoreType.CONFIGURATION, true, LogicalDatastoreType.OPERATIONAL, true)));
+
+    public boolean datastoreBindingsEnabled(@NonNull final LogicalDatastoreType storeType) {
+        return this.datastoreBindingsEnabled.get(storeType);
+    }
+
+    public boolean datastoreBindingsDisabled(@NonNull final LogicalDatastoreType storeType) {
+        return !this.datastoreBindingsEnabled(storeType);
+    }
+
+    @NonNull
     private final AtomicReference<CompletableFuture<? extends YangBinding<?, ?>>> yangBindingRegisteringFuture =
             new AtomicReference<>(CompletableFuture.completedFuture(null));
 
@@ -454,13 +466,13 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         synchronized (this.yangBindingRegisteringFuture) {
             @NonNull final var futureBinding = this.yangBindingRegisteringFuture.get()
                     .thenApplyAsync(ignoredRegisteredBinding -> {
-                        log.info("Registering {}", binding);
+                        LOG.info("Registering {}", binding);
 
                         for (@NonNull final YangBinding<Y, B>.DatastoreBinding storeBinding : List.of(
-                                binding.createConfigurationDatastoreBinding(),
-                                binding.createOperationalDatastoreBinding())) {
+                                binding.createConfigurationDatastoreBinding(this),
+                                binding.createOperationalDatastoreBinding(this))) {
 
-                            log.debug("Registering {} Change listener for {}", storeBinding.storeType(), binding);
+                            LOG.debug("Registering {} Change listener for {}", storeBinding.storeType(), binding);
                             this.broker.registerDataTreeChangeListener(storeBinding.getDataTreeId(), storeBinding);
                         }
 
@@ -620,7 +632,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
     @NonNull
     public CompletableFuture</*? extends List<*/? extends CommitInfo> updateConfigurationData() {
         synchronized (this.yangBindingRegistry) {
-            log.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.CONFIGURATION,
+            LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.CONFIGURATION,
                     this.yangBindingRegistry.size());
 
             return FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(this.yangBindingRegistry));
@@ -632,7 +644,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
     @NonNull
     public CompletableFuture</*? extends List<*/? extends CommitInfo> updateOperationalData() {
         synchronized (this.yangBindingRegistry) {
-            log.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.OPERATIONAL,
+            LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.OPERATIONAL,
                     this.yangBindingRegistry.size());
 
             return FutureConverter.toCompletableFuture(this.writeOperationalDataFrom(this.yangBindingRegistry));
@@ -657,7 +669,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
         if (storeType == LogicalDatastoreType.OPERATIONAL) {
             updatingFuture = this.readConfigurationData().transformAsync(config -> {
-                log.info("Updating {} Datastore from {} Datastore", storeType, LogicalDatastoreType.CONFIGURATION);
+                LOG.info("Updating {} Datastore from {} Datastore", storeType, LogicalDatastoreType.CONFIGURATION);
 
                 return FluentFuture.from(config
                         .map(data -> Futures.allAsList(StreamEx.of(((ContainerNode) data).body())
@@ -667,7 +679,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
             }, this.executor).transformAsync(ignoredCommitInfo -> {
                 synchronized (this.yangBindingRegistry) {
-                    log.info("Updating {} Datastore from {} registered bindings", storeType, this.yangBindingRegistry.size());
+                    LOG.info("Updating {} Datastore from {} registered bindings", storeType, this.yangBindingRegistry.size());
 
                     return this.writeOperationalDataFrom(this.yangBindingRegistry);
                 }
@@ -678,7 +690,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             updatingFuture = Futures.transformAsync(FutureConverter.toListenableFuture(this.awaitYangBindingRegistering()),
                     ignoredRegisteredBinding -> {
                         synchronized (this.yangBindingRegistry) {
-                            log.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.CONFIGURATION,
+                            LOG.info("Updating {} Datastore from {} registered bindings", LogicalDatastoreType.CONFIGURATION,
                                     this.yangBindingRegistry.size());
 
                             return this.writeConfigurationDataFrom(this.yangBindingRegistry);
@@ -691,7 +703,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             @NonNull final var txn = this.getNormalizedNodeBroker().newReadOnlyTransaction();
             @NonNull final var readingFuture = txn.read(storeType, YangInstanceIdentifier.empty());
 
-            log.info("Reading from {} Datastore", storeType);
+            LOG.info("Reading from {} Datastore", storeType);
             readingFuture.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.executor);
             return readingFuture;
 
@@ -707,13 +719,28 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new FileReader(file, encoding));
 
         } catch (final IOException | XMLStreamException e) {
-            log.error("While opening file for loading XML Configuration: ", e);
-            log.error("Failed reading XML Configuration from: {}", file);
+            LOG.error("While opening file for loading XML Configuration: ", e);
+            LOG.error("Failed reading XML Configuration from: {}", file);
 
             return CompletableFuture.completedFuture(List.of());
         }
 
         return FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(xmlReader));
+
+        /*
+        return CompletableFuture.runAsync(() -> {
+            this.datastoreBindingsEnabled.put(LogicalDatastoreType.CONFIGURATION, false);
+
+        }).thenComposeAsync(ignoredVoid -> FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(xmlReader)))
+                .handleAsync((commitInfos, e) -> {
+                    this.datastoreBindingsEnabled.put(LogicalDatastoreType.CONFIGURATION, true);
+                    if (e == null) {
+                        return commitInfos;
+                    }
+
+                    throw new RuntimeException(e);
+                });
+        */
     }
 
     @NonNull
@@ -730,17 +757,32 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         try {
             /*  W/o InputStreamReader wrapper, the following can happen (especially w/resource streams) - e.g. due to BOMs:
                 com.sun.org.apache.xerces.internal.xni.XNIException: Content is not allowed in prolog.
-                */
+            */
             xmlReader = XML_INPUT_FACTORY.createXMLStreamReader(new InputStreamReader(stream, encoding));
 
         } catch (final XMLStreamException e) {
-            log.error("While using stream for loading XML Configuration: ", e);
-            log.error("Failed reading XML Configuration from: {}", stream);
+            LOG.error("While using stream for loading XML Configuration: ", e);
+            LOG.error("Failed reading XML Configuration from: {}", stream);
 
             return CompletableFuture.completedFuture(List.of());
         }
 
         return FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(xmlReader));
+
+        /*
+        return CompletableFuture.runAsync(() -> {
+            this.datastoreBindingsEnabled.put(LogicalDatastoreType.CONFIGURATION, false);
+
+        }).thenComposeAsync(ignoredVoid -> FutureConverter.toCompletableFuture(this.writeConfigurationDataFrom(xmlReader)))
+                .handleAsync((commitInfos, e) -> {
+                    this.datastoreBindingsEnabled.put(LogicalDatastoreType.CONFIGURATION, true);
+                    if (e == null) {
+                        return commitInfos;
+                    }
+
+                    throw new RuntimeException(e);
+                });
+        */
     }
 
     @NonNull
@@ -778,8 +820,8 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             }
 
         } catch (final IllegalArgumentException | IOException | SAXException | URISyntaxException | XMLStreamException e) {
-            log.error("While parsing from XML Data input: ", e);
-            log.error("Failed parsing XML Data from: " + xmlReader);
+            LOG.error("While parsing from XML Data input: ", e);
+            LOG.error("Failed parsing XML Data from: " + xmlReader);
 
         } catch (YangXmlDataInput.EndOfDocument ignored) {}
 
@@ -835,10 +877,10 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
                             }).toImmutableList();
 
-                    log.info("Writing {} {} instances to {} Datastore", yangPaths.size(), NormalizedNode.class.getName(),
+                    LOG.info("Writing {} {} instances to {} Datastore", yangPaths.size(), NormalizedNode.class.getName(),
                             storeType);
 
-                    log.debug("Writing to {} Datastore: {}", storeType, yangPaths);
+                    LOG.debug("Writing to {} Datastore: {}", storeType, yangPaths);
 
                     @NonNull final var committingFuture = txn.commit();
                     committingFuture.addCallback(this.datastore.injectWriting().of(storeType, yangPaths).futureCallback,
@@ -895,8 +937,8 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                 .keys().toImmutableList();
 
         @NonNull final var writing = this.datastore.injectModeledWriting().of(storeType, yangModeledPaths);
-        log.info("Writing {} {} instances to {} Datastore", yangModeledPaths.size(), DataObject.class.getName(), storeType);
-        log.debug("Writing to {} Datastore: {}", storeType, yangModeledPaths);
+        LOG.info("Writing {} {} instances to {} Datastore", yangModeledPaths.size(), DataObject.class.getName(), storeType);
+        LOG.debug("Writing to {} Datastore: {}", storeType, yangModeledPaths);
 
         @NonNull final var future = txn.commit();
         future.addCallback(writing.futureCallback, this.executor);
@@ -918,7 +960,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             return data;
 
         } catch (final InterruptedException | ExecutionException e) {
-            log.error("Failed {} Data provisioning from {}", storeType, binding, e.getCause());
+            LOG.error("Failed {} Data provisioning from {}", storeType, binding, e.getCause());
 
             return YangData.empty();
         }
@@ -944,7 +986,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                     } catch (final InterruptedException | ExecutionException e) {
                         // data = YangData.empty();
 
-                        log.error("Failed reading {} Data from {}", storeType, binding);
+                        LOG.error("Failed reading {} Data from {}", storeType, binding);
                     }
 
                     if (data.isPresent()) {
@@ -982,18 +1024,18 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         @NonNull final var txn = this.broker.newWriteOnlyTransaction();
         txn.delete(storeType, iid);
 
-        log.info("Deleting from {} Datastore: {}", storeType, iid);
+        LOG.info("Deleting from {} Datastore: {}", storeType, iid);
         Futures.addCallback(txn.commit(), new FutureCallback<CommitInfo>() {
 
             @Override
             public void onSuccess(@Nullable final CommitInfo result) {
-                log.info("TODO: {}", result);
+                LOG.info("TODO: {}", result);
             }
 
             @Override
             public void onFailure(@NonNull final Throwable t) {
-                log.error("While deleting from {} Datastore: ", storeType, t);
-                log.error("Failed deleting from {} Datastore: {}", storeType, iid);
+                LOG.error("While deleting from {} Datastore: ", storeType, t);
+                LOG.error("Failed deleting from {} Datastore: {}", storeType, iid);
             }
 
         }, this.executor);

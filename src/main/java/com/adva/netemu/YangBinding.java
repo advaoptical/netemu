@@ -90,6 +90,9 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
     public abstract class DatastoreBinding implements DataTreeChangeListener<Y> {
 
         @Nonnull
+        private final YangPool yangPool;
+
+        @Nonnull
         private final LogicalDatastoreType storeType;
 
         @Nonnull
@@ -110,13 +113,23 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
             return DataTreeIdentifier.create(this.storeType, this.getIid());
         }
 
-        protected DatastoreBinding(@Nonnull final LogicalDatastoreType storeType, @Nonnull final YangBinding<Y, B> object) {
+        protected DatastoreBinding(
+                @Nonnull final YangPool yangPool,
+                @Nonnull final LogicalDatastoreType storeType,
+                @Nonnull final YangBinding<Y, B> object) {
+
+            this.yangPool = yangPool;
             this.storeType = storeType;
             this.object = object;
         }
 
         @Override
         public void onDataTreeChanged(@Nonnull final Collection<DataTreeModification<Y>> changes) {
+            if (this.yangPool.datastoreBindingsDisabled(this.storeType)) {
+                LOG.debug("Not applying changed {} Data to: {}", this.storeType, this.object);
+                return;
+            }
+
             LOG.debug("Applying changed {} Data to: {}", this.storeType, this.object);
 
             for (@Nonnull final var change : changes) {
@@ -136,26 +149,26 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
 
     public final class ConfigurationDatastoreBinding extends DatastoreBinding {
 
-        public ConfigurationDatastoreBinding(@Nonnull final YangBinding<Y, B> object) {
-            super(LogicalDatastoreType.CONFIGURATION, object);
+        public ConfigurationDatastoreBinding(@Nonnull final YangPool yangPool, @Nonnull final YangBinding<Y, B> object) {
+            super(yangPool, LogicalDatastoreType.CONFIGURATION, object);
         }
     }
 
     @Nonnull
-    public ConfigurationDatastoreBinding createConfigurationDatastoreBinding() {
-        return new ConfigurationDatastoreBinding(this);
+    public ConfigurationDatastoreBinding createConfigurationDatastoreBinding(@Nonnull final YangPool yangPool) {
+        return new ConfigurationDatastoreBinding(yangPool, this);
     }
 
     public final class OperationalDatastoreBinding extends DatastoreBinding {
 
-        public OperationalDatastoreBinding(@Nonnull final YangBinding<Y, B> object) {
-            super(LogicalDatastoreType.OPERATIONAL, object);
+        public OperationalDatastoreBinding(@Nonnull final YangPool yangPool, @Nonnull final YangBinding<Y, B> object) {
+            super(yangPool, LogicalDatastoreType.OPERATIONAL, object);
         }
     }
 
     @Nonnull
-    public OperationalDatastoreBinding createOperationalDatastoreBinding() {
-        return new OperationalDatastoreBinding(this);
+    public OperationalDatastoreBinding createOperationalDatastoreBinding(@Nonnull final YangPool yangPool) {
+        return new OperationalDatastoreBinding(yangPool, this);
     }
 
     public static abstract class ChildBinding<C_Y extends ChildOf, C_B extends YangBuilder<C_Y>> extends YangBinding<C_Y, C_B> {
