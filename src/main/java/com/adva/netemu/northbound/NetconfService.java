@@ -32,6 +32,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 import one.util.streamex.StreamEx;
@@ -58,21 +60,34 @@ import org.opendaylight.netconf.test.tool.NetconfDeviceSimulator;
 import org.opendaylight.netconf.test.tool.config.ConfigurationBuilder;
 import org.opendaylight.netconf.test.tool.rpchandler.RpcHandler;
 
+import com.adva.netemu.NetEmu;
 import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
 
 
+@Slf4j
 public class NetconfService extends EmuService<NetconfService.Settings> implements RpcHandler {
 
     public static class Settings extends ConfigurationBuilder implements EmuService.Settings<NetconfService> {
 
+        @Nullable
+        private final NetEmu.RegisteredService<NetconfService, Settings> registeredService;
+
+        @Nonnull @Override
+        public Optional<NetEmu.RegisteredService<NetconfService, ?>> getRegisteredService() {
+            return Optional.ofNullable(this.registeredService);
+        }
+
         public Settings() {
             super.setGetDefaultYangResources(Set.of());
+            this.registeredService = null;
+        }
+
+        public Settings(@Nonnull final NetEmu.RegisteredService<NetconfService, Settings> registeredService) {
+            super.setGetDefaultYangResources(Set.of());
+            this.registeredService = registeredService;
         }
     }
-
-    @Nonnull
-    private static final Logger LOG = LoggerFactory.getLogger(NetconfService.class);
 
     @Nonnull
     private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newInstance();

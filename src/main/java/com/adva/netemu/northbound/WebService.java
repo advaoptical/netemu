@@ -1,11 +1,13 @@
 package com.adva.netemu.northbound;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
 // import io.jooby.Jooby;
 
+import com.adva.netemu.NetEmu;
 import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
 
@@ -23,7 +25,13 @@ public class WebService extends EmuService<WebService.Settings> {
     }
     */
 
-    public static class Settings implements EmuService.Settings<WebService> {}
+    public static class Settings implements EmuService.Settings<WebService> {
+
+        @Nonnull @Override
+        public Optional<NetEmu.RegisteredService<WebService, ?>> getRegisteredService() {
+            return Optional.empty();
+        }
+    }
 
     /*
     private static class App extends Jooby implements Supplier<Jooby> {

@@ -2,12 +2,14 @@ package com.adva.netemu.northbound;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 // import jakarta.ws.rs.core.Application;
+import com.adva.netemu.NetEmu;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -53,6 +55,11 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
         public Settings setPort(@Nonnegative final int port) {
             this.port = port;
             return this;
+        }
+
+        @Nonnull @Override
+        public Optional<NetEmu.RegisteredService<RestconfService, ?>> getRegisteredService() {
+            return Optional.empty();
         }
     }
 
