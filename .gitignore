@@ -22,5 +22,9 @@ gradlew.*
 bin/
 build/
 dist/
+frontend/
 gradle/
 target/
+
+package.*
+vite.*
