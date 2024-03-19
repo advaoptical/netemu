@@ -9,8 +9,8 @@ before_script:
   - echo "Activating Java ecosystem ..."
   - source /root/.sdkman/bin/sdkman-init.sh
 
-  - export HOME="$(pwd)" ; echo $HOME
-  - export GRADLE_USER_HOME="$HOME/.gradle" ; echo $GRADLE_USER_HOME
+  - export HOME="$(pwd)" && echo $HOME
+  - export GRADLE_USER_HOME="$HOME/.gradle" && echo $GRADLE_USER_HOME
 
   - java -version
   - gradle -version
@@ -29,7 +29,7 @@ before_script:
   - gradle printVersion --quiet --stacktrace
 
   - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
-  - mkdir -p /root/.m2 ; groovy .m2/settings.groovy > /root/.m2/settings.xml ; cat /root/.m2/settings.xml
+  - mkdir -p /root/.m2 && groovy .m2/settings.groovy > /root/.m2/settings.xml && cat /root/.m2/settings.xml
   - ls -x .m2/repository/
 
 
@@ -72,13 +72,14 @@ Test NETEMU w/TESTEMU:
 
   script:
     - gradle properties --quiet --stacktrace
-    - cat testemu/gradle.properties
+    - cd testemu && cat testemu/gradle.properties
     # - >
     #   export NETEMU_VERSION="$(gradle properties --quiet --stacktrace
     #   | grep --only-matching --perl-regexp '^version:\s*\K(\S+)')"
 
-    - echo "Testing NETEMU $NETEMU_VERSION using TESTEMU ..."
-    - cd testemu ; gradle -PnetEmuVersion="$NETEMU_VERSION" test --build-cache --info --stacktrace
+    - echo "Testing NETEMU using TESTEMU ..."
+    - cd testemu && gradle printVersion --quiet --stacktrace
+    - cd testemu && gradle test --build-cache --info --stacktrace
 
 
 Publish NETEMU to Artifactory:
