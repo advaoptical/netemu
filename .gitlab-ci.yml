@@ -91,7 +91,7 @@ Publish NETEMU to Artifactory:
       if gradle properties --quiet --stacktrace | grep -P '^(release|snapshot):' ; then
       echo "Publishing NETEMU ..."
       ;
-      gradle publish --build-cache --info --stacktrace
+      gradle publish --exclude-task jar --build-cache --info --stacktrace
       -PartifactoryReleaseUrl="$ARTIFACTORY_RELEASE_URL" -PartifactorySnapshotUrl="$ARTIFACTORY_SNAPSHOT_URL"
       -PartifactoryUser="$ARTIFACTORY_USER" -PartifactoryToken="$ARTIFACTORY_TOKEN"
       ;
