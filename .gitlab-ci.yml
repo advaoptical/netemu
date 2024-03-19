@@ -78,7 +78,6 @@ Test NETEMU w/TESTEMU:
     #   | grep --only-matching --perl-regexp '^version:\s*\K(\S+)')"
 
     - echo "Testing NETEMU using TESTEMU ..."
-    - cd testemu && gradle printVersion --quiet --stacktrace
     - cd testemu && gradle test --build-cache --info --stacktrace
 
 
