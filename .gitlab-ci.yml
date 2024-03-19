@@ -28,29 +28,48 @@ before_script:
 
   - gradle printVersion --quiet --stacktrace
 
-  - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
-  - mkdir -p /root/.m2 && groovy .m2/settings.groovy > /root/.m2/settings.xml && cat /root/.m2/settings.xml
-  - ls -x .m2/repository/
+  # - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
+  # - mkdir -p /root/.m2 && groovy .m2/settings.groovy > /root/.m2/settings.xml && cat /root/.m2/settings.xml
+  # - ls -x .m2/repository/
 
 
-Build/install ODL modules:
+# Build/install ODL modules:
+#   stage: .pre
+#   tags:
+#     - docker
+#     - muc-vs-ae1
+#
+#   script:
+#     - echo "Removing all untracked content from repository ..."
+#     - git clean --force -dx
+#
+#     - echo "Checking out forked Jep & OpenDaylight submodules ..."
+#     - git submodule update --init --recursive
+#
+#     - echo "Building and installing forked OpenDaylight submodules to Maven local repository ..."
+#     - gradle mvnInstallOpenDaylightModules --info --stacktrace
+
+
+Validate ODL dependencies:
   stage: .pre
   tags:
     - docker
     - muc-vs-ae1
 
   script:
-    - echo "Removing all untracked content from repository ..."
-    - git clean --force -dx
+    # - gradle dependencies --configuration compileClasspath --quiet --stacktrace
+    - >
+      if [ "$(groovy opendaylight-dependencies.groovy)" == "$(< opendaylight-dependencies.txt)" ] ; then
+      echo "opendaylight-dependencies.txt is up-to-date."
+      ; else
+      echo "opendaylight-dependencies.txt is outdated! Update it by running:"
+      ; echo
+      ; echo "groovy opendaylight-dependencies.groovy > opendaylight-dependencies.txt"
+      ; exit 1
+      ; fi
 
-    - echo "Checking out forked Jep & OpenDaylight submodules ..."
-    - git submodule update --init --recursive
 
-    - echo "Building and installing forked OpenDaylight submodules to Maven local repository ..."
-    - gradle mvnInstallOpenDaylightModules --info --stacktrace
-
-
-Build/install NETEMU:
+Assemble NETEMU:
     stage: build
     tags:
       - docker
@@ -58,10 +77,10 @@ Build/install NETEMU:
 
     script:
       - echo "Building and installing NETEMU to Maven local repository ..."
-      - gradle publishToMavenLocal --build-cache --info --stacktrace
+      - gradle assemble --build-cache --info --stacktrace
 
-      - echo "Removing bundled OpenDaylight modules from Maven local repository ..."
-      - rm --force --recursive .m2/repository/org/opendaylight
+      # - echo "Removing bundled OpenDaylight modules from Maven local repository ..."
+      # - rm --force --recursive .m2/repository/org/opendaylight
 
 
 Test NETEMU w/TESTEMU:
@@ -71,13 +90,20 @@ Test NETEMU w/TESTEMU:
     - muc-vs-ae1
 
   script:
-    - gradle properties --quiet --stacktrace
+    - echo "Configuring '$(realpath .m2)/repository' as new Maven local repository, to check if bundling of ODL modules works ..."
+    - mkdir -p /root/.m2 && groovy .m2/settings.groovy > /root/.m2/settings.xml && cat /root/.m2/settings.xml
+    - ls -x .m2/repository/
+
+    - echo "Installing NETEMU to new, empty Maven local repository ..."
+    - gradle publishToMavenLocal --exclude-task jar --quiet --stacktrace
+
+    - echo "Showing auto-generated 'netEmuVersion' property for TESTEMU ..."
     - cat testemu/gradle.properties
     # - >
     #   export NETEMU_VERSION="$(gradle properties --quiet --stacktrace
     #   | grep --only-matching --perl-regexp '^version:\s*\K(\S+)')"
 
-    - echo "Testing NETEMU using TESTEMU ..."
+    - echo "Testing NETEMU's API with unit tests in TESTEMU, based on YANG ietf-interfaces model ..."
     - cd testemu && gradle test --build-cache --info --stacktrace
 
 
