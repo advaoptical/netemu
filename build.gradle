@@ -345,11 +345,18 @@ tasks.register 'mvnCleanOpenDaylightModules', {
 }
 
 
+tasks.register 'dockerBuildCiContainer', Exec, {
+    workingDir project.rootDir
+    commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + [
+            'docker', 'buildx', 'build', '--file', 'ci.Dockerfile', '--tag', 'adtran/netemu-ci:latest', '.']
+}
+
+
 gradlePlugin {
     plugins {
         netEmuPlugin {
-            id = "com.adva.netemu"
-            implementationClass = "com.adva.netemu.gradle.NetEmuPlugin"
+            id = 'com.adva.netemu'
+            implementationClass = 'com.adva.netemu.gradle.NetEmuPlugin'
         }
     }
 }
