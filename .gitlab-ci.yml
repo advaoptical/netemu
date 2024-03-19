@@ -26,7 +26,7 @@ before_script:
     ; git reset --hard '@{upstream}'
     ; fi
 
-  # - gradle printVersion --quiet --stacktrace
+  - gradle printVersion --quiet --stacktrace
 
   - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
   - mkdir -p /root/.m2 ; groovy .m2/settings.groovy > /root/.m2/settings.xml ; cat /root/.m2/settings.xml
@@ -71,8 +71,13 @@ Test NETEMU w/TESTEMU:
     - muc-vs-ae1
 
   script:
-    - echo "Testing NETEMU using TESTEMU ..."
-    - cd testemu ; gradle test --build-cache --info --stacktrace
+    - gradle properties --quiet --stacktrace
+    - >
+      export NETEMU_VERSION="$(gradle properties --quiet --stacktrace
+      | grep --only-matching --perl-regexp '^version:\s*\K(\S+)')"
+
+    - echo "Testing NETEMU $NETEMU_VERSION using TESTEMU ..."
+    - cd testemu ; gradle -PnetEmuVersion="$NETEMU_VERSION" test --build-cache --info --stacktrace
 
 
 Publish NETEMU to Artifactory:
@@ -85,8 +90,12 @@ Publish NETEMU to Artifactory:
     - >
       if gradle properties --quiet --stacktrace | grep -P '^(release|snapshot):' ; then
       echo "Publishing NETEMU ..."
-      ; gradle publish -PartifactoryToken="$ARTIFACTORY_TOKEN" --build-cache --info --stacktrace
-      ; echo "Application successfully deployed."
+      ;
+      gradle publish --build-cache --info --stacktrace
+      -PartifactoryReleaseUrl="$ARTIFACTORY_RELEASE_URL" -PartifactorySnapshotUrl="$ARTIFACTORY_SNAPSHOT_URL"
+      -PartifactoryUser="$ARTIFACTORY_USER" -PartifactoryToken="$ARTIFACTORY_TOKEN"
+      ;
+      echo "Application successfully deployed."
       ; else
       echo "Not publishing NETEMU, since it is neither marked as release nor snapshot!"
       ; fi

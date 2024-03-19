@@ -5,7 +5,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.adva:netemu:0.1.0-SNAPSHOT"
+        classpath group: 'com.adva', name: 'netemu', version: (project.property 'netEmuVersion')
     }
 }
 
@@ -17,9 +17,6 @@ plugins {
     // id "com.github.node-gradle.node" version "2.2.3"
 }
 
-apply plugin: 'application'
-apply plugin: 'groovy'
-apply plugin: 'java'
 
 group = "com.adva.netemu"
 version = "0.1.0-SNAPSHOT"
@@ -28,8 +25,10 @@ application {
     mainClassName = "com.adva.netemu.testemu.Main"
 }
 
-sourceCompatibility = 17
-targetCompatibility = 17
+java {
+    sourceCompatibility = 17
+    targetCompatibility = 17
+}
 
 /*
 node {
@@ -80,8 +79,8 @@ repositories {
 dependencies {
     localGroovy()
 
-    implementation "com.adva:netemu:0.1.0-SNAPSHOT"
-    annotationProcessor "com.adva:netemu:0.1.0-SNAPSHOT"
+    implementation group: 'com.adva', name: 'netemu', version: (project.property 'netEmuVersion')
+    annotationProcessor group: 'com.adva', name: 'netemu', version: (project.property 'netEmuVersion')
 
     testImplementation "org.spockframework:spock-core:2.4-M1-groovy-3.0"
 }

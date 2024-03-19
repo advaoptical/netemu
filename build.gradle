@@ -8,21 +8,51 @@ plugins {
     id 'java-gradle-plugin'
     id 'maven-publish'
 
+    id 'com.palantir.git-version' version '3.0.0'
+
     // id 'com.vaadin'
     // id 'io.spring.dependency-management' version '1.1.0'
 }
 
-apply plugin: 'groovy'
-apply plugin: 'java'
-apply plugin: 'java-library'
-apply plugin: 'java-gradle-plugin'
-apply plugin: 'maven-publish'
-
 
 group = "com.adva"
-version = "0.1.0-SNAPSHOT"
 
-java { /* Updated to use JavaPluginExtension instead of Gradle 8+ deprecated JavaPluginConvention - according to:
+version = { com.palantir.gradle.gitversion.VersionDetails details ->
+
+    if (details.branchName && !(details.branchName as String).blank && details.branchName != 'master') {
+        return "${details.branchName.replaceAll '/', '-'}-g${details.gitHash}"
+    }
+
+    final matcher = details.lastTag =~ /^v?(?<major>\d+)\.(?<minor>\d+)(\.(?<micro>\d+))?$/
+    if (!matcher) { // ==> tag does not represent a version number ...
+        return "${details.lastTag}-g${details.gitHash}"
+    }
+
+    final majorNumber = (matcher.group 'major') as Integer
+    final minorNumber = (matcher.group 'minor') as Integer
+    final microNumber = (matcher.group 'micro') as Integer
+
+    final version
+    final publishingProperty /// used for configuring deployment -- see: com.adtran.topline.java-conventions.gradle & CI config
+    if (details.commitDistance > 0) {
+        /// ==> not on tagged commit ...
+
+        /// suffixes after -SHAPSHOT don't work with https://muc-artifactory.rd.advaoptical.com/artifactory/at-snapshot-local
+        version = "${majorNumber}.${minorNumber}.${microNumber + 1}-SNAPSHOT" // -${details.commitDistance}"
+        publishingProperty = 'snapshot'
+
+    } else {
+        version = "${majorNumber}.${minorNumber}.${microNumber}"
+        publishingProperty = 'release'
+    }
+
+    project.ext[publishingProperty] = version
+    return version
+
+}(project.versionDetails()) /// Provided by com.palantir.git-version plugin
+
+
+java { /** Updated to use JavaPluginExtension instead of Gradle 8+ deprecated JavaPluginConvention - according to:
 
     https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#java_convention_deprecation
     */
@@ -91,7 +121,7 @@ dependencies {
     implementation localGroovy()
     // implementation 'org.apache.groovy:groovy:4.0.17'
 
-    api "com.vaadin:vaadin-core:${project.vaadinVersion}"
+    api "com.vaadin:vaadin-core:${project.property 'vaadinVersion'}"
 
     implementation 'io.github.classgraph:classgraph:4.8.154'
     // implementation 'org.reflections:reflections:0.10.2'
@@ -208,6 +238,27 @@ publishing {
     publications {
         maven(MavenPublication) {
             from components.java
+        }
+    }
+
+    repositories {
+        maven { /* URL selection strategy adapted from
+        https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:snapshot_and_release_repositories
+        */
+            if (project.hasProperty 'release') {
+                url = project.property 'artifactoryReleaseUrl'
+            }
+
+            if (project.hasProperty 'snapshot') {
+                url = project.property 'artifactorySnapshotUrl'
+            }
+
+            if (project.hasProperty 'artifactoryToken') {
+                credentials {
+                    username = project.property 'artifactoryUser'
+                    password = project.property 'artifactoryToken'
+                }
+            }
         }
     }
 }
