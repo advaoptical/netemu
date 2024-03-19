@@ -1,0 +1,86 @@
+[versions]
+# plugins
+git-version = '3.0.0'
+
+# libraries
+activation = '1.1.1' # TODO: Move to Jakarta
+assisted-inject = '0.8.1'
+auto-service = '1.1.1'
+classgraph = '4.8.168'
+dagger = '2.51'
+eclipse-annotation = '2.3.0'
+findbugs = '3.0.1'
+future-converter = '1.2.0'
+handlebars = '4.4.0'
+jaxb-api = '2.3.1' # TODO: Move to Jakarta
+jaxb-runtime = '2.3.7' # TODO: Move to Jakarta
+jersey = '2.41' # TODO: Move to 3.x
+jsr173 = '1.0'
+poet = '1.13.0'
+streamex = '0.8.2'
+typetools = '0.6.3'
+vaadin = '23.4.0'
+
+# compile
+lombok = '1.18.30'
+
+# opendaylight
+yangtools = '9.0.5_1-ADVA'
+mdsal = '10.0.5_1-ADVA'
+netconf = '4.0.4_1-ADVA'
+
+# testing
+spock = '2.4-M2-groovy-3.0'
+
+[plugins]
+git-version = { id = 'com.palantir.git-version', version.ref = 'git-version' }
+
+[libraries]
+activation = { group = 'javax.activation', name = 'activation', version.ref = 'activation' }
+assisted-inject-annotations = { group = 'com.squareup.inject', name = 'assisted-inject-annotations-dagger2', version.ref = 'assisted-inject' }
+assisted-inject-processor = { group = 'com.squareup.inject', name = 'assisted-inject-processor-dagger2', version.ref = 'assisted-inject' }
+auto-service = { group = 'com.google.auto.service', name = 'auto-service', version.ref = 'auto-service' }
+classgraph = { group = 'io.github.classgraph', name = 'classgraph', version.ref = 'classgraph' }
+dagger-api = { group = 'com.google.dagger', name = 'dagger', version.ref = 'dagger' }
+dagger-compiler = { group = 'com.google.dagger', name = 'dagger-compiler', version.ref = 'dagger' }
+eclipse-annotation = { group = 'org.eclipse.jdt', name = 'org.eclipse.jdt.annotation', version.ref = 'eclipse-annotation' }
+findbugs = { group = 'com.google.code.findbugs', name = 'findbugs-annotations', version.ref = 'findbugs' }
+future-converter = { group = 'net.javacrumbs.future-converter', name = 'future-converter-java8-guava', version.ref = 'future-converter' }
+handlebars = { group = 'com.github.jknack', name = 'handlebars', version.ref = 'handlebars' }
+jaxb-api = { group = 'javax.xml.bind', name = 'jaxb-api', version.ref = 'jaxb-api' }
+jaxb-runtime = { group = 'org.glassfish.jaxb', name = 'jaxb-runtime', version.ref = 'jaxb-runtime' }
+jersey-grizzly2 = { group = 'org.glassfish.jersey.containers', name = 'jersey-container-grizzly2-http', version.ref = 'jersey' }
+jersey-hk2 = { group = 'org.glassfish.jersey.inject', name = 'jersey-hk2', version.ref = 'jersey' }
+jsr173 = { group = 'javax.xml', name = 'jsr173', version.ref = 'jsr173' }
+poet = { group = 'com.squareup', name = 'javapoet', version.ref = 'poet' }
+streamex = { group = 'one.util', name = 'streamex', version.ref = 'streamex' }
+typetools = { group = 'net.jodah', name = 'typetools', version.ref = 'typetools' }
+vaadin = { group = 'com.vaadin', name = 'vaadin-core', version.ref = 'vaadin' }
+
+#compile
+lombok = { group = 'org.projectlombok', name = 'lombok', version.ref = 'lombok' }
+
+# opendaylight-yangtools
+rfc7952-data-util = { group = 'org.opendaylight.yangtools', name = 'rfc7952-data-util', version.ref = 'yangtools' }
+yang-data-api = { group = 'org.opendaylight.yangtools', name = 'yang-data-api', version.ref = 'yangtools' }
+yang-data-codec-gson = { group = 'org.opendaylight.yangtools', name = 'yang-data-codec-gson', version.ref = 'yangtools' }
+yang-data-codec-xml = { group = 'org.opendaylight.yangtools', name = 'yang-data-codec-xml', version.ref = 'yangtools' }
+yang-data-impl = { group = 'org.opendaylight.yangtools', name = 'yang-data-impl', version.ref = 'yangtools' }
+yang-data-util = { group = 'org.opendaylight.yangtools', name = 'yang-data-util', version.ref = 'yangtools' }
+yang-maven-plugin = { group = 'org.opendaylight.yangtools', name = 'yang-maven-plugin', version.ref = 'yangtools' }
+
+# opendaylight-mdsal
+binding-dom-adapter = { group = 'org.opendaylight.mdsal', name = 'mdsal-binding-dom-adapter', version.ref = 'mdsal' }
+binding-dom-codec = { group = 'org.opendaylight.mdsal', name = 'mdsal-binding-dom-codec', version.ref = 'mdsal' }
+binding-java-api-generator = { group = 'org.opendaylight.mdsal', name = 'mdsal-binding-java-api-generator', version.ref = 'mdsal' }
+dom-inmemory-datastore = { group = 'org.opendaylight.mdsal', name = 'mdsal-dom-inmemory-datastore', version.ref = 'mdsal' }
+yang-binding = { group = 'org.opendaylight.mdsal', name = 'yang-binding', version.ref = 'mdsal' }
+
+#opendaylight-netconf
+client = { group = 'org.opendaylight.netconf', name = 'netconf-client', version.ref = 'netconf' }
+netty-util = { group = 'org.opendaylight.netconf', name = 'netconf-netty-util', version.ref = 'netconf' }
+testtool = { group = 'org.opendaylight.netconf', name = 'netconf-testtool', version.ref = 'netconf' }
+restconf-nb = { group = 'org.opendaylight.netconf', name = 'restconf-nb', version.ref = 'netconf' }
+
+# testing
+spock = { group = 'org.spockframework', name = 'spock-core', version.ref = 'spock' }
