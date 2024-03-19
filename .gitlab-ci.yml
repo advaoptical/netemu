@@ -72,7 +72,7 @@ Test NETEMU w/TESTEMU:
 
   script:
     - gradle properties --quiet --stacktrace
-    - cd testemu && cat testemu/gradle.properties
+    - cat testemu/gradle.properties
     # - >
     #   export NETEMU_VERSION="$(gradle properties --quiet --stacktrace
     #   | grep --only-matching --perl-regexp '^version:\s*\K(\S+)')"
