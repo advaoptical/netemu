@@ -7,7 +7,7 @@ import javax.annotation.Nonnull
 import javax.annotation.Nullable
 
 import org.gradle.api.Action
-import org.gradle.util.ConfigureUtil
+// import org.gradle.util.ConfigureUtil /// Deprecated, & to be removed in Gradle 9.0
 
 
 class NetEmuExtension {
@@ -47,11 +47,13 @@ class NetEmuExtension {
     @Nonnull
     final YangToSources yangToSources = new YangToSources()
 
+    /*
     @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
     YangToSources yangToSources(final Closure closure) {
         ConfigureUtil.configure(closure, this.yangToSources)
         return this.yangToSources
     }
+    */
 
     @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
     YangToSources yangToSources(final Action<? extends YangToSources> action) {
@@ -87,13 +89,15 @@ class NetEmuExtension {
     }
 
     @Nonnull
-    final Pythonizer pythonizer = new Pythonizer();
+    final Pythonizer pythonizer = new Pythonizer()
 
+    /*
     @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
     Pythonizer pythonizer(final Closure closure) {
         ConfigureUtil.configure(closure, this.pythonizer)
         return this.pythonizer
     }
+    */
 
     @Nonnull @SuppressWarnings("GroovyUnusedDeclaration")
     Pythonizer pythonizer(final Action<? extends Pythonizer> action) {

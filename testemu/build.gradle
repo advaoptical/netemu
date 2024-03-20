@@ -22,7 +22,8 @@ group = "com.adva.netemu"
 version = project.property 'netEmuVersion'
 
 application {
-    mainClassName = "com.adva.netemu.testemu.Main"
+    /// Changed from mainClassName to mainClass according to https://stackoverflow.com/a/64749939 -- to avoid deprecation warning
+    mainClass = "com.adva.netemu.testemu.Main"
 }
 
 java {
@@ -82,7 +83,14 @@ dependencies {
     implementation group: 'com.adva', name: 'netemu', version: (project.property 'netEmuVersion')
     annotationProcessor group: 'com.adva', name: 'netemu', version: (project.property 'netEmuVersion')
 
-    testImplementation "org.spockframework:spock-core:2.4-M1-groovy-3.0"
+    testImplementation 'org.spockframework:spock-core:2.4-M2-groovy-3.0' /** leads to warning:
+        "The automatic loading of test framework implementation dependencies has been deprecated.
+        This is scheduled to be removed in Gradle 9.0."
+
+        See also: https://docs.gradle.org/8.5/userguide/upgrading_version_8.html#test_framework_implementation_dependencies
+
+        TODO: Find solution!
+    */
 }
 
 compileJava {
@@ -132,7 +140,7 @@ jar {
     }
 }
 
-task('uberJar', type: Jar) {
+tasks.register 'uberJar', Jar, {
     with jar
     archiveClassifier.set 'uber'
 
@@ -146,6 +154,7 @@ task('uberJar', type: Jar) {
     */
 
     dependsOn configurations.runtimeClasspath
-    from { configurations.runtimeClasspath.filter { File file -> file.name.endsWith ".jar" }.collect { zipTree it }
+    from {
+        configurations.runtimeClasspath.filter { File file -> file.name.endsWith ".jar" }.collect { zipTree it }
     }
 }
