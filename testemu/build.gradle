@@ -17,6 +17,10 @@ plugins {
     // id "com.github.node-gradle.node" version "2.2.3"
 }
 
+wrapper {
+    gradleVersion = '8.7'
+}
+
 
 group = "com.adva.netemu"
 version = project.property 'netEmuVersion'
