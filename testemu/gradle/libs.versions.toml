@@ -1,0 +1,9 @@
+[versions]
+
+# - testing -
+spock = '2.4-M2-groovy-3.0'
+
+[libraries]
+
+# - testing -
+spock = { group = 'org.spockframework', name = 'spock-core', version.ref = 'spock' }

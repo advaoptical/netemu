@@ -83,7 +83,7 @@ dependencies {
     implementation group: 'com.adva', name: 'netemu', version: (project.property 'netEmuVersion')
     annotationProcessor group: 'com.adva', name: 'netemu', version: (project.property 'netEmuVersion')
 
-    testImplementation 'org.spockframework:spock-core:2.4-M2-groovy-3.0' /** leads to warning:
+    testImplementation libs.spock /** leads to warning:
         "The automatic loading of test framework implementation dependencies has been deprecated.
         This is scheduled to be removed in Gradle 9.0."
 
