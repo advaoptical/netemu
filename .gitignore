@@ -13,18 +13,20 @@ __pycache__/
 .idea/
 .settings/
 
+**/gradle/wrapper/
 gradlew
 gradlew.*
 
 *.egg-info/
 .eggs/
+.venv/
 
 bin/
 build/
 dist/
 frontend/
-gradle/
 target/
+testemu/gradle.properties
 
 package.*
 vite.*
