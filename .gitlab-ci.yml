@@ -26,7 +26,8 @@ before_script:
     ; git reset --hard '@{upstream}'
     ; fi
 
-  - gradle printVersion --quiet --warning-mode fail --stacktrace
+  - gradle wrapper --info --warning-mode fail --stacktrace && ./gradlew -version
+  - ./gradlew printVersion --quiet --warning-mode fail --stacktrace
 
   # - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
   # - mkdir -p /root/.m2 && groovy .m2/settings.groovy > /root/.m2/settings.xml && cat /root/.m2/settings.xml
@@ -77,7 +78,7 @@ Assemble NETEMU:
 
     script:
       - echo "Building and installing NETEMU to Maven local repository ..."
-      - gradle assemble --build-cache --info --warning-mode fail --stacktrace
+      - ./gradlew assemble --build-cache --info --warning-mode fail --stacktrace
 
       # - echo "Removing bundled OpenDaylight modules from Maven local repository ..."
       # - rm --force --recursive .m2/repository/org/opendaylight
@@ -95,7 +96,7 @@ Test NETEMU w/TESTEMU:
     - ls -x .m2/repository/
 
     - echo "Installing NETEMU to new, empty Maven local repository ..."
-    - gradle publishToMavenLocal --exclude-task jar --info --warning-mode fail --stacktrace
+    - ./gradlew publishToMavenLocal --exclude-task jar --info --warning-mode fail --stacktrace
 
     - echo "Showing auto-generated 'netEmuVersion' property for TESTEMU ..."
     - cat testemu/gradle.properties
@@ -103,8 +104,10 @@ Test NETEMU w/TESTEMU:
     #   export NETEMU_VERSION="$(gradle properties --quiet --stacktrace
     #   | grep --only-matching --perl-regexp '^version:\s*\K(\S+)')"
 
-    - echo "Testing NETEMU's API with unit tests in TESTEMU, based on YANG ietf-interfaces model ..."
-    - cd testemu && gradle test --build-cache --info --warning-mode all --stacktrace
+    - echo "Testing NETEMU's API with unit tests in TESTEMU, based on ietf-interfaces.yang model ..."
+    - >
+      cd testemu && gradle wrapper --info --warning-mode all --stacktrace && ./gradlew -version
+      && ./gradlew test --build-cache --info --warning-mode all --stacktrace
 
 
 Publish NETEMU to Artifactory:
@@ -115,10 +118,10 @@ Publish NETEMU to Artifactory:
 
   script:
     - >
-      if gradle properties --quiet --warning-mode fail --stacktrace | grep --perl-regexp '^(release|snapshot):' ; then
+      if ./gradlew properties --quiet --warning-mode fail --stacktrace | grep --perl-regexp '^(release|snapshot):' ; then
       echo "Publishing NETEMU ..."
       ;
-      gradle publish --exclude-task jar --build-cache --info --warning-mode fail --stacktrace
+      ./gradlew publish --exclude-task jar --build-cache --info --warning-mode fail --stacktrace
       --project-prop artifactoryReleaseUrl="$ARTIFACTORY_RELEASE_URL"
       --project-prop artifactorySnapshotUrl="$ARTIFACTORY_SNAPSHOT_URL"
       --project-prop artifactoryUser="$ARTIFACTORY_USER"
