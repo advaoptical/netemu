@@ -6,6 +6,7 @@ plugins {
     id 'maven-publish'
 
     alias libs.plugins.git.version
+    alias libs.plugins.versions
 
     // id 'com.vaadin'
     // id 'io.spring.dependency-management' version '1.1.0'

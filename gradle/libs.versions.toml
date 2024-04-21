@@ -1,6 +1,7 @@
 [versions]
 # - plugins -
 git-version = '3.0.0'
+versions = '0.51.0'
 
 # - libraries -
 activation = '1.1.1' # TODO: Move to Jakarta
@@ -40,6 +41,7 @@ dagger = '2.51.1'
 
 [plugins]
 git-version = { id = 'com.palantir.git-version', version.ref = 'git-version' }
+versions = { id = 'com.github.ben-manes.versions', version.ref = 'versions' }
 
 [libraries]
 activation = { group = 'javax.activation', name = 'activation', version.ref = 'activation' }
