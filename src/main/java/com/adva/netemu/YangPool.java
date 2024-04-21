@@ -269,6 +269,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         return this.broker;
     }
 
+    /*
     public static class NormalizedNodeBroker extends SerializedDOMDataBroker {
 
         @NonNull
@@ -312,12 +313,13 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             return super.createTransactionChain(listener);
         }
     }
+    */
 
     @NonNull
-    private final NormalizedNodeBroker normalizedNodeBroker;
+    private final /*NormalizedNodeBroker*/ SerializedDOMDataBroker normalizedNodeBroker;
 
     @NonNull
-    public NormalizedNodeBroker getNormalizedNodeBroker() {
+    public /*NormalizedNodeBroker*/ SerializedDOMDataBroker getNormalizedNodeBroker() {
         return this.normalizedNodeBroker;
     }
 
@@ -411,7 +413,13 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             }
         };
 
-        this.normalizedNodeBroker = new NormalizedNodeBroker(this);
+        // this.normalizedNodeBroker = new NormalizedNodeBroker(this);
+        this.normalizedNodeBroker = new SerializedDOMDataBroker(Map.of(
+                LogicalDatastoreType.CONFIGURATION, this.configurationStore,
+                LogicalDatastoreType.OPERATIONAL, this.operationalStore
+
+        ), MoreExecutors.listeningDecorator(this.transactionExecutor));
+
         this.broker = new BindingDOMDataBrokerAdapter(adapterContext, this.normalizedNodeBroker);
 
         /*

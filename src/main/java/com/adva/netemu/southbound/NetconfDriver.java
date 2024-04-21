@@ -34,7 +34,7 @@ import org.opendaylight.yangtools.yang.common.Empty;
 import org.opendaylight.yangtools.yang.common.QName;
 
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
-import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
+import org.opendaylight.yangtools.yang.data.api.schema.ContainerNode;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.YangInstanceIdentifierWriter;
 
@@ -44,7 +44,7 @@ import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableLe
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 
-import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.model.api.stmt.SchemaNodeIdentifier;
 import org.opendaylight.yangtools.yang.parser.api.YangParserException;
 import org.opendaylight.yangtools.yang.parser.api.YangParserFactory;
 import org.opendaylight.yangtools.yang.parser.impl.DefaultYangParserFactory;
@@ -356,9 +356,7 @@ public class NetconfDriver extends EmuDriver {
                     }
                 }
 
-                NetconfUtil.writeNormalizedNode(yangNodeResult.getResult(), null, new DOMResult(configElement),
-                        SchemaPath.ROOT,
-                        yangContext);
+                NetconfUtil.writeNormalizedNode(yangNodeResult.getResult(), new DOMResult(configElement), yangContext, null);
 
             } catch (final IOException | XMLStreamException e) {
                 throw new RuntimeException(e);
@@ -387,7 +385,7 @@ public class NetconfDriver extends EmuDriver {
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
-    public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final NormalizedNode data) {
+    public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final ContainerNode data) {
         this.request(this.transformer.toRpcRequest(NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_QNAME, data));
         return FluentFuture.from(Futures.immediateFuture(List.of()));
     }

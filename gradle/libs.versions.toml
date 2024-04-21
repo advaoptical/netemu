@@ -5,36 +5,38 @@ git-version = '3.0.0'
 # - libraries -
 activation = '1.1.1' # TODO: Move to Jakarta
 auto-service = '1.1.1'
-classgraph = '4.8.168'
+classgraph = '4.8.171'
 future-converter = '1.2.0'
 handlebars = '4.4.0'
 jaxb-api = '2.3.1' # TODO: Move to Jakarta
 jaxb-runtime = '2.3.7' # TODO: Move to Jakarta
 jersey = '2.41' # TODO: Move to 3.x
 jsr173 = '1.0'
+maven = '3.9.6'
+metainf-services = '1.11'
 poet = '1.13.0'
 streamex = '0.8.2'
 typetools = '0.6.3'
 vaadin = '23.4.0'
 
 # - compile -
-lombok = '1.18.30'
+lombok = '1.18.32'
 
 # - opendaylight -
-yangtools = '9.0.5_1-ADVA'
-mdsal = '10.0.5_1-ADVA'
-netconf = '4.0.4_1-ADVA'
+yangtools = '10.0.12_1-ADVA'
+mdsal = '11.0.15_1-ADVA'
+netconf = '5.0.9_1-ADVA'
 
 # - used by mdsal-generated code -
 eclipse-annotation = '2.3.0'
 findbugs = '3.0.1'
 
 # - testing -
-spock = '2.4-M2-groovy-3.0'
+spock = '2.4-M4-groovy-3.0'
 
 # - injection -
 assisted-inject = '0.8.1'
-dagger = '2.51'
+dagger = '2.51.1'
 
 [plugins]
 git-version = { id = 'com.palantir.git-version', version.ref = 'git-version' }
@@ -50,6 +52,8 @@ jaxb-runtime = { group = 'org.glassfish.jaxb', name = 'jaxb-runtime', version.re
 jersey-grizzly2 = { group = 'org.glassfish.jersey.containers', name = 'jersey-container-grizzly2-http', version.ref = 'jersey' }
 jersey-hk2 = { group = 'org.glassfish.jersey.inject', name = 'jersey-hk2', version.ref = 'jersey' }
 jsr173 = { group = 'javax.xml', name = 'jsr173', version.ref = 'jsr173' }
+maven = { group = 'org.apache.maven', name = 'maven-core', version.ref = 'maven' }
+metainf-services = { group = 'org.kohsuke.metainf-services', name = 'metainf-services', version.ref = 'metainf-services' }
 poet = { group = 'com.squareup', name = 'javapoet', version.ref = 'poet' }
 streamex = { group = 'one.util', name = 'streamex', version.ref = 'streamex' }
 typetools = { group = 'net.jodah', name = 'typetools', version.ref = 'typetools' }

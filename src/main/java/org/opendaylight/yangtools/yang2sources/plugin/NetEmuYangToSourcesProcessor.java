@@ -2,44 +2,35 @@ package org.opendaylight.yangtools.yang2sources.plugin;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 
 import org.apache.maven.project.MavenProject;
+import org.sonatype.plexus.build.incremental.DefaultBuildContext;
 
 import org.opendaylight.mdsal.binding.java.api.generator.NetEmuFileGenerator;
-import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource;
-
-import org.opendaylight.mdsal.binding.maven.api.gen.plugin.NetEmuCodeGenerator;
 
 
 public class NetEmuYangToSourcesProcessor extends YangToSourcesProcessor {
 
-    private static final class YangProviderDummy extends YangProvider {
-
-        @Override @SuppressWarnings({"UnstableApiUsage"})
-        void addYangsToMetaInf(final MavenProject project, final Collection<YangTextSchemaSource> __) {}
-    }
+    @Nonnull
+    public static final Path YANG_META_PATH = Paths.get("META-INF", "yang");
 
     @Nonnull
-    private static final Path YANG_META_PATH = Paths.get("META-INF", "yang");
-
-    @Nonnull
-    private static final String CODE_GENERATOR_CLASS = NetEmuFileGenerator.class.getName(); // NetEmuCodeGenerator.class.getName();
+    public static final String FILE_GENERATOR_IDENTIFIER = NetEmuFileGenerator.class.getName(); // NetEmuCodeGenerator.class.getName();
 
     public NetEmuYangToSourcesProcessor(
             @Nonnull final Path resourcesPath, @Nonnull final Path mdSalOutputPath, @Nonnull final String yangPackageName,
             @Nonnull final MavenProject project) {
 
-        super(
-                resourcesPath.resolve(YANG_META_PATH).resolve(yangPackageName).toFile(), /* excludedFiles = */ List.of(),
-                List.of(new ConfigArg.CodeGeneratorArg(
-                        CODE_GENERATOR_CLASS, mdSalOutputPath.toString(), resourcesPath.toString())),
+        super(new DefaultBuildContext(), /// seems redundant, but super() w/implicit buildContext does not forward fileGenerators
+                resourcesPath.resolve(YANG_META_PATH).resolve(yangPackageName).toFile(), List.of(), /// no exclusions
+                List.of(new FileGeneratorArg(FILE_GENERATOR_IDENTIFIER)),
+                project, true);
 
-                project, /* inspectDependencies = */ true, new YangProviderDummy());
-
-        NetEmuCodeGenerator.YANG_PACKAGE_NAME.set(yangPackageName);
+        /** Tell next factory-service-created generator instance the Java package to process YANG modules for:
+        */
+        NetEmuFileGenerator.YANG_PACKAGE_NAME.set(yangPackageName);
     }
 }

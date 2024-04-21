@@ -29,11 +29,13 @@ import org.opendaylight.restconf.nb.rfc8040.handlers.NotificationServiceHandler;
 import org.opendaylight.restconf.nb.rfc8040.handlers.RpcServiceHandler;
 */
 
+import org.opendaylight.restconf.nb.rfc8040.databind.DatabindProvider;
+import org.opendaylight.restconf.nb.rfc8040.databind.mdsal.DOMDatabindProvider;
 import org.opendaylight.restconf.nb.rfc8040.handlers.SchemaContextHandler;
 // import org.opendaylight.restconf.nb.rfc8040.handlers.TransactionChainHandler;
 
 // import org.opendaylight.restconf.nb.rfc8040.services.wrapper.ServicesWrapper;
-import org.opendaylight.restconf.nb.rfc8040.streams.Configuration;
+import org.opendaylight.restconf.nb.rfc8040.streams.StreamsConfiguration;
 
 import com.adva.netemu.YangPool;
 import com.adva.netemu.service.EmuService;
@@ -99,7 +101,8 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
 
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var restconf = new RestconfApplication(
                 // schemaContextHandler, domMountPointServiceHandler, ServicesWrapper.newInstance(
-                        schemaContextHandler,
+                        // schemaContextHandler,
+                        new DOMDatabindProvider(domSchemaService),
                         domMountPointServiceHandler,
                         transactionChainHandler,
 
@@ -108,7 +111,7 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
                         /*new ActionServiceHandler(*/domRpcRouter.getActionService(),
                         /*new NotificationServiceHandler(*/DOMNotificationRouter.create(1024),
                         domSchemaService,
-                        new Configuration(0, 1, 0, true));
+                        new StreamsConfiguration(0, 1, 0, true));
 
         @Nonnull final var settings = (Settings) this.settings();
         @Nonnull final var http = GrizzlyHttpServerFactory.createHttpServer(

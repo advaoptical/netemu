@@ -1,6 +1,3 @@
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
-
-
 plugins {
     id 'groovy'
     id 'java'
@@ -14,8 +11,12 @@ plugins {
     // id 'io.spring.dependency-management' version '1.1.0'
 }
 
+wrapper {
+    gradleVersion = '8.7'
+}
 
-group = "com.adva"
+
+group = 'com.adva'
 
 version = { com.palantir.gradle.gitversion.VersionDetails details ->
 
@@ -63,10 +64,12 @@ java { /** Updated to use JavaPluginExtension instead of Gradle 8+ deprecated Ja
     https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#java_convention_deprecation
     */
 
-    sourceCompatibility = 17
-    targetCompatibility = 17
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
+
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 final operatingSystem = DefaultNativePlatform.currentOperatingSystem
 
@@ -129,6 +132,8 @@ dependencies {
 
     api libs.vaadin
 
+    implementation libs.maven
+
     implementation libs.classgraph
     // implementation 'org.reflections:reflections:0.10.2'
 
@@ -159,6 +164,9 @@ dependencies {
 
     annotationProcessor libs.lombok
     compileOnly libs.lombok
+
+    annotationProcessor libs.metainf.services
+    compileOnly libs.metainf.services
 
     api libs.jsr173
     // api "com.bea.xml:jsr173-ri:1.0"
@@ -288,18 +296,18 @@ test {
 
 tasks.register 'mvnInstallYangtools', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
-            "groovy", "mvn-yangtools.groovy", "--batch-mode", "--projects=-karaf", "install", "-DskipTests",
-            "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
+    commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + [
+            'groovy', 'mvn-yangtools.groovy', '--batch-mode', '--projects=-karaf', 'install', '-DskipTests',
+            '-Dmaven.javadoc.skip=true', '-Dcheckstyle.skip=true', '-Dspotbugs.skip=true']
 }
 
 tasks.register 'mvnInstallMdsal', Exec, {
     dependsOn mvnInstallYangtools
 
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
-            "groovy", "mvn-mdsal.groovy", "--batch-mode", "install", "-DskipTests",
-            "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
+    commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + [
+            'groovy', 'mvn-mdsal.groovy', '--batch-mode', 'install', '-DskipTests',
+            '-Dmaven.javadoc.skip=true', '-Dcheckstyle.skip=true', '-Dspotbugs.skip=true']
 }
 
 tasks.register 'mvnInstallNetconf', Exec, {
@@ -307,9 +315,9 @@ tasks.register 'mvnInstallNetconf', Exec, {
     dependsOn mvnInstallMdsal
 
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + [
-            "groovy", "mvn-netconf.groovy", "--batch-mode", "install", "-DskipTests",
-            "-Dmaven.javadoc.skip=true", "-Dcheckstyle.skip=true", "-Dspotbugs.skip=true"]
+    commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + [
+            'groovy', 'mvn-netconf.groovy', '--batch-mode', 'install', '-DskipTests',
+            '-Dmaven.javadoc.skip=true', '-Dcheckstyle.skip=true', '-Dspotbugs.skip=true']
 }
 
 tasks.register 'mvnInstallOpenDaylightModules', {
@@ -321,17 +329,17 @@ tasks.register 'mvnInstallOpenDaylightModules', {
 
 tasks.register 'mvnCleanYangtools', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-yangtools.groovy", "--batch-mode", "clean"]
+    commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + ['groovy', 'mvn-yangtools.groovy', '--batch-mode', 'clean']
 }
 
 tasks.register 'mvnCleanMdsal', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-mdsal.groovy", "--batch-mode", "clean"]
+    commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + ['groovy', 'mvn-mdsal.groovy', '--batch-mode', 'clean']
 }
 
 tasks.register 'mvnCleanNetconf', Exec, {
     workingDir rootDir
-    commandLine = (operatingSystem.windows ? ["cmd", "/c"] : []) + ["groovy", "mvn-netconf.groovy", "--batch-mode", "clean"]
+    commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + ['groovy', 'mvn-netconf.groovy', '--batch-mode', 'clean']
 }
 
 tasks.register 'mvnCleanOpenDaylightModules', {

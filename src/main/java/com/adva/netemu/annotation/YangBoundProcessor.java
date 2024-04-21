@@ -12,8 +12,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -41,8 +43,9 @@ import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.QNameModule;
 import org.opendaylight.yangtools.yang.common.XMLNamespace;
+
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
-import org.opendaylight.yangtools.yang.model.api.SchemaPath;
+import org.opendaylight.yangtools.yang.model.api.stmt.SchemaNodeIdentifier;
 
 // import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 // import org.opendaylight.mdsal.binding.generator.BindingGeneratorUtil;
@@ -53,7 +56,7 @@ import com.adva.netemu.YangBound;
 
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"com.adva.netemu.YangBound"})
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class YangBoundProcessor extends AbstractProcessor {
 
     private static class CompileTimeClassFieldMap extends AbstractMap<String, String> {
@@ -225,22 +228,21 @@ public class YangBoundProcessor extends AbstractProcessor {
 
         // TODO: final var yangContext = yangRegistry.getSchemaContext();
 
-        @Nonnull final var yangPath = SchemaPath.create(
-                StreamEx.of(this.provideYangPathFrom(annotation).split("/")).map(name -> QName.create(yangNamespace, name))
-                        //  Needed to avoid "java.lang.IllegalStateException: stream has already been operated upon or closed"
-                        .toList(), // Because SchemaPath.create checks Iterables.isEmpty before iteration
+        @Nonnull final var yangPath = SchemaNodeIdentifier.Absolute.of(StreamEx
+                .of(this.provideYangPathFrom(annotation).split("/"))
+                .map(name -> QName.create(yangNamespace, name))
+                .toList());
 
-                true); // true -> SchemaPath is absolute
-
+        @Nonnegative final var yangPathSize = yangPath.getNodeIdentifiers().size();
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangClassName = ClassName.get(
                 // BindingGeneratorUtil.packageNameForGeneratedType(yangModulePackage, yangPath),
                 // BindingMapping.getRootPackageName(yangPath.getLastComponent()),
-                (yangPath.getParent().getParent() == null) ? yangModulePackage : String.join(".", yangModulePackage, BindingMapping
-                        .normalizePackageName(StreamEx.of(yangPath.getParent().getPathFromRoot())
+                (yangPathSize <= 1) ? yangModulePackage : String.join(".", yangModulePackage, BindingMapping
+                        .normalizePackageName(StreamEx.of(yangPath.getNodeIdentifiers().subList(0, yangPathSize - 1))
                                 .map(qName -> qName.getLocalName().replace("-", "."))
                                 .joining("."))),
 
-                BindingMapping.getClassName(yangPath.getLastComponent()));
+                BindingMapping.getClassName(yangPath.lastNodeIdentifier()));
 
 
         @Nonnull final var elementUtils = super.processingEnv.getElementUtils();
@@ -251,6 +253,10 @@ public class YangBoundProcessor extends AbstractProcessor {
 
         @Nonnull final var declaredTypeChildOf = typeUtils.getDeclaredType(elementUtils
                 .getTypeElement(ChildOf.class.getName()));
+
+        if (elementUtils.getTypeElement(yangClassName.canonicalName()) == null) {
+            throw new RuntimeException(String.format("Missing class '%s'", yangClassName.canonicalName()));
+        }
 
         @Nullable final var yangParentAugmentationType = StreamEx
                 .of(elementUtils.getTypeElement(yangClassName.canonicalName()).getInterfaces())
