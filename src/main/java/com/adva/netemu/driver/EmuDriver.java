@@ -87,7 +87,7 @@ public abstract class EmuDriver {
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<List<CommitInfo>> fetchConfigurationData() {
-        return this.fetchConfigurationData(YangInstanceIdentifier.empty());
+        return this.fetchConfigurationData(YangInstanceIdentifier.of());
     }
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
@@ -95,7 +95,7 @@ public abstract class EmuDriver {
 
     @Nonnull @SuppressWarnings({"UnstableApiUsage"})
     public FluentFuture<List<CommitInfo>> fetchOperationalData() {
-        return this.fetchOperationalData(YangInstanceIdentifier.empty());
+        return this.fetchOperationalData(YangInstanceIdentifier.of());
     }
 
     @Nonnull

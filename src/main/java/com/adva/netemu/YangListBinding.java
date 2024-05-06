@@ -6,15 +6,14 @@ import javax.annotation.Nonnull;
 
 import com.google.common.reflect.TypeToken;
 
-// import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
-import org.opendaylight.yangtools.yang.binding.Identifiable;
-import org.opendaylight.yangtools.yang.binding.Identifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.Key;
+import org.opendaylight.yangtools.yang.binding.KeyAware;
 
 
 public abstract class YangListBinding
-        <Y extends ChildOf & Identifiable<K>, K extends Identifier<Y>, B extends YangBuilder<Y>> // TODO: ChildOf<?>
+        <Y extends ChildOf & KeyAware<K>, K extends Key<Y>, B extends YangBuilder<Y>> // TODO: ChildOf<?>
         extends YangBinding<Y, B> implements YangListBindable {
 
     @Nonnull @Override
@@ -30,7 +29,7 @@ public abstract class YangListBinding
 
     @Nonnull @Override
     @SuppressWarnings("unchecked")
-    public InstanceIdentifier.InstanceIdentifierBuilder<Y> getIidBuilder() {
+    public InstanceIdentifier.Builder<Y> getIidBuilder() {
         if (this.owner == null) {
             return InstanceIdentifier.builder(this.getDataClass(), this.getKey());
         }

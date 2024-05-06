@@ -210,7 +210,7 @@ dependencies {
     */
 
     /// opendaylight-yangtools ...
-    compileOnly libs.rfc7952.data.util
+    // compileOnly libs.rfc7952.data.util
     compileOnly libs.yang.data.api
     compileOnly libs.yang.data.codec.gson
     compileOnly libs.yang.data.codec.xml
@@ -218,6 +218,7 @@ dependencies {
     compileOnly libs.yang.data.util
     compileOnly libs.yang.maven.plugin
     compileOnly libs.yang.repo.fs
+    compileOnly libs.yang.parser.impl
 
     /// opendaylight-mdsal ...
     compileOnly libs.binding.dom.adapter

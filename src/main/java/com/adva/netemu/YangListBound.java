@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 
 import one.util.streamex.StreamEx;
 
-import org.opendaylight.yangtools.yang.binding.Identifier;
+import org.opendaylight.yangtools.yang.binding.Key;
 
 
 @Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME)
@@ -48,12 +48,12 @@ public @interface YangListBound {
         }
 
         @Nonnull
-        public E get(@Nonnull final Identifier<?> key) {
+        public E get(@Nonnull final Key<?> key) {
             return this.find(key).orElseThrow(() -> new  IllegalArgumentException(String.format("%s not in %s", key, this)));
         }
 
         @Nonnull
-        public Optional<E> find(@Nonnull final Identifier<?> key) {
+        public Optional<E> find(@Nonnull final Key<?> key) {
             return StreamEx.of(this.items)
                     .findFirst(item -> item.getYangListBinding().map(YangListBinding::getKey)
                             .orElseThrow(() -> new RuntimeException(String.format("%s has no YANG-Binding", item)))
@@ -61,7 +61,7 @@ public @interface YangListBound {
         }
 
         @Nonnull
-        public Set<? extends Identifier<?>> keySet() {
+        public Set<? extends Key<?>> keySet() {
             return StreamEx.of(this.items)
                     .map(item -> item.getYangListBinding().map(YangListBinding::getKey).orElseThrow(() -> new RuntimeException(
                             String.format("%s has no YANG-Binding", item))))
@@ -84,7 +84,7 @@ public @interface YangListBound {
             return this.items.contains(item);
         }
 
-        public boolean containsKey(@Nonnull final Identifier<?> key) {
+        public boolean containsKey(@Nonnull final Key<?> key) {
             return this.find(key).isPresent();
         }
 

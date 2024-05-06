@@ -18,15 +18,15 @@ metainf-services = '1.11'
 poet = '1.13.0'
 streamex = '0.8.2'
 typetools = '0.6.3'
-vaadin = '23.4.0'
+vaadin = '23.3.12'
 
 # - compile -
 lombok = '1.18.32'
 
 # - opendaylight -
-yangtools = '10.0.12_1-ADVA'
-mdsal = '11.0.15_1-ADVA'
-netconf = '5.0.9_1-ADVA'
+yangtools = '11.0.6_1-ADVA'
+mdsal = '12.0.5_1-ADVA'
+netconf = '6.0.7_1-ADVA'
 
 # - used by mdsal-generated code -
 eclipse-annotation = '2.3.0'
@@ -73,6 +73,7 @@ yang-data-impl = { group = 'org.opendaylight.yangtools', name = 'yang-data-impl'
 yang-data-util = { group = 'org.opendaylight.yangtools', name = 'yang-data-util', version.ref = 'yangtools' }
 yang-maven-plugin = { group = 'org.opendaylight.yangtools', name = 'yang-maven-plugin', version.ref = 'yangtools' }
 yang-repo-fs = { group = 'org.opendaylight.yangtools', name = 'yang-repo-fs', version.ref = 'yangtools' }
+yang-parser-impl = { group = 'org.opendaylight.yangtools', name = 'yang-parser-impl', version.ref = 'yangtools' }
 
 # - opendaylight-mdsal -
 binding-dom-adapter = { group = 'org.opendaylight.mdsal', name = 'mdsal-binding-dom-adapter', version.ref = 'mdsal' }

@@ -38,8 +38,6 @@ import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 import one.util.streamex.StreamEx;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
@@ -50,6 +48,7 @@ import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWrit
 import org.opendaylight.yangtools.yang.data.codec.xml.XMLStreamNormalizedNodeStreamWriter;
 import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier;
 
+import org.opendaylight.netconf.api.CapabilityURN;
 import org.opendaylight.netconf.api.DocumentedException;
 import org.opendaylight.netconf.api.xml.MissingNameSpaceException;
 import org.opendaylight.netconf.api.xml.XmlElement;
@@ -58,6 +57,7 @@ import org.opendaylight.netconf.api.xml.XmlUtil;
 
 import org.opendaylight.netconf.test.tool.NetconfDeviceSimulator;
 import org.opendaylight.netconf.test.tool.config.ConfigurationBuilder;
+import org.opendaylight.netconf.test.tool.monitoring.MonitoringConstants;
 import org.opendaylight.netconf.test.tool.rpchandler.RpcHandler;
 
 import com.adva.netemu.NetEmu;
@@ -142,10 +142,7 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
         }
 
         @Nonnull final var netconf = new NetconfDeviceSimulator(super.settings()
-                .setCapabilities(Set.of(
-                        // XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0,
-                        XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_1))
-
+                .setCapabilities(Set.of(/*XmlNetconfConstants.URN_IETF_PARAMS_NETCONF_BASE_1_0,*/ CapabilityURN.BASE_1_1))
                 .setModels(Set.copyOf(super.yangPool().getModules()))
                 .setRpcMapping(this)
                 .setDeviceCount(1)
@@ -360,14 +357,11 @@ public class NetconfService extends EmuService<NetconfService.Settings> implemen
             return new SourceIdentifier(identifier, Revision.of(version));
 
         }).thenCompose(sourceIdentifier -> FutureConverter.toCompletableFuture(super.yangPool().getSource(sourceIdentifier))
-                .thenApplyAsync(yangByteSource -> {
+                .thenApplyAsync(yangTextSource -> {
                     @Nonnull final var xmlData = RESPONSE_BUILDER.newDocument();
-                    @Nonnull final var xmlDataElement = xmlData.createElementNS(
-                            XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_YANG_IETF_NETCONF_MONITORING, "data");
-
+                    @Nonnull final var xmlDataElement = xmlData.createElementNS(MonitoringConstants.NAMESPACE, "data");
                     try {
-                        xmlDataElement.setTextContent(String.join("\n", StreamEx
-                                .of(yangByteSource.asCharSource(StandardCharsets.UTF_8).readLines())
+                        xmlDataElement.setTextContent(String.join("\n", StreamEx.of(yangTextSource.readLines())
                                 .map(String::stripTrailing)));
 
                     } catch (final IOException e) {

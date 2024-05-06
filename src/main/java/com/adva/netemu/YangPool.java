@@ -71,7 +71,7 @@ import org.opendaylight.yangtools.yang.data.api.schema.NormalizedNode;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlCodecFactory;
 import org.opendaylight.yangtools.yang.data.codec.xml.XmlParserStream;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
-import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
+import org.opendaylight.yangtools.yang.data.impl.schema.NormalizationResultHolder;
 
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContext;
 import org.opendaylight.yangtools.yang.model.api.EffectiveModelContextProvider;
@@ -211,8 +211,10 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
             return qName.getLocalName().equals(identifier.name().getLocalName())
                     && qName.getRevision().equals(Optional.ofNullable(identifier.revision()));
 
-        }).map(module -> YangTextSchemaSource.delegateForByteSource(identifier, module.getYangTextByteSource())).orElseThrow(() ->
-                new NoSuchElementException(identifier.toString())), this.executor);
+        }).map(module -> YangTextSchemaSource.delegateForCharSource(identifier, module.getYangTextCharSource())
+                // .delegateForByteSource(identifier, module.getYangTextByteSource(), StandardCharsets.UTF_8)
+
+        ).orElseThrow(() -> new NoSuchElementException(identifier.toString())), this.executor);
     }
 
     /** Model context of this YANG pool.
@@ -418,7 +420,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                 LogicalDatastoreType.CONFIGURATION, this.configurationStore,
                 LogicalDatastoreType.OPERATIONAL, this.operationalStore
 
-        ), MoreExecutors.listeningDecorator(this.transactionExecutor));
+        ), this.transactionExecutor); // MoreExecutors.listeningDecorator(this.transactionExecutor));
 
         this.broker = new BindingDOMDataBrokerAdapter(adapterContext, this.normalizedNodeBroker);
 
@@ -709,7 +711,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
 
         return FluentFuture.from(updatingFuture).transformAsync(ignoredCommitInfos -> {
             @NonNull final var txn = this.getNormalizedNodeBroker().newReadOnlyTransaction();
-            @NonNull final var readingFuture = txn.read(storeType, YangInstanceIdentifier.empty());
+            @NonNull final var readingFuture = txn.read(storeType, YangInstanceIdentifier.of());
 
             LOG.info("Reading from {} Datastore", storeType);
             readingFuture.addCallback(this.datastore.injectReading().of(storeType).futureCallback, this.executor);
@@ -816,7 +818,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
         @NonNull final var dataNodes = new ArrayList<NormalizedNode>();
         try {
             while (input.nextYangTree()) {
-                @NonNull final var nodeResult = new NormalizedNodeResult();
+                @NonNull final var nodeResult = new NormalizationResultHolder();
                 @NonNull final var nodeWriter = ImmutableNormalizedNodeStreamWriter.from(nodeResult);
 
                 @NonNull final var parser = XmlParserStream.create(nodeWriter, this.xmlCodecFactory,
@@ -824,10 +826,10 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                         false); // TODO: Add strictParsing to method params
 
                 parser.parse(input);
-                dataNodes.add(nodeResult.getResult());
+                dataNodes.add(nodeResult.getResult().data());
             }
 
-        } catch (final IllegalArgumentException | IOException | SAXException | URISyntaxException | XMLStreamException e) {
+        } catch (final IllegalArgumentException | IOException | XMLStreamException e) {
             LOG.error("While parsing from XML Data input: ", e);
             LOG.error("Failed parsing XML Data from: " + xmlReader);
 
@@ -878,7 +880,7 @@ public class YangPool extends SplitLayout implements EffectiveModelContextProvid
                     @NonNull final var txn = this.getNormalizedNodeBroker().newWriteOnlyTransaction();
 
                     @NonNull final var yangPaths = StreamEx.of(nodes)
-                            .mapToEntry(node -> YangInstanceIdentifier.create(node.getIdentifier()), Function.identity())
+                            .mapToEntry(node -> YangInstanceIdentifier.of(node.name()), Function.identity())
                             .mapKeyValue((yangPath, node) -> {
                                 txn.merge(storeType, yangPath, node);
                                 return yangPath;

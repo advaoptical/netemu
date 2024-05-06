@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -13,19 +14,21 @@ import java.util.concurrent.ExecutionException;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.dom.DOMResult;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.opendaylight.yangtools.rfc8528.data.util.EmptyMountPointContext;
 
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -35,24 +38,26 @@ import org.opendaylight.yangtools.yang.common.QName;
 
 import org.opendaylight.yangtools.yang.data.api.YangInstanceIdentifier;
 import org.opendaylight.yangtools.yang.data.api.schema.ContainerNode;
+import org.opendaylight.yangtools.yang.data.api.schema.MountPointContext;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.NormalizedNodeWriter;
 import org.opendaylight.yangtools.yang.data.api.schema.stream.YangInstanceIdentifierWriter;
 
+import org.opendaylight.yangtools.yang.data.impl.schema.NormalizationResultHolder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableContainerNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableChoiceNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.builder.impl.ImmutableLeafNodeBuilder;
 import org.opendaylight.yangtools.yang.data.impl.schema.ImmutableNormalizedNodeStreamWriter;
-import org.opendaylight.yangtools.yang.data.impl.schema.NormalizedNodeResult;
 
 import org.opendaylight.yangtools.yang.model.api.stmt.SchemaNodeIdentifier;
+import org.opendaylight.yangtools.yang.model.spi.AbstractEffectiveModelContextProvider;
 import org.opendaylight.yangtools.yang.parser.api.YangParserException;
 import org.opendaylight.yangtools.yang.parser.api.YangParserFactory;
 import org.opendaylight.yangtools.yang.parser.impl.DefaultYangParserFactory;
 
+import org.opendaylight.mdsal.binding.dom.codec.api.BindingNormalizedNodeSerializer;
 import org.opendaylight.mdsal.common.api.CommitInfo;
 
 import org.opendaylight.netconf.api.NetconfMessage;
-import org.opendaylight.netconf.api.util.NetconfConstants;
 import org.opendaylight.netconf.api.xml.XmlUtil;
 
 import org.opendaylight.netconf.client.NetconfClientDispatcherImpl;
@@ -61,13 +66,14 @@ import org.opendaylight.netconf.client.SimpleNetconfClientSessionListener;
 import org.opendaylight.netconf.client.conf.NetconfClientConfiguration;
 import org.opendaylight.netconf.client.conf.NetconfClientConfigurationBuilder;
 
-import org.opendaylight.netconf.nettyutil.TimedReconnectStrategyFactory;
+import org.opendaylight.netconf.client.mdsal.impl.DefaultBaseNetconfSchemas;
+import org.opendaylight.netconf.client.mdsal.impl.NetconfMessageTransformer;
+import org.opendaylight.netconf.client.mdsal.impl.NetconfMessageTransformUtil;
+import org.opendaylight.netconf.common.mdsal.NormalizedDataUtil;
+
+// import org.opendaylight.netconf.nettyutil.TimedReconnectStrategyFactory;
 import org.opendaylight.netconf.nettyutil.handler.ssh.authentication.AuthenticationHandler;
 import org.opendaylight.netconf.nettyutil.handler.ssh.authentication.LoginPasswordHandler;
-import org.opendaylight.netconf.sal.connect.netconf.schema.mapping.DefaultBaseNetconfSchemas;
-import org.opendaylight.netconf.sal.connect.netconf.schema.mapping.NetconfMessageTransformer;
-import org.opendaylight.netconf.sal.connect.netconf.util.NetconfMessageTransformUtil;
-import org.opendaylight.netconf.util.NetconfUtil;
 
 import com.adva.netemu.YangBindable;
 import com.adva.netemu.YangData;
@@ -75,6 +81,7 @@ import com.adva.netemu.YangPool;
 import com.adva.netemu.driver.EmuDriver;
 
 
+@Slf4j @SuppressWarnings({"UnstableApiUsage"})
 public class NetconfDriver extends EmuDriver {
 
     public static class Settings implements EmuDriver.Settings<NetconfDriver> {
@@ -137,9 +144,6 @@ public class NetconfDriver extends EmuDriver {
     }
 
     @Nonnull
-    private static final Logger LOG = LoggerFactory.getLogger(NetconfDriver.class);
-
-    @Nonnull
     private static final GlobalEventExecutor EVENT_EXECUTOR = GlobalEventExecutor.INSTANCE;
 
     @Nonnull
@@ -153,6 +157,18 @@ public class NetconfDriver extends EmuDriver {
 
     @Nonnull
     private static final YangParserFactory YANG_PARSER_FACTORY = new DefaultYangParserFactory();
+
+    @Nonnull
+    private static final NetconfMessage EMPTY_NETCONF_MESSAGE;
+    static {
+        try {
+            EMPTY_NETCONF_MESSAGE = new NetconfMessage(DocumentBuilderFactory.newDefaultInstance().newDocumentBuilder()
+                    .newDocument());
+
+        } catch (final ParserConfigurationException e) {
+            throw new RuntimeException("Failed creating empty NETCONF message for dry-run purposes", e);
+        }
+    }
 
     @Nullable
     private final InetSocketAddress address;
@@ -178,7 +194,7 @@ public class NetconfDriver extends EmuDriver {
 
         try {
             this.transformer = new NetconfMessageTransformer(
-                    new EmptyMountPointContext(pool.getEffectiveModelContext()), true, // true -> strict message parsing
+                    MountPointContext.of(pool.getEffectiveModelContext()), true, // true -> strict message parsing
                     new DefaultBaseNetconfSchemas(YANG_PARSER_FACTORY).getBaseSchemaWithNotifications());
 
         } catch (final YangParserException e) {
@@ -201,8 +217,8 @@ public class NetconfDriver extends EmuDriver {
                         .withProtocol(NetconfClientConfiguration.NetconfClientProtocol.SSH)
                         .withAddress(this.address)
                         .withAuthHandler(this.authentication)
-                        .withReconnectStrategy(new TimedReconnectStrategyFactory(EVENT_EXECUTOR, 5L, 0, BigDecimal.ONE)
-                                .createReconnectStrategy())
+                        // .withReconnectStrategy(new TimedReconnectStrategyFactory(EVENT_EXECUTOR, 5L, 0, BigDecimal.ONE)
+                        //         .createReconnectStrategy())
 
                         // .withReconnectStrategy(new ReconnectImmediatelyStrategy(EVENT_EXECUTOR, 0))
                         .withSessionListener(this.listener)
@@ -212,34 +228,34 @@ public class NetconfDriver extends EmuDriver {
             this.session = futureSession.get();
 
         } catch (final InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed creating NETCONF client session", e);
         }
     }
 
-    @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull @Override
     public FluentFuture<List<CommitInfo>> fetchConfigurationData(@Nonnull final YangInstanceIdentifier iid) {
         return this.requestGetConfig();
     }
 
-    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull
     public FluentFuture<List<CommitInfo>> fetchConfigurationDataFor(@Nonnull final YangBindable object) {
         return this.requestGetConfig();
     }
 
-    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull
     public FluentFuture<List<CommitInfo>> requestGetConfig() {
-        @Nonnull final var message = this.transformer.toRpcRequest(
-                NetconfMessageTransformUtil.NETCONF_GET_CONFIG_QNAME,
+        @Nonnull final var message = this.transformer.toRpcRequest(NetconfMessageTransformUtil.NETCONF_GET_CONFIG_QNAME,
                 ImmutableContainerNodeBuilder.create().withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_CONFIG_NODEID)
                         .withChild(ImmutableContainerNodeBuilder.create()
+
                                 .withNodeIdentifier(NetconfMessageTransformUtil.NETCONF_SOURCE_NODEID)
                                 .withChild(ImmutableChoiceNodeBuilder.create()
-                                        .withNodeIdentifier(YangInstanceIdentifier.NodeIdentifier.create(
-                                                QName.create(NetconfUtil.NETCONF_QNAME, "config-source")))
+                                        .withNodeIdentifier(YangInstanceIdentifier.NodeIdentifier.create(QName
+                                                .create(NormalizedDataUtil.NETCONF_QNAME, "config-source")))
 
                                         .withChild(ImmutableLeafNodeBuilder.createNode(
-                                                YangInstanceIdentifier.NodeIdentifier.create(
-                                                        NetconfMessageTransformUtil.NETCONF_RUNNING_QNAME),
+                                                YangInstanceIdentifier.NodeIdentifier
+                                                        .create(NetconfMessageTransformUtil.NETCONF_RUNNING_QNAME),
 
                                                 Empty.value())).build()).build()).build());
 
@@ -261,17 +277,17 @@ public class NetconfDriver extends EmuDriver {
         }
     }
 
-    @Nonnull @Override @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull @Override
     public FluentFuture<List<CommitInfo>> fetchOperationalData(@Nonnull final YangInstanceIdentifier iid) {
         return this.requestGet();
     }
 
-    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull
     public FluentFuture<List<CommitInfo>> fetchOperationalDataFor(@Nonnull final YangBindable object) {
         return this.requestGet();
     }
 
-    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull
     public FluentFuture<List<CommitInfo>> requestGet() {
         @Nonnull final var message = this.transformer.toRpcRequest(
                 NetconfMessageTransformUtil.NETCONF_GET_QNAME,
@@ -297,7 +313,7 @@ public class NetconfDriver extends EmuDriver {
     }
 
     /*
-    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull
     public FluentFuture<List<CommitInfo>> pushConfigurationDataFrom(@Nonnull final YangBindable object) {
         return object.requireYangBinding().provideConfigurationData().transformAsync(data -> {
             @Nonnull final var futureCommitInfos = this.yangPool().writeConfigurationDataFrom(object.requireYangBinding());
@@ -338,28 +354,30 @@ public class NetconfDriver extends EmuDriver {
 
             @Nonnull final var yangContext = super.yangPool().getEffectiveModelContext();
             @Nonnull final var yangSerializer = super.yangPool().serializer();
+            @Nonnull final var yangNodeResult = (BindingNormalizedNodeSerializer.NodeResult)
+                    yangSerializer.toNormalizedNode(iid, dataObject);
 
-            @Nonnull final var yangNodeEntry = yangSerializer.toNormalizedNode(iid, dataObject);
-            @Nonnull final var yangNodeResult = new NormalizedNodeResult();
+            try { /** Adapted from {@link NetconfMessageTransformUtil#createEditConfigAnyxml}
+                */
+                @Nonnull final var yangTreeResultHolder = new NormalizationResultHolder();
 
-            try { /* Adapted from NetconfMessageTransformUtil.createEditConfigAnyxml()
-                    ... */
-
-                try (@Nonnull final var streamWriter = ImmutableNormalizedNodeStreamWriter.from(yangNodeResult)) {
+                try (@Nonnull final var yangStreamWriter = ImmutableNormalizedNodeStreamWriter.from(yangTreeResultHolder)) {
                     try (
-                            @Nonnull final var yangPathWriter = YangInstanceIdentifierWriter.open(streamWriter, yangContext,
+                            @Nonnull final var yangPathWriter = YangInstanceIdentifierWriter.open(yangStreamWriter, yangContext,
                                     yangSerializer.toYangInstanceIdentifier(iid).coerceParent());
 
-                            @Nonnull final var yangNodeWriter = NormalizedNodeWriter.forStreamWriter(streamWriter)) {
+                            @Nonnull final var yangNodeWriter = NormalizedNodeWriter.forStreamWriter(yangStreamWriter)) {
 
-                        yangNodeWriter.write(yangNodeEntry.getValue());
+                        yangNodeWriter.write(yangNodeResult.node());
                     }
                 }
 
-                NetconfUtil.writeNormalizedNode(yangNodeResult.getResult(), new DOMResult(configElement), yangContext, null);
+                NormalizedDataUtil.writeNormalizedNode(yangTreeResultHolder.getResult().data(), new DOMResult(configElement),
+                        yangContext, null);
 
             } catch (final IOException | XMLStreamException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(String.format("Failed serializing %s to NETCONF <config> tree",
+                        yangNodeResult.node()), e);
             }
 
             editConfigElement.appendChild(targetElement);
@@ -384,7 +402,7 @@ public class NetconfDriver extends EmuDriver {
         });
     }
 
-    @Nonnull @SuppressWarnings({"UnstableApiUsage"})
+    @Nonnull
     public FluentFuture<List<CommitInfo>> requestEditConfig(@Nonnull final ContainerNode data) {
         this.request(this.transformer.toRpcRequest(NetconfMessageTransformUtil.NETCONF_EDIT_CONFIG_QNAME, data));
         return FluentFuture.from(Futures.immediateFuture(List.of()));
@@ -394,7 +412,7 @@ public class NetconfDriver extends EmuDriver {
     private NetconfMessage request(@Nonnull final NetconfMessage message) {
         if (super.dryRun) {
             LOG.info("Dry-run NETCONF request:\n{}", message);
-            return new NetconfMessage();
+            return EMPTY_NETCONF_MESSAGE;
         }
 
         LOG.info("Sending NETCONF request to {}@{}:\n{}", this.authentication.getUsername(), this.address, message);
@@ -402,10 +420,11 @@ public class NetconfDriver extends EmuDriver {
         @Nonnull final var futureResponse = this.listener.sendRequest(message);
         @Nonnull final NetconfMessage response;
         try {
-            response = futureResponse.get();
+            response = Objects.requireNonNull(futureResponse.get(), () -> String.format("Received null response from %s",
+                    this.listener));
 
         } catch (final InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed sending NETCONF request or receiving response", e);
         }
 
         LOG.debug("Received NETCONF response from {}@{}:\n{}", this.authentication.getUsername(), this.address, response);

@@ -17,10 +17,11 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
 
+import org.opendaylight.yangtools.yang.binding.YangModelBindingProvider
+import org.opendaylight.yangtools.yang.binding.contract.Naming
 import org.opendaylight.yangtools.yang2sources.plugin.NetEmuYangToSourcesProcessor
 
 import org.opendaylight.mdsal.binding.java.api.generator.NetEmuFileGenerator
-import org.opendaylight.mdsal.binding.spec.naming.BindingMapping
 
 
 @SuppressWarnings(['GroovyUnusedDeclaration'])
@@ -45,22 +46,35 @@ class NetEmuPlugin implements Plugin<Project> {
 
         @Nonnull final mavenProject = new MavenProject()
         mavenProject.file = project.buildFile.canonicalFile
-        mavenProject.build.directory = buildDir as String
+        mavenProject.build.directory = buildDir.toString()
         mavenProject.build.sourceDirectory = javaSources.getAsPath()
 
-        @Nonnull final yangToSourcesTask = project.tasks.register 'yangToSources' get() doLast {
-            @Nonnull final buildRoot = buildDir.toPath()
-            @Nonnull final resourcesPath = buildRoot.resolve "resources/main"
+        @Nonnull final buildRoot = buildDir.toPath()
+        @Nonnull final resourcesPath = buildRoot.resolve 'resources/main'
 
-            @Nonnull final mavenGeneratedSourcesPath = buildRoot.resolve "generated-sources"
+        @Nonnull final mdSalOutputPath = buildRoot.resolve extension.yangToSources.mdSalOutputDir
+        @Nonnull final netEmuOutputPath = buildRoot.resolve extension.yangToSources.netEmuOutputDir
+
+        javaSources.srcDirs += [mdSalOutputPath.toString(), netEmuOutputPath.toString()]
+
+        @Nonnull final yangToSourcesTask = project.tasks.register 'yangToSources' get() doLast {
+
+            @Nonnull final mavenGeneratedSourcesPath = buildRoot.resolve 'generated-sources'
             @Nonnull final javaFileGeneratorOutputPath = mavenGeneratedSourcesPath
                     .resolve NetEmuYangToSourcesProcessor.FILE_GENERATOR_IDENTIFIER
 
-            @Nonnull final mdSalOutputPath = buildRoot.resolve extension.yangToSources.mdSalOutputDir
-            @Nonnull final netEmuOutputPath = buildRoot.resolve extension.yangToSources.netEmuOutputDir
+            @Nonnull final mavenGeneratedResourcesPath = buildRoot.resolve 'generated-resources'
+            @Nonnull final serviceFileGeneratorOutputPath = mavenGeneratedResourcesPath
+                    .resolve NetEmuYangToSourcesProcessor.FILE_GENERATOR_IDENTIFIER resolve NetEmuYangToSourcesProcessor
+                            .SERVICE_META_PATH
 
-            @Nonnull final netEmuMdSalMergingPath = netEmuOutputPath.resolve "mdsal"
+            @Nonnull final netEmuMdSalMergingPath = netEmuOutputPath.resolve 'mdsal'
             Files.createDirectories netEmuMdSalMergingPath
+
+            @Nonnull final serviceMetaPath = resourcesPath.resolve NetEmuYangToSourcesProcessor.SERVICE_META_PATH
+            Files.createDirectories serviceMetaPath
+
+            @Nonnull final yangBindingServiceFile = serviceMetaPath.resolve YangModelBindingProvider.class.name
 
             @Nonnull final yangMetaPath = resourcesPath.resolve NetEmuYangToSourcesProcessor.YANG_META_PATH
             yangMetaPath.eachDir {
@@ -69,6 +83,11 @@ class NetEmuPlugin implements Plugin<Project> {
 
                 new NetEmuYangToSourcesProcessor(resourcesPath, mdSalOutputPath, yangPackageName, mavenProject).execute()
 
+                /// Check if any (changed) YANG modules were processed:
+                if (NetEmuFileGenerator.YANG_MODULES.get() empty) {
+                    return
+                }
+
                 // FileUtils.copyDirectoryStructure javaFileGeneratorOutputPath.toFile(), netEmuMdSalMergingPath.toFile()
                 Files.walk javaFileGeneratorOutputPath forEach {
                     @Nonnull final destination = netEmuMdSalMergingPath.resolve (javaFileGeneratorOutputPath.relativize it)
@@ -76,6 +95,13 @@ class NetEmuPlugin implements Plugin<Project> {
                         Files.createDirectories destination.parent
                         Files.copy it, destination
                     }
+                }
+
+                @Nonnull final yangPackageBindingServiceFile = serviceFileGeneratorOutputPath
+                        .resolve YangModelBindingProvider.class.name toFile()
+
+                if (yangPackageBindingServiceFile.exists()) {
+                    yangBindingServiceFile.append "${yangPackageBindingServiceFile.text.trim()}\n"
                 }
 
                 // FileUtils.copyDirectoryStructure it.toFile(), yangMetaPath.toFile()
@@ -116,10 +142,10 @@ class NetEmuPlugin implements Plugin<Project> {
 
                     @Nonnull
                     public static final Set<YangModuleInfo> YANG_MODULE_INFOS = Set.of(
-                            ${String.join ",\n\n", NetEmuFileGenerator.YANG_MODULES.get().stream().map() {
-                                "${BindingMapping.getRootPackageName it.getQNameModule()}.\$YangModuleInfoImpl.getInstance()"
+                            ${String.join ",\n\n", (NetEmuFileGenerator.YANG_MODULES.get() stream() map() {
+                                "${Naming.getRootPackageName it.getQNameModule()}.\$YangModuleInfoImpl.getInstance()"
 
-                            }.collect()});
+                            } collect())});
 
                     @SuppressWarnings({"unused"})
                     public static class CompileTime {
@@ -130,7 +156,7 @@ class NetEmuPlugin implements Plugin<Project> {
 
                                 ${String.join """\n
                                 """, (NetEmuFileGenerator.YANG_MODULES.get() stream() map() {
-                                    @Nonnull final yangPackage = BindingMapping.getRootPackageName it.getQNameModule()
+                                    @Nonnull final yangPackage = Naming.getRootPackageName it.getQNameModule()
                                     @Nonnull final yangNorevPackage = yangPackage.replaceAll(/\.[^.]+$/, '.norev')
 
                                     """
@@ -170,19 +196,22 @@ class NetEmuPlugin implements Plugin<Project> {
                 """.stripIndent()
             }
 
-            FileUtils.deleteDirectory javaFileGeneratorOutputPath.toFile()
-            FileUtils.deleteDirectory mdSalOutputPath.toFile()
+            // FileUtils.deleteDirectory javaFileGeneratorOutputPath.toFile()
+            // FileUtils.deleteDirectory mdSalOutputPath.toFile()
 
-            FileUtils.copyDirectoryStructure netEmuMdSalMergingPath.toFile(), mdSalOutputPath.toFile()
-            FileUtils.deleteDirectory netEmuMdSalMergingPath.toFile()
-
-            Files.walk mdSalOutputPath filter { (it.fileName as String).endsWith '.java' } forEach {
-                it.text = it.getText (StandardCharsets.ISO_8859_1 as String) replaceAll "^\\P{ASCII}+", ""
+            if (Files.exists netEmuMdSalMergingPath) { /// ==> (changed) YANG models were processed.
+                FileUtils.copyDirectoryStructure netEmuMdSalMergingPath.toFile(), mdSalOutputPath.toFile()
+                FileUtils.deleteDirectory netEmuMdSalMergingPath.toFile()
             }
 
-            javaSources.srcDirs += [mdSalOutputPath.toString(), netEmuOutputPath.toString()]
+            /** Remove all non-ASCII characters from generated Java files -- which can occur in doc comments taken over from
+                description statements in YANG modules -- because the Java compiler might not accept them:
+            */
+            Files.walk mdSalOutputPath filter { it.fileName.toString() endsWith '.java' } forEach {
+                it.text = it.getText StandardCharsets.ISO_8859_1.toString() replaceAll "^\\P{ASCII}+", ""
+            }
 
-        } dependsOn (project.tasks.named 'processResources')
+        } dependsOn(project.tasks.named 'processResources')
 
         project.tasks.named 'compileJava' get() doFirst {
             @Nullable final pythonYangModelsFile = extension.pythonizer.yangModelsFile

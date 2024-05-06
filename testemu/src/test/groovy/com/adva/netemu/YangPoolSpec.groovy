@@ -1,19 +1,20 @@
 package com.adva.netemu
 
-import java.nio.charset.StandardCharsets
+import java.util.concurrent.ExecutionException
 
 import javax.annotation.Nonnull
 
-import org.opendaylight.yangtools.yang.common.Revision
-import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier
-
-import org.opendaylight.netconf.api.xml.XmlNetconfConstants
+import net.javacrumbs.futureconverter.java8guava.FutureConverter
 
 import spock.lang.Specification
 
-import com.adva.netemu.testemu.NetEmuDefined
+import org.opendaylight.yangtools.yang.common.Revision
+import org.opendaylight.yangtools.yang.model.repo.api.SourceIdentifier
+import org.opendaylight.yangtools.yang.model.repo.api.YangTextSchemaSource
 
-import java.util.concurrent.ExecutionException
+import org.opendaylight.netconf.api.NamespaceURN
+
+import com.adva.netemu.testemu.NetEmuDefined
 
 
 class YangPoolSpec extends Specification {
@@ -42,16 +43,24 @@ class YangPoolSpec extends Specification {
         module << [NetEmuDefined.YANG_MODULE_INFOS.first(), null]
     }
 
-    def ".getSource(#moduleName@#revisionString) yields according YANG module content"() {
+    def ".getSource(#moduleName@#revisionString) asynchronously yields according YANG module content"() {
         given:
-        @Nonnull final identifier = new SourceIdentifier(moduleName, Revision.of(revisionString))
-        @Nonnull final charset = StandardCharsets.US_ASCII
+        @Nonnull final identifier = new SourceIdentifier(moduleName, (Revision.of revisionString))
 
         when:
-        @Nonnull final content = this.testYangPool.getSource identifier get() asCharSource charset read()
+        @Nonnull final futureSource = FutureConverter.toCompletableFuture(this.testYangPool.getSource identifier)
+
+        and:
+        @Nonnull final content = futureSource.thenApplyAsync YangTextSchemaSource::read get()
 
         then:
         content =~ /(?ms)^\s*module\s+${moduleName}\s+\{[\s\n]+.+\s+revision\s+${revisionString}\s+\{/
+
+        and: /// Just ensure that the schema source can be read repeatedly ...
+        content == (futureSource.get() read())
+
+        and: /// ...& that the result is the same when content is read after future completion
+        content == (this.testYangPool.getSource identifier get() read())
 
         where:
         moduleName        | revisionString
@@ -60,7 +69,7 @@ class YangPoolSpec extends Specification {
         'ietf-yang-types' | '2013-07-15'
     }
 
-    def ".getSource() throws when given YANG module not found"() {
+    def ".getSource() asynchronously throws when given YANG module is not found"() {
         given:
         @Nonnull final identifier = new SourceIdentifier('unknown', Revision.of('2010-01-02'))
 
@@ -97,11 +106,11 @@ class YangPoolSpec extends Specification {
 
     def ".readConfigurationData() from empty YANG datastore results in empty <data> node"() {
         when:
-        @Nonnull final data = this.testYangPool.readConfigurationData().get().get()
+        @Nonnull final data = this.testYangPool.readConfigurationData() get() get()
 
         then:
         @Nonnull final qName = data.identifier.nodeType
-        qName.namespace as String == XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_NETCONF_BASE_1_0
+        qName.namespace as String == NamespaceURN.BASE
         qName.localName == 'data'
 
         and:
@@ -111,11 +120,11 @@ class YangPoolSpec extends Specification {
 
     def ".readOperationalData() from empty YANG datastore results in empty <data> node"() {
         when:
-        @Nonnull final data = this.testYangPool.readOperationalData().get().get()
+        @Nonnull final data = this.testYangPool.readOperationalData() get() get()
 
         then:
         @Nonnull final qName = data.identifier.nodeType
-        qName.namespace as String == XmlNetconfConstants.URN_IETF_PARAMS_XML_NS_NETCONF_BASE_1_0
+        qName.namespace as String == NamespaceURN.BASE
         qName.localName == 'data'
 
         and:

@@ -40,6 +40,7 @@ import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 import org.opendaylight.yangtools.yang.binding.Augmentation;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.ResourceYangModuleInfo;
+import org.opendaylight.yangtools.yang.binding.contract.Naming;
 import org.opendaylight.yangtools.yang.common.QName;
 import org.opendaylight.yangtools.yang.common.QNameModule;
 import org.opendaylight.yangtools.yang.common.XMLNamespace;
@@ -49,7 +50,6 @@ import org.opendaylight.yangtools.yang.model.api.stmt.SchemaNodeIdentifier;
 
 // import org.opendaylight.mdsal.binding.generator.impl.ModuleInfoBackedContext;
 // import org.opendaylight.mdsal.binding.generator.BindingGeneratorUtil;
-import org.opendaylight.mdsal.binding.spec.naming.BindingMapping;
 
 import com.adva.netemu.YangBound;
 
@@ -57,6 +57,7 @@ import com.adva.netemu.YangBound;
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"com.adva.netemu.YangBound"})
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
+@SuppressWarnings({"UnstableApiUsage"})
 public class YangBoundProcessor extends AbstractProcessor {
 
     private static class CompileTimeClassFieldMap extends AbstractMap<String, String> {
@@ -178,8 +179,7 @@ public class YangBoundProcessor extends AbstractProcessor {
 
         @Nonnull final TypeElement compileTimeContext = this.provideCompileTimeContextFrom(annotation);
         @Nonnull final String yangNamespace = this.provideYangNamespaceFrom(annotation);
-        @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangNorevPackage = BindingMapping.getRootPackageName(
-                QNameModule.create(XMLNamespace.of(yangNamespace)));
+        @Nonnull final var yangNorevPackage = Naming.getRootPackageName(QNameModule.create(XMLNamespace.of(yangNamespace)));
 
         @Nonnull final Optional<TypeElement> yangNorevLookup = this.resolveInnerClass(
                 compileTimeContext, "CompileTime", "YangModules", "NorevLookup");
@@ -236,13 +236,13 @@ public class YangBoundProcessor extends AbstractProcessor {
         @Nonnegative final var yangPathSize = yangPath.getNodeIdentifiers().size();
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var yangClassName = ClassName.get(
                 // BindingGeneratorUtil.packageNameForGeneratedType(yangModulePackage, yangPath),
-                // BindingMapping.getRootPackageName(yangPath.getLastComponent()),
-                (yangPathSize <= 1) ? yangModulePackage : String.join(".", yangModulePackage, BindingMapping
+                // Naming.getRootPackageName(yangPath.getLastComponent()),
+                (yangPathSize <= 1) ? yangModulePackage : String.join(".", yangModulePackage, Naming
                         .normalizePackageName(StreamEx.of(yangPath.getNodeIdentifiers().subList(0, yangPathSize - 1))
                                 .map(qName -> qName.getLocalName().replace("-", "."))
                                 .joining("."))),
 
-                BindingMapping.getClassName(yangPath.lastNodeIdentifier()));
+                Naming.getClassName(yangPath.lastNodeIdentifier()));
 
 
         @Nonnull final var elementUtils = super.processingEnv.getElementUtils();

@@ -20,6 +20,8 @@ import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -28,16 +30,15 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.javacrumbs.futureconverter.java8guava.FutureConverter;
 import one.util.streamex.StreamEx;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.opendaylight.yangtools.concepts.Identifiable;
+import org.opendaylight.yangtools.concepts.Identifier;
 
-// import org.opendaylight.yangtools.concepts.Builder;
 import org.opendaylight.yangtools.yang.binding.Augmentation;
 import org.opendaylight.yangtools.yang.binding.ChildOf;
 import org.opendaylight.yangtools.yang.binding.DataObject;
-import org.opendaylight.yangtools.yang.binding.Identifiable;
-import org.opendaylight.yangtools.yang.binding.Identifier;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.binding.Key;
+import org.opendaylight.yangtools.yang.binding.KeyAware;
 
 import org.opendaylight.mdsal.binding.api.DataTreeChangeListener;
 import org.opendaylight.mdsal.binding.api.DataTreeIdentifier;
@@ -47,11 +48,9 @@ import org.opendaylight.mdsal.common.api.LogicalDatastoreType;
 import com.adva.netemu.driver.EmuDriver;
 
 
+@Slf4j
 public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> // TODO: ChildOf<?>
         implements YangBindable, AutoCloseable {
-
-    @Nonnull
-    protected static final Logger LOG = LoggerFactory.getLogger(YangBinding.class);
 
     @Nonnull
     private final Executor executor; // = new ScheduledThreadPoolExecutor(1);
@@ -191,7 +190,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
     }
 
     public static abstract class ChildListBinding
-            <C_Y extends ChildOf & Identifiable<C_K>, C_K extends Identifier<C_Y>, C_B extends YangBuilder<C_Y>>
+            <C_Y extends ChildOf & KeyAware<C_K>, C_K extends Key<C_Y>, C_B extends YangBuilder<C_Y>>
             extends YangListBinding<C_Y, C_K, C_B> {
 
         @Nonnull
@@ -245,7 +244,7 @@ public abstract class YangBinding<Y extends ChildOf, B extends YangBuilder<Y>> /
 
     @Nonnull
     @SuppressWarnings("unchecked")
-    public InstanceIdentifier.InstanceIdentifierBuilder<Y> getIidBuilder() {
+    public InstanceIdentifier.Builder<Y> getIidBuilder() {
         if (this.owner == null) {
             return InstanceIdentifier.builder(this.getDataClass());
         }

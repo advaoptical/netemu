@@ -96,7 +96,7 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
         @Nonnull final var schemaContextHandler = new SchemaContextHandler(transactionChainHandler, domSchemaService);
         schemaContextHandler.onModelContextUpdated(schemaContext);
 
-        @Nonnull final var domRpcRouter = DOMRpcRouter.newInstance(domSchemaService);
+        @Nonnull final var domRpcRouter = new DOMRpcRouter(domSchemaService);
         domRpcRouter.onModelContextUpdated(schemaContext);
 
         @Nonnull @SuppressWarnings({"UnstableApiUsage"}) final var restconf = new RestconfApplication(
@@ -109,9 +109,9 @@ public class RestconfService extends EmuService<RestconfService.Settings> {
                         // new DOMDataBrokerHandler(super.yangPool().getNormalizedNodeBroker()),
                         /*new RpcServiceHandler(*/domRpcRouter.getRpcService(),
                         /*new ActionServiceHandler(*/domRpcRouter.getActionService(),
-                        /*new NotificationServiceHandler(*/DOMNotificationRouter.create(1024),
+                        /*new NotificationServiceHandler(*/new DOMNotificationRouter(1024),
                         domSchemaService,
-                        new StreamsConfiguration(0, 1, 0, true));
+                        new StreamsConfiguration(0, 1, 0, true, ""));
 
         @Nonnull final var settings = (Settings) this.settings();
         @Nonnull final var http = GrizzlyHttpServerFactory.createHttpServer(
