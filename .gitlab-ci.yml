@@ -37,7 +37,8 @@ before_script:
 #   stage: .pre
 #   tags:
 #     - docker
-#     - muc-vs-ae1
+#     - gdn-s-ae1
+#     # - muc-vs-ae1
 #
 #   script:
 #     - echo "Removing all untracked content from repository ..."
@@ -54,7 +55,8 @@ Validate ODL dependencies:
   stage: .pre
   tags:
     - docker
-    - muc-vs-ae1
+    - gdn-s-ae1
+    # - muc-vs-ae1
 
   script:
     # - gradle dependencies --configuration compileClasspath --quiet --stacktrace
@@ -73,7 +75,8 @@ Assemble NETEMU:
     stage: build
     tags:
       - docker
-      - muc-vs-ae1
+      - gdn-s-ae1
+      # - muc-vs-ae1
 
     script:
       - echo "Building and installing NETEMU to Maven local repository ..."
@@ -87,7 +90,8 @@ Test NETEMU w/TESTEMU:
   stage: test
   tags:
     - docker
-    - muc-vs-ae1
+    - gdn-s-ae1
+    # - muc-vs-ae1
 
   script:
     - echo "Configuring '$(realpath .m2)/repository' as new Maven local repository, to check if bundling of ODL modules works ..."
@@ -111,7 +115,8 @@ Publish NETEMU to Artifactory:
   stage: deploy
   tags:
     - docker
-    - muc-vs-ae1
+    - gdn-s-ae1
+    # - muc-vs-ae1
 
   script:
     - >
