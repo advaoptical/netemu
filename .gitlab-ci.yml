@@ -1,4 +1,4 @@
-image: gitlab.rd.advaoptical.com:4567/at/anden/netemu/ci:latest
+image: gitlab.rd.advaoptical.com:4567/at/anden/netemu/ci:java21
 
 
 variables:
