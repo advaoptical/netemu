@@ -49,7 +49,7 @@ import com.adva.netemu.YangProvider;
 
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"com.adva.netemu.YangProvider"})
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
+@SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class YangProviderProcessor extends AbstractProcessor {
 
     @Nonnull

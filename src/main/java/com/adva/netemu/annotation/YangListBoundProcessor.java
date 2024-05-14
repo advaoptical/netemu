@@ -18,7 +18,7 @@ import com.adva.netemu.YangListBound;
 
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"com.adva.netemu.YangListBound"})
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
+@SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class YangListBoundProcessor extends YangBoundProcessor {
 
     protected YangListBoundProcessor(@Nonnull final Class<? extends Annotation> annotationClass) {

@@ -56,7 +56,7 @@ import com.adva.netemu.YangBound;
 
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"com.adva.netemu.YangBound"})
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
+@SupportedSourceVersion(SourceVersion.RELEASE_21)
 @SuppressWarnings({"UnstableApiUsage"})
 public class YangBoundProcessor extends AbstractProcessor {
 

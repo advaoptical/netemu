@@ -21,7 +21,7 @@ import one.util.streamex.EntryStream;
 
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"com.adva.netemu.YangListModeled"})
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
+@SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class YangListModeledProcessor extends YangListBoundProcessor {
 
     public YangListModeledProcessor() {
