@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'com.adtran.at'
+version = rootProject.version
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    api libs.streamex
+//    api 'io.projectreactor:reactor-core:3.8.5'
+    api 'org.checkerframework:checker-qual:3.52.0'
+    api 'org.jetbrains:annotations:26.1.0'
+
+    annotationProcessor libs.lombok
+    compileOnly libs.lombok
+
+    compileOnly 'org.opendaylight.yangtools:yang-common:13.0.11'
+}
+
+publishing {
+    publications {
+        create 'maven', MavenPublication, {
+            from this.project.components.java
+        }
+    }
+}
