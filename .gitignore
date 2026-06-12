@@ -9,9 +9,15 @@ __pycache__/
 .classpath
 .project
 
+.github/*
+!.github/**/*.yml
 .gradle/
 .idea/
+.junie/
 .settings/
+.vs/
+.vscode/*
+!.vscode/tasks.json
 
 gradlew
 gradlew.*

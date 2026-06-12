@@ -7,3 +7,5 @@ pluginManagement {
 */
 
 rootProject.name = "netemu"
+
+include 'sdn4j-yang'
