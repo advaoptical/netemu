@@ -35,4 +35,24 @@ publishing {
             from this.project.components.java
         }
     }
+    repositories {
+        maven { /** URL selection strategy adapted from
+        https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:snapshot_and_release_repositories
+        */
+            if (project.hasProperty 'release') {
+                url = project.findProperty 'artifactoryReleaseUrl'
+            }
+
+            if (project.hasProperty 'snapshot') {
+                url = project.findProperty 'artifactorySnapshotUrl'
+            }
+
+            if (project.hasProperty 'artifactoryToken') {
+                credentials {
+                    username = project.findProperty 'artifactoryUser'
+                    password = project.findProperty 'artifactoryToken'
+                }
+            }
+        }
+    }
 }

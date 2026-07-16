@@ -21,7 +21,7 @@ group = 'com.adva'
 
 version = { com.palantir.gradle.gitversion.VersionDetails details ->
 
-    if (details.branchName && !(details.branchName as String).blank && details.branchName != 'master') {
+    if (details.branchName && !(details.branchName as String).blank && details.branchName != 'stefanz/actions') {
         return "${details.branchName.replaceAll '/', '-'}-g${details.gitHash}"
     }
 
