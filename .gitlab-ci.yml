@@ -27,7 +27,7 @@ before_script:
 #    ; git reset --hard '@{upstream}'
 #    ; fi
 
-  - gradle printVersion --quiet --warning-mode fail --stacktrace
+  - gradle :printVersion --quiet --warning-mode fail --stacktrace
 
   # - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
   # - mkdir -p /root/.m2 && groovy .m2/settings.groovy > /root/.m2/settings.xml && cat /root/.m2/settings.xml
@@ -81,7 +81,7 @@ Assemble NETEMU:
 
     script:
       - echo "Building and packaging NETEMU ..."
-      - gradle assemble --build-cache --info --warning-mode fail --stacktrace
+      - gradle :assemble --build-cache --info --warning-mode fail --stacktrace
 
       # - echo "Removing bundled OpenDaylight modules from Maven local repository ..."
       # - rm --force --recursive .m2/repository/org/opendaylight
@@ -96,7 +96,7 @@ Test NETEMU w/o YANG models:
 
   script:
     - echo "Testing NETEMU's Gradle plugin & Java APIs w/Spock unit tests ..."
-    - gradle test --build-cache --info --warning-mode all --stacktrace
+    - gradle :test --build-cache --info --warning-mode all --stacktrace
 
 
 Install & test NETEMU w/YANG models via TestEMU:
@@ -108,19 +108,19 @@ Install & test NETEMU w/YANG models via TestEMU:
 
   script:
     - echo "Bundling NETEMU w/custom ODL modules ..."
-    - gradle jar --build-cache --info --warning-mode fail --stacktrace
+    - gradle :jar --build-cache --info --warning-mode fail --stacktrace
 
     - echo "Configuring '$(realpath .m2)/repository' as new Maven local repository, to check if bundling of ODL modules works ..."
     - mkdir -p /root/.m2 && groovy .m2/settings.groovy > /root/.m2/settings.xml && cat /root/.m2/settings.xml
     - ls -x .m2/repository/
 
     - echo "Installing NETEMU bundled w/custom ODL modules to new, empty Maven local repository ..."
-    - gradle publishToMavenLocal --build-cache --exclude-task jar --info --warning-mode fail --stacktrace
+    - gradle :publishToMavenLocal --build-cache --exclude-task jar --info --warning-mode fail --stacktrace
 
     - test ! -d /root/.m2/repository/com/adva/netemu
 
     - ls -x .m2/repository/com/adva/netemu
-    - test -d .m2/repository/com/adva/netemu/"$(gradle printVersion --quiet --warning-mode fail --stacktrace)"
+    - test -d .m2/repository/com/adva/netemu/"$(gradle :printVersion --quiet --warning-mode fail --stacktrace)"
 
     - echo "Showing auto-generated 'netEmuVersion' property for TESTEMU ..."
     - cat testemu/gradle.properties
@@ -129,7 +129,7 @@ Install & test NETEMU w/YANG models via TestEMU:
     #   | grep --only-matching --perl-regexp '^version:\s*\K(\S+)')"
 
     - echo "Testing NETEMU's Java APIs w/Spock unit tests in TESTEMU, based on YANG ietf-interfaces model ..."
-    - cd testemu && gradle test --build-cache --info --warning-mode all --stacktrace
+    - cd testemu && gradle :test --build-cache --info --warning-mode all --stacktrace
 
 
 Publish NETEMU to Artifactory:
@@ -141,10 +141,10 @@ Publish NETEMU to Artifactory:
 
   script:
     - >
-      if gradle properties --quiet --warning-mode fail --stacktrace | grep --perl-regexp '^(release|snapshot):' ; then
+      if gradle :properties --quiet --warning-mode fail --stacktrace | grep --perl-regexp '^(release|snapshot):' ; then
       echo "Publishing NETEMU bundled w/custom ODL modules ..."
       ;
-      gradle publish --build-cache --build-cache --info --warning-mode fail --stacktrace
+      gradle :publish --build-cache --build-cache --info --warning-mode fail --stacktrace
       --project-prop artifactoryReleaseUrl="$ARTIFACTORY_RELEASE_URL"
       --project-prop artifactorySnapshotUrl="$ARTIFACTORY_SNAPSHOT_URL"
       --project-prop artifactoryUser="$ARTIFACTORY_USER"
