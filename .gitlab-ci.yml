@@ -1,13 +1,14 @@
-image: gitlab.rd.advaoptical.com:4567/at/anden/netemu/ci:java21
+image: gitlab.rd.advaoptical.com:4567/at/anden/netemu/ci:latest # <-- Built from ci.Dockerfile
 
+variables:
+    GIT_DEPTH: 0 # <-- Clone full history for proper versioning w/ com.palantir.git-version & setuptools_scm, & commit linting.
+    GIT_SUBMODULE_STRATEGY: recursive
 
-# variables:
 #   GIT_CLEAN_FLAGS: none # ==> Intermediate files (build, test data, etc.) are kept across all jobs ==> No caching necessary
 
-
 before_script:
-  - echo "Activating Java ecosystem ..."
-  - source /root/.sdkman/bin/sdkman-init.sh
+#  - echo "Activating Java ecosystem ..."
+#  - source /root/.sdkman/bin/sdkman-init.sh
 
   - export HOME="$(pwd)" && echo $HOME
   - export GRADLE_USER_HOME="$HOME/.gradle" && echo $GRADLE_USER_HOME
@@ -19,12 +20,12 @@ before_script:
 
   # Git commands adapted from https://forum.gitlab.com/t/test-if-branch-is-behind-for-merge-request/73789
   # and https://stackoverflow.com/a/65084420 ...
-  - >
-    if [ -n "$CI_COMMIT_BRANCH" ] ; then
-    echo "Switching from detached HEAD to actual branch, so Gradle plugin com.palantir.git-version can determine its name ..."
-    ; git switch $CI_COMMIT_BRANCH
-    ; git reset --hard '@{upstream}'
-    ; fi
+#  - >
+#    if [ -n "$CI_COMMIT_BRANCH" ] ; then
+#    echo "Switching from detached HEAD to actual branch, so Gradle plugin com.palantir.git-version can determine its name ..."
+#    ; git switch $CI_COMMIT_BRANCH
+#    ; git reset --hard '@{upstream}'
+#    ; fi
 
   - gradle printVersion --quiet --warning-mode fail --stacktrace
 
@@ -55,8 +56,8 @@ Validate ODL dependencies:
   stage: .pre
   tags:
     - docker
-    - gdn-s-ae1
-    # - muc-vs-ae1
+    # - gdn-s-ae1
+    - muc-vs-ae1
 
   script:
     # - gradle dependencies --configuration compileClasspath --quiet --stacktrace
@@ -75,8 +76,8 @@ Assemble NETEMU:
     stage: build
     tags:
       - docker
-      - gdn-s-ae1
-      # - muc-vs-ae1
+#      - gdn-s-ae1
+      - muc-vs-ae1
 
     script:
       - echo "Building and packaging NETEMU ..."
@@ -90,8 +91,8 @@ Test NETEMU w/o YANG models:
   stage: test
   tags:
     - docker
-    - gdn-s-ae1
-    # - muc-vs-ae1
+#    - gdn-s-ae1
+    - muc-vs-ae1
 
   script:
     - echo "Testing NETEMU's Gradle plugin & Java APIs w/Spock unit tests ..."
@@ -102,8 +103,8 @@ Install & test NETEMU w/YANG models via TestEMU:
   stage: test
   tags:
     - docker
-    - gdn-s-ae1
-    # - muc-vs-ae1
+#    - gdn-s-ae1
+    - muc-vs-ae1
 
   script:
     - echo "Bundling NETEMU w/custom ODL modules ..."
@@ -135,8 +136,8 @@ Publish NETEMU to Artifactory:
   stage: deploy
   tags:
     - docker
-    - gdn-s-ae1
-    # - muc-vs-ae1
+#    - gdn-s-ae1
+    - muc-vs-ae1
 
   script:
     - >
