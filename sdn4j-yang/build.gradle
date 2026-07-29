@@ -54,7 +54,7 @@ publishing {
                     value = project.findProperty 'artifactoryToken'
                 }
             }
-            if (project.hasProperty 'artifactoryUser') {
+            else if (project.hasProperty 'artifactoryUser') {
                 credentials {
                     username = project.property 'artifactoryUser'
                     password = project.findProperty 'artifactoryToken'

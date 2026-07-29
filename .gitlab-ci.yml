@@ -147,7 +147,7 @@ Publish NETEMU to Artifactory:
       gradle :publish --build-cache --build-cache --info --warning-mode fail --stacktrace
       --project-prop artifactoryReleaseUrl="$ARTIFACTORY_RELEASE_URL"
       --project-prop artifactorySnapshotUrl="$ARTIFACTORY_SNAPSHOT_URL"
-      --project-prop artifactoryUser="$ARTIFACTORY_USER"
+      --project-prop artifactoryHeader="$ARTIFACTORY_HEADER"
       --project-prop artifactoryToken="$ARTIFACTORY_TOKEN"
       ;
       echo "Application successfully deployed."

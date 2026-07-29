@@ -16,20 +16,17 @@ wrapper {
     gradleVersion = '8.7'
 }
 
-
 group = 'com.adva'
 
 version = { com.palantir.gradle.gitversion.VersionDetails details ->
-
+    // ----
     if (details.branchName && !(details.branchName as String).blank && details.branchName != 'master') {
         return "${details.branchName.replaceAll '/', '-'}-g${details.gitHash}"
     }
-
     final matcher = details.lastTag =~ /^v?(?<major>\d+)\.(?<minor>\d+)(\.(?<micro>\d+))?$/
     if (!matcher) { // ==> tag does not represent a version number ...
         return "${details.lastTag}-g${details.gitHash}"
     }
-
     final majorNumber = (matcher.group 'major') as Integer
     final minorNumber = (matcher.group 'minor') as Integer
     final microNumber = (matcher.group 'micro') as Integer
@@ -38,16 +35,13 @@ version = { com.palantir.gradle.gitversion.VersionDetails details ->
     final publishingProperty /// used for configuring deployment -- see: com.adtran.topline.java-conventions.gradle & CI config
     if (details.commitDistance > 0) {
         /// ==> not on tagged commit ...
-
         /// suffixes after -SHAPSHOT don't work with https://muc-artifactory.rd.advaoptical.com/artifactory/at-snapshot-local
         version = "${majorNumber}.${minorNumber}.${microNumber + 1}-SNAPSHOT" // -${details.commitDistance}"
         publishingProperty = 'snapshot'
-
     } else {
         version = "${majorNumber}.${minorNumber}.${microNumber}"
         publishingProperty = 'release'
     }
-
     project.ext[publishingProperty] = version
     return version
 
@@ -59,16 +53,12 @@ projectDir.toPath() resolve 'testemu' resolve 'gradle.properties' toFile() setTe
 netEmuVersion = ${project.version}
 """
 
-
 java { /** Updated to use JavaPluginExtension instead of Gradle 8+ deprecated JavaPluginConvention - according to:
-
     https://docs.gradle.org/8.4/userguide/upgrading_version_8.html#java_convention_deprecation
     */
-
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
-
 
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
@@ -81,31 +71,25 @@ ext.jepDir = [
 ].execute().text.trim()
 */
 
-
 repositories {
     mavenLocal()
     mavenCentral()
-
     maven {
         url = 'https://vaadin.com/nexus/content/repositories/vaadin-addons'
     }
-
     // maven("https://repo.spring.io/plugins-release")
 
     // jcenter()
-
     /*
     flatDir {
         dirs "opendaylight-mdsal/binding/yang-binding/target"
     }
     */
-
     /*
     flatDir {
         dirs "opendaylight-netconf/netconf/tools/netconf-testtool/target"
     }
     */
-
     /*
     flatDir {
         dirs jepDir
@@ -122,7 +106,6 @@ dependencyManagement {
 */
 
 configurations.all { /// Exclude transitive dependencies not available anymore and/or superceded by other modules ...
-
     exclude group: 'com.bea.xml', module: 'jsr173-ri' /// Superceded by javax.xml:jsr173
 }
 
@@ -193,7 +176,6 @@ dependencies {
         (The check for executed task was adapted from https://discuss.gradle.org/t/how-to-get-current-tasks-info/24997/2)
     */
     if ('dependencies' !in project.gradle.startParameter.taskNames) {
-
         /** Dependencies file should be re-created on every dependencies update, by runnging:
             groovy opendaylight-dependencies.groovy > openconfig-dependencies.txt
         */
@@ -203,12 +185,10 @@ dependencies {
             else { api dependency }
         }
     }
-
     /** And now define the customized OpenDaylight modules as mere compile dependencies, so during compilation & runtime of
         NETEMU-dependent projects, those modules are not searched for in Maven repositories, but their contents (classes, etc.)
         are simply accessed through NETEMU's own JAR (see :jar task configuration for details on bundling) ...
     */
-
     /// opendaylight-yangtools ...
     // compileOnly libs.rfc7952.data.util
     compileOnly libs.yang.data.api
@@ -242,7 +222,6 @@ jar { /// Bundle NETEMU's JAR with customized OpenDaylight modules -- technique 
     from {
         configurations.compileClasspath.findAll { it.name.endsWith '-ADVA.jar' } collect { zipTree it }
     }
-
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
@@ -252,7 +231,6 @@ publishing {
             from components.java
         }
     }
-
     repositories {
         maven { /** URL selection strategy adapted from
         https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:snapshot_and_release_repositories
@@ -260,14 +238,21 @@ publishing {
             if (project.hasProperty 'release') {
                 url = project.findProperty 'artifactoryReleaseUrl'
             }
-
             if (project.hasProperty 'snapshot') {
                 url = project.findProperty 'artifactorySnapshotUrl'
             }
-
-            if (project.hasProperty 'artifactoryToken') {
+            if (project.hasProperty 'artifactoryHeader') {
+                authentication {
+                    header HttpHeaderAuthentication
+                }
+                credentials HttpHeaderCredentials, {
+                    name = project.property 'artifactoryHeader'
+                    value = project.findProperty 'artifactoryToken'
+                }
+            }
+            else if (project.hasProperty 'artifactoryUser') {
                 credentials {
-                    username = project.findProperty 'artifactoryUser'
+                    username = project.property 'artifactoryUser'
                     password = project.findProperty 'artifactoryToken'
                 }
             }
@@ -275,12 +260,10 @@ publishing {
     }
 }
 
-
 compileJava {
     options.fork = true
 
     for (final javacPackage in ['code', 'util']) {
-
         /** Adapted from https://github.com/projectlombok/lombok/issues/2681#issuecomment-805252645
         */
         options.forkOptions.jvmArgs += ['--add-opens', "jdk.compiler/com.sun.tools.javac.${javacPackage}=ALL-UNNAMED"
@@ -290,14 +273,12 @@ compileJava {
     }
 }
 
-
 test {
     useJUnitPlatform()
     testLogging {
         events 'passed', 'skipped', 'failed'
     }
 }
-
 
 tasks.register 'mvnInstallYangtools', Exec, {
     workingDir rootDir
@@ -331,7 +312,6 @@ tasks.register 'mvnInstallOpenDaylightModules', {
     dependsOn mvnInstallNetconf
 }
 
-
 tasks.register 'mvnCleanYangtools', Exec, {
     workingDir rootDir
     commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + ['groovy', 'mvn-yangtools.groovy', '--batch-mode', 'clean']
@@ -353,13 +333,11 @@ tasks.register 'mvnCleanOpenDaylightModules', {
     dependsOn mvnCleanNetconf
 }
 
-
 tasks.register 'dockerBuildCiContainer', Exec, {
     workingDir project.rootDir
     commandLine = (operatingSystem.windows ? ['cmd', '/c'] : []) + [
             'docker', 'buildx', 'build', '--file', 'ci.Dockerfile', '--tag', 'adtran/netemu-ci:latest', '.']
 }
-
 
 gradlePlugin {
     plugins {
