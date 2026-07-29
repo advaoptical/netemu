@@ -42,14 +42,21 @@ publishing {
             if (project.hasProperty 'release') {
                 url = project.findProperty 'artifactoryReleaseUrl'
             }
-
             if (project.hasProperty 'snapshot') {
                 url = project.findProperty 'artifactorySnapshotUrl'
             }
-
-            if (project.hasProperty 'artifactoryToken') {
+            if (project.hasProperty 'artifactoryHeader') {
+                authentication {
+                    header HttpHeaderAuthentication
+                }
+                credentials HttpHeaderCredentials, {
+                    name = project.property 'artifactoryHeader'
+                    value = project.findProperty 'artifactoryToken'
+                }
+            }
+            if (project.hasProperty 'artifactoryUser') {
                 credentials {
-                    username = project.findProperty 'artifactoryUser'
+                    username = project.property 'artifactoryUser'
                     password = project.findProperty 'artifactoryToken'
                 }
             }
