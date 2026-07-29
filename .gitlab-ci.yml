@@ -26,7 +26,12 @@ before_script:
 #    ; git switch $CI_COMMIT_BRANCH
 #    ; git reset --hard '@{upstream}'
 #    ; fi
-
+  - >
+    if [ -n "$CI_COMMIT_REF_NAME" ] ; then
+    echo "Switching from detached HEAD to actual branch, so Gradle plugin com.palantir.git-version can determine its name ..."
+    ; git checkout --force -B "$CI_COMMIT_REF_NAME" "$CI_COMMIT_SHA"
+    ; git status
+    ; fi
   - gradle :printVersion --quiet --warning-mode fail --stacktrace
 
   # - echo "Configure '$(realpath .m2)/repository' as default Maven local repository ..."
